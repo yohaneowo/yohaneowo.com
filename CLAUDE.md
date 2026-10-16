@@ -55,6 +55,6 @@
 | `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:studio` | 生成迁移 / 套用迁移 / 浏览资料                                            |
 | `pnpm dlx shadcn@latest add <组件>`                       | 加 shadcn 组件                                                            |
 
-## 部署（NAS）
+## 部署（Coolify）
 
-跟 bot、admin 一样：`Dockerfile` 构建镜像推到 Docker Hub，NAS 只拉镜像跑，对外经 Cloudflare Tunnel。
+跑在家里的 Proxmox 虚拟机（Coolify，局域网 `http://192.168.0.210:8000`）。push 到 `main` 会经 GitHub webhook 自动用 `Dockerfile` 构建并部署；镜像启动时先跑 `scripts/migrate.mjs` 套用 drizzle 迁移，再启动 Next.js。正式站的密钥在 Doppler `prd`，容器只拿到一个 `DOPPLER_TOKEN`。对外经 Cloudflare Tunnel，TLS 由 Cloudflare 终结，所以 Coolify 里的域名写 `http://yohaneowo.com`。观影统计连的是同一台机器上的 admin（`ADMIN_API_URL=http://yohaneowo-admin-web`）。`develop` 是开发分支，合并进 `main` 才会上线。
