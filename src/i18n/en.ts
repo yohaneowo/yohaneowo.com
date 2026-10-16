@@ -1,3 +1,4 @@
+import coinhubEn from "./coinhub-en";
 import type { Dictionary } from "./zh";
 
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
@@ -12,6 +13,11 @@ const en: Dictionary = {
       title: "MovieHub",
       description:
         "Your taste from your Trakt history: genres, how you rate, and the directors and actors you like.",
+    },
+    coinhub: {
+      title: "CoinHub",
+      description:
+        "My own TradingView: candles, drawing tools, indicators and alerts, plus Fear & Greed, BTC.D, USDT.D and MSTR mNAV.",
     },
     uidhub: {
       title: "UIDHub",
@@ -277,6 +283,7 @@ const en: Dictionary = {
     volume: (count, noun, percent, users) =>
       `${count} ${noun} watched, as many as or more than ${percent}% of the site's ${plural(users, "user")}. Uses your whole history.`,
   },
+  coinhub: coinhubEn,
 };
 
 export default en;

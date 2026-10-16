@@ -1,4 +1,4 @@
-import { FilmIcon, Gamepad2Icon, type LucideIcon } from "lucide-react";
+import { ChartCandlestickIcon, FilmIcon, Gamepad2Icon, type LucideIcon } from "lucide-react";
 import type { Dictionary } from "@/i18n/dictionaries";
 
 export type NavItem = {
@@ -11,5 +11,6 @@ export type NavItem = {
 // Each feature gets one entry here; the header and the home page both render from it.
 export const NAV_ITEMS: NavItem[] = [
   { key: "moviehub", href: "/moviehub", icon: FilmIcon },
+  { key: "coinhub", href: "/coinhub", icon: ChartCandlestickIcon },
   { key: "uidhub", href: "/uidhub", icon: Gamepad2Icon },
 ];

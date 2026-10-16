@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // Better Auth core tables (user / session / account / verification). Property names must match
 // Better Auth's field names; the database columns are snake_case via `casing` in db/index.ts.
@@ -81,5 +81,15 @@ export const moviePreference = pgTable("movie_preference", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   scoreSource: text().notNull().default("imdb"),
+  ...timestamps,
+});
+
+// CoinHub workspace per site account: layout, charts, drawings, alerts and the paper account, as
+// the browser stores them (lib/coinhub/sync.ts). Last write wins.
+export const coinhubWorkspace = pgTable("coinhub_workspace", {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  data: jsonb().notNull(),
   ...timestamps,
 });

@@ -1,4 +1,5 @@
 // Chinese texts; the English dictionary must have the same shape (see Dictionary).
+import coinhubZh from "./coinhub-zh";
 
 const zh = {
   site: {
@@ -9,6 +10,11 @@ const zh = {
     moviehub: {
       title: "观影统计",
       description: "从 Trakt 观看记录看自己的口味：类型、评分分布、喜欢的导演与演员。",
+    },
+    coinhub: {
+      title: "CoinHub",
+      description:
+        "自己的 TradingView：K 线、画线工具、指标和警报，外加恐惧贪婪指数、BTC.D、USDT.D、MSTR mNAV。",
     },
     uidhub: {
       title: "UIDHub",
@@ -263,6 +269,7 @@ const zh = {
     volume: (count: number, noun: string, percent: number, users: number) =>
       `看过 ${count} 部${noun}，不少于平台上 ${percent}% 的用户（共 ${users} 位）。按全部观影记录计算。`,
   },
+  coinhub: coinhubZh,
 };
 
 export default zh;
