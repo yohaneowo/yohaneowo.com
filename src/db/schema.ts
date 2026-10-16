@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // Better Auth core tables (user / session / account / verification). Property names must match
 // Better Auth's field names; the database columns are snake_case via `casing` in db/index.ts.
@@ -36,7 +36,7 @@ export const session = pgTable(
   (t) => [index().on(t.userId)],
 );
 
-// One row per linked login provider (Google now, Discord later).
+// One row per linked login provider (Google or Discord).
 export const account = pgTable(
   "account",
   {
@@ -55,7 +55,11 @@ export const account = pgTable(
     password: text(),
     ...timestamps,
   },
-  (t) => [index().on(t.userId)],
+  (t) => [
+    index().on(t.userId),
+    uniqueIndex("account_provider_identity_unique").on(t.providerId, t.accountId),
+    uniqueIndex("account_user_provider_unique").on(t.userId, t.providerId),
+  ],
 );
 
 export const verification = pgTable(
