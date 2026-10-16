@@ -3,29 +3,32 @@
 import { Loader2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/locale-provider";
 import { authClient } from "@/lib/auth-client";
 
-export function GoogleSignInButton({ initialError }: { initialError: string | null }) {
+export function SocialSignInButton({ provider }: { provider: "google" | "discord" }) {
+  const label = provider === "google" ? "Google" : "Discord";
+  const { t, href } = useLocale();
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(initialError);
+  const [error, setError] = useState<string | null>(null);
 
   async function signIn() {
     if (pending) return;
     setPending(true);
     setError(null);
     try {
-      // Keep the button disabled while the browser leaves for Google.
+      // Keep the button disabled while the browser leaves for the provider.
       const { error } = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-        errorCallbackURL: "/login",
+        provider,
+        callbackURL: href(provider === "discord" ? "/moviehub" : "/"),
+        errorCallbackURL: href("/login"),
       });
       if (error) {
-        setError("暂时无法使用 Google 登录，请稍后再试。");
+        setError(t.login.providerFailed(label));
         setPending(false);
       }
     } catch {
-      setError("无法连接登录服务，请检查网络后重试。");
+      setError(t.header.authUnreachable);
       setPending(false);
     }
   }
@@ -34,7 +37,7 @@ export function GoogleSignInButton({ initialError }: { initialError: string | nu
     <div className="flex flex-col gap-2">
       <Button size="lg" className="w-full" onClick={signIn} disabled={pending} aria-busy={pending}>
         {pending && <Loader2Icon className="animate-spin" />}
-        {pending ? "正在前往 Google…" : "使用 Google 登录"}
+        {pending ? t.login.goingTo(label) : t.login.signInWith(label)}
       </Button>
       {error && (
         <p role="alert" className="text-sm text-destructive">

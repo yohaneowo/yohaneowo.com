@@ -73,3 +73,13 @@ export const verification = pgTable(
   },
   (t) => [index().on(t.identifier)],
 );
+
+// Movie profile settings per site account. scoreSource is the public score shown next to the
+// user's own ratings ("imdb" | "tmdb" | "metacritic"; see SCORE_SOURCES in lib/movie-types.ts).
+export const moviePreference = pgTable("movie_preference", {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  scoreSource: text().notNull().default("imdb"),
+  ...timestamps,
+});

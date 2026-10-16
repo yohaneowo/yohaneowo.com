@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { localePath } from "@/i18n/config";
+import { getDictionary, getLocale } from "@/i18n/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
-import { GoogleSignInButton } from "./google-sign-in-button";
+import { SocialSignInButton } from "./social-sign-in-button";
 
-export const metadata: Metadata = { title: "登录" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).login.title };
+}
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string | string[] }>;
@@ -13,34 +17,49 @@ type LoginPageProps = {
 
 async function LoginContent({ searchParams }: LoginPageProps) {
   const session = await getSession();
-  if (session) redirect("/");
+  const lang = await getLocale();
+  const t = await getDictionary();
+  if (session) redirect(localePath(lang, "/"));
 
   const { error } = await searchParams;
   const code = typeof error === "string" ? error : error?.[0];
   const message = code
     ? code === "access_denied"
-      ? "你取消了 Google 授权，可以重新尝试登录。"
+      ? t.login.cancelled
       : ["state_not_found", "state_mismatch", "state_expired", "please_restart_the_process"].includes(code)
-        ? "登录请求已失效，请重新登录。"
-        : "Google 登录未完成，请重试。若仍失败，请稍后再试。"
+        ? t.login.expired
+        : t.login.incomplete
     : null;
 
-  return <GoogleSignInButton initialError={message} />;
+  return (
+    <div className="space-y-3">
+      {message && (
+        <p role="alert" className="text-sm text-destructive">
+          {message}
+        </p>
+      )}
+      <SocialSignInButton provider="google" />
+      {process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET && (
+        <SocialSignInButton provider="discord" />
+      )}
+    </div>
+  );
 }
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const t = await getDictionary();
   return (
     <div className="flex flex-1 items-center justify-center">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>登录</CardTitle>
-          <CardDescription>用 Google 帐号登录，首次登录会自动创建网站帐号。</CardDescription>
+          <CardTitle>{t.login.title}</CardTitle>
+          <CardDescription>{t.login.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <Suspense
             fallback={
               <p role="status" className="text-sm text-muted-foreground">
-                正在检查登录状态…
+                {t.login.checking}
               </p>
             }
           >

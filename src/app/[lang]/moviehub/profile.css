@@ -1,0 +1,1423 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap");
+
+/* STRATZ-style profile. Scoped under .profile so it does not restyle the site. */
+
+.profile {
+  --bg: #101318;
+  --panel: #171b22;
+  --panel-2: #1e232c;
+  --line: #272d38;
+  --fg: #e6e8ec;
+  --fg-2: #9aa1ad;
+  --fg-3: #6b7280;
+  --gold: #e0b04a;
+  --up: #3fb68b;
+  --down: #e2694f;
+  --display: "Barlow Condensed", "Noto Sans SC", system-ui, sans-serif;
+  --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  width: 100vw;
+  margin-top: -2rem;
+  margin-bottom: -2rem;
+  margin-left: calc(50% - 50vw);
+  background: var(--bg);
+  color: var(--fg);
+  color-scheme: dark;
+  font-family: var(--body);
+  font-size: 14px;
+  min-height: calc(100vh - 3.5rem);
+}
+
+.profile * {
+  box-sizing: border-box;
+}
+
+.profile button,
+.profile a {
+  font: inherit;
+}
+
+.profile button {
+  cursor: pointer;
+}
+
+.profile button:focus-visible,
+.profile a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.profile .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.profile .num {
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.profile .wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.profile .hero {
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.profile .hero-in {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 16px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.profile .avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 3px solid var(--gold);
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  font-weight: 700;
+  background: var(--panel);
+  flex-shrink: 0;
+}
+
+.profile .name {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.profile .sub {
+  color: var(--fg-2);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.profile .sub a {
+  color: var(--fg-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.profile .sub a:hover {
+  color: var(--fg);
+}
+
+.profile .tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* Movies / shows, ahead of the page tabs. */
+.profile .tabs .media-toggle {
+  margin-right: 10px;
+  align-self: center;
+}
+
+.profile .identity {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.profile .refresh {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  border-radius: 4px;
+  padding: 7px 12px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.profile .refresh:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+
+.profile .refresh:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.profile .tabs button {
+  background: none;
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: var(--fg-2);
+  font-size: 13px;
+}
+
+.profile .tabs button.on {
+  background: var(--panel);
+  color: var(--fg);
+}
+
+.profile .filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.profile .filter {
+  position: relative;
+}
+
+.profile .filters > .filter > button {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--fg-2);
+  font-size: 13px;
+  padding: 7px 12px;
+  border-radius: 4px;
+}
+
+.profile .filters > .filter > button:hover,
+.profile .filters > .filter > button[aria-expanded="true"] {
+  color: var(--fg);
+  border-color: var(--fg-3);
+}
+
+.profile .filters > .filter > button[data-active="true"] {
+  color: var(--fg);
+  border-color: var(--gold);
+}
+
+.profile .menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 148px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile .menu button {
+  text-align: left;
+  background: none;
+  border: 0;
+  color: var(--fg-2);
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 3px;
+}
+
+.profile .menu button:hover,
+.profile .menu button[aria-checked="true"] {
+  background: var(--panel);
+  color: var(--fg);
+}
+
+.profile .kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.profile .kpi {
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.profile .kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.profile .kpi-v {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.profile .kpi-l {
+  color: var(--fg-2);
+  font-size: 13px;
+}
+
+.profile .seg {
+  display: flex;
+  gap: 3px;
+}
+
+.profile .seg i {
+  flex: 1;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.profile .seg i.on {
+  background: var(--gold);
+}
+
+.profile .split {
+  height: 8px;
+  border-radius: 2px;
+  background: var(--down);
+  overflow: hidden;
+}
+
+.profile .split i {
+  display: block;
+  height: 100%;
+  background: var(--up);
+}
+
+.profile .grid {
+  display: grid;
+  /* STRATZ uses a fixed right rail; the match list takes the remaining width. */
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 12px;
+  align-items: start;
+}
+
+.profile .card {
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.profile .card h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile .card h2.wrap-h {
+  flex-wrap: wrap;
+}
+
+.profile .card h2 small {
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.profile .stack {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profile .row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 44px 72px minmax(72px, 92px) 64px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.profile .row.person {
+  grid-template-columns: 34px minmax(0, 1fr) 52px minmax(0, 1fr);
+}
+
+/* Anime staff: the role heading spans the row above the first person of each role. */
+.profile .row.person .role-head {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.profile .row.person .poster {
+  background: var(--panel-2);
+  color: var(--fg);
+}
+
+.profile .person-films {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 10px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.profile .person-films b {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.profile .poster {
+  width: 34px;
+  height: 48px;
+  border-radius: 3px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #101318;
+  overflow: hidden;
+}
+
+.profile button.poster {
+  padding: 0;
+  border: 0;
+  appearance: none;
+}
+
+.profile .director {
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.profile .m .director {
+  color: inherit;
+}
+
+.profile .director:hover,
+.profile .director:focus-visible,
+.profile .director.pinned,
+.profile .m .director.pinned {
+  color: var(--fg);
+}
+
+.profile .person-card {
+  position: fixed;
+  z-index: 70;
+  width: min(400px, calc(100vw - 24px));
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.profile .person-card.pinned {
+  pointer-events: auto;
+}
+
+.profile .person-card.pinned .t {
+  padding-right: 22px;
+}
+
+.profile .person-card-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  appearance: none;
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.profile .person-card-close:hover,
+.profile .person-card-close:focus-visible {
+  color: var(--fg);
+  background: var(--panel-2);
+}
+
+.profile .person-card-photo {
+  width: 84px;
+  height: 126px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--panel-2);
+  display: grid;
+  place-items: center;
+  color: var(--fg);
+  font-weight: 700;
+}
+
+.profile .person-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile .person-card p {
+  margin: 6px 0 0;
+  max-height: 120px;
+  overflow: auto;
+  color: var(--fg-2);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* One set of columns for the header and every film (both are subgrids): year, title, score, ✓.
+   The title column fits the titles but stops at about 11 characters (longer ones end in "…"), so
+   scores sit right after the titles, line up, and the switch in the header ends where the ✓ does.
+   The whole block scrolls; the header stays on top. */
+.profile .person-card-films {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px fit-content(11em) 34px 14px;
+  column-gap: 8px;
+  align-content: start;
+  max-height: 160px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.profile .person-card-films .label,
+.profile .person-card-films .empty {
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.profile .person-card-films .empty {
+  grid-column: 1 / -1;
+}
+
+.profile .person-card-films ul {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile .person-card-films li {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.profile .person-card-films li .film-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile .person-card-films li .num {
+  color: var(--fg-3);
+}
+
+.profile .person-card-films li .film-score {
+  color: var(--fg);
+  text-align: right;
+}
+
+.profile .person-card-films li .rated {
+  color: var(--up);
+  font-weight: 700;
+  text-align: center;
+}
+
+.profile .person-card-films .films-head {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 4px;
+  background: var(--panel);
+}
+
+.profile .person-card-films .films-label {
+  grid-column: 1 / 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+}
+
+/* Spans the score and ✓ columns, so its right edge lines up with the ✓. */
+.profile .person-card-films .films-head .cycle-chip {
+  grid-column: 3 / 5;
+  justify-self: end;
+}
+
+.profile .cycle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  padding: 4px 5px 4px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.profile .cycle:hover {
+  border-color: var(--fg-3);
+}
+
+.profile .cycle .lbl {
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.profile .cycle .nm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  min-width: 86px;
+}
+
+.profile .cycle .nm i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.profile .cycle .nm.anim,
+.profile .cycle-chip .swap {
+  animation: cycle-swap 0.22s ease-out;
+}
+
+@keyframes cycle-swap {
+  from {
+    transform: translateY(7px);
+    opacity: 0;
+  }
+}
+
+.profile .cycle .dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.profile .cycle .dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background 0.2s;
+}
+
+.profile .cycle .dots i.on {
+  background: var(--fg);
+}
+
+.profile .cycle .ic {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 3px;
+  background: var(--panel-2);
+  color: var(--fg-2);
+  transition:
+    transform 0.3s,
+    color 0.2s;
+}
+
+.profile .cycle:hover .ic,
+.profile .cycle:focus-visible .ic {
+  color: var(--gold);
+}
+
+.profile .cycle .nx {
+  color: var(--fg-3);
+  font-size: 12px;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.25s;
+}
+
+.profile .cycle:hover .nx,
+.profile .cycle:focus-visible .nx {
+  max-width: 120px;
+}
+
+.profile .cycle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+  padding: 2px 5px 2px 8px;
+  border: 0;
+  border-radius: 3px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  overflow: hidden;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.profile .cycle-chip span {
+  display: inline-block;
+}
+
+.profile .cycle-chip .ic {
+  display: grid;
+  place-items: center;
+  opacity: 0.75;
+  transition: transform 0.3s;
+}
+
+.profile .cycle-chip .ic svg {
+  width: 11px;
+  height: 11px;
+}
+
+.profile .cycle-chip:hover {
+  filter: brightness(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile .cycle .nm.anim,
+  .profile .cycle-chip .swap {
+    animation: none;
+  }
+
+  .profile .cycle .ic,
+  .profile .cycle .nx,
+  .profile .cycle-chip,
+  .profile .cycle-chip .ic {
+    transition: none;
+  }
+}
+
+.profile .lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 28px 20px;
+  background: rgba(8, 10, 14, 0.86);
+}
+
+.profile .lightbox-dialog {
+  position: relative;
+  max-width: min(92vw, 780px);
+  max-height: calc(100vh - 56px);
+}
+
+.profile .lightbox-poster {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(92vw, 780px);
+  max-height: calc(100vh - 56px);
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.profile .lightbox-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.profile .poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .profile .row:not(.person) .poster {
+    z-index: 1;
+  }
+
+  .profile .row:not(.person) .poster * {
+    pointer-events: none;
+  }
+
+  .profile .row:not(.person) .poster img {
+    transform-origin: left center;
+    transition: transform 0.16s ease;
+  }
+
+  .profile .row:not(.person) .poster:hover {
+    overflow: visible;
+    z-index: 8;
+  }
+
+  .profile .row:not(.person) .poster:hover img {
+    position: relative;
+    z-index: 8;
+    transform: scale(4.4);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+  }
+}
+
+.profile .title {
+  min-width: 0;
+}
+
+.profile .t {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile .m {
+  color: var(--fg-3);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.profile .score {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 3px;
+}
+
+.profile .score.up {
+  background: rgba(63, 182, 139, 0.16);
+  color: var(--up);
+}
+
+.profile .score.down {
+  background: rgba(226, 105, 79, 0.16);
+  color: var(--down);
+}
+
+.profile .score.eq {
+  background: var(--panel-2);
+  color: var(--fg-2);
+}
+
+.profile .pub {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 3px;
+  appearance: none;
+  background: none;
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile .pub:hover,
+.profile .pub.pinned {
+  background: var(--panel-2);
+}
+
+.profile .src-badge {
+  display: inline-block;
+  min-width: 30px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.profile .src-badge.imdb {
+  background: #f5c518;
+  color: #000;
+}
+
+.profile .src-badge.tmdb {
+  background: #01b4e4;
+  color: #0d253f;
+}
+
+.profile .src-badge.metacritic {
+  background: #66cc33;
+  color: #0d1a05;
+}
+
+.profile .src-badge.rt {
+  background: #fa320a;
+  color: #fff;
+}
+
+.profile .src-badge.bangumi {
+  background: #f09199;
+  color: #2b0f12;
+}
+
+.profile .src-badge.mal {
+  background: #2e51a2;
+  color: #fff;
+}
+
+.profile .score-card {
+  position: fixed;
+  z-index: 70;
+  width: min(260px, calc(100vw - 24px));
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.profile .score-card.pinned {
+  pointer-events: auto;
+}
+
+.profile .score-card .t {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.profile .score-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.profile .score-card li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.profile .score-card li.on {
+  background: var(--panel-2);
+  color: var(--fg);
+}
+
+.profile .score-card li b {
+  color: var(--fg);
+  font-size: 14px;
+}
+
+.profile .score-card li small {
+  grid-column: 2 / -1;
+  margin-top: -3px;
+  color: var(--fg-3);
+}
+
+.profile .score-card p {
+  margin: 8px 0 0;
+  color: var(--fg-3);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.profile .score-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
+}
+
+.profile .score-card a {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--gold);
+  font-size: 12px;
+}
+
+.profile .diff {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.profile .diff .num {
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.profile .bar {
+  flex: 1;
+  height: 6px;
+  background: var(--panel-2);
+  border-radius: 2px;
+  position: relative;
+}
+
+.profile .bar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--fg-3);
+}
+
+.profile .bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+}
+
+.profile .when {
+  text-align: right;
+  font-size: 12px;
+  color: var(--fg-2);
+  line-height: 1.4;
+}
+
+.profile .when b {
+  display: block;
+  color: var(--fg-3);
+  font-weight: 400;
+}
+
+/* Shows open to their seasons; the season ratings are separate from the show's own. */
+.profile .row.expandable {
+  cursor: pointer;
+}
+
+.profile .row.expandable:hover > .title .t,
+.profile .row.open > .title .t {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+
+.profile .m.with-seasons {
+  display: flex;
+  gap: 8px;
+}
+
+.profile .m.with-seasons .m-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile .season-toggle {
+  flex: none;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.profile .season-toggle:hover,
+.profile .season-toggle[aria-expanded="true"] {
+  color: var(--fg);
+}
+
+.profile .season-toggle span {
+  display: inline-block;
+  margin-left: 2px;
+  transition: transform 0.15s ease;
+}
+
+.profile .season-toggle[aria-expanded="true"] span {
+  transform: rotate(180deg);
+}
+
+.profile .seasons {
+  grid-column: 2 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  cursor: default;
+}
+
+.profile .seasons li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 72px 56px;
+  gap: 12px;
+  align-items: center;
+  padding: 5px 0;
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.profile .seasons .sn {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--fg);
+}
+
+.profile .seasons .sm {
+  color: var(--fg-3);
+}
+
+.profile .seasons .sp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.profile .seasons .sr {
+  text-align: right;
+  color: var(--fg-3);
+}
+
+.profile .seasons .sr.rated {
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profile .more,
+.profile .empty {
+  width: 100%;
+  margin-top: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--fg-2);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.profile .more:hover {
+  color: var(--fg);
+}
+
+.profile .empty {
+  text-align: center;
+  margin-top: 0;
+}
+
+.profile .toggle {
+  display: inline-flex;
+  background: var(--panel-2);
+  border-radius: 4px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.profile .toggle button {
+  background: none;
+  border: 0;
+  color: var(--fg-2);
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 3px;
+}
+
+.profile .toggle button.on {
+  background: var(--gold);
+  color: #101318;
+  font-weight: 600;
+}
+
+.profile .radar {
+  position: relative;
+}
+
+.profile .radar-hit,
+.profile .radar-label {
+  cursor: pointer;
+  outline: none;
+}
+
+.profile .radar-tip {
+  position: absolute;
+  z-index: 5;
+  width: 220px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, calc(-100% - 12px));
+  pointer-events: none;
+}
+
+.profile .radar-tip.below {
+  transform: translate(-50%, 12px);
+}
+
+.profile .radar-tip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--fg-2);
+  font-size: 13px;
+}
+
+.profile .radar-tip-head b {
+  color: var(--gold);
+  font-size: 18px;
+}
+
+.profile .radar-tip p {
+  margin: 4px 0 0;
+  color: var(--fg-2);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.profile .title-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 2px 0 4px;
+  flex-wrap: wrap;
+}
+
+.profile .title-badge b {
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.profile .title-badge span {
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.profile .muted .title-badge b {
+  color: var(--fg-3);
+}
+
+.profile svg text {
+  font-family: var(--body);
+}
+
+.profile .legend {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--fg-2);
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.profile .legend i {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2px solid var(--gold);
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+.profile .legend i.avg {
+  border-top: 2px dashed var(--fg-3);
+}
+
+.profile .muted .legend i {
+  border-top-color: var(--fg-3);
+}
+
+.profile .chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.profile .chips span {
+  background: var(--panel-2);
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.profile .chips b {
+  color: var(--fg);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.profile .rstats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.profile .rstat {
+  background: var(--panel-2);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.profile .rstat .l {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.profile .rstat .v {
+  font-size: 24px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.profile .sec {
+  font-size: 12px;
+  color: var(--fg-3);
+  margin: 14px 0 6px;
+  letter-spacing: 0.04em;
+}
+
+.profile .hist {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.profile .hrow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 30px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.profile .track {
+  height: 10px;
+  background: var(--panel-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.profile .track i {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  border-radius: 0 2px 2px 0;
+}
+
+.profile .note {
+  color: var(--fg-3);
+  font-size: 12px;
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 880px) {
+  .profile .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile .tabs {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile .row {
+    grid-template-columns: 34px minmax(0, 1fr) 36px auto;
+    row-gap: 6px;
+  }
+
+  .profile .diff,
+  .profile .when {
+    grid-column: 2 / -1;
+  }
+
+  .profile .when {
+    text-align: left;
+  }
+
+  .profile .when b {
+    display: inline;
+    margin-left: 8px;
+  }
+
+  .profile .row.person {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+  }
+
+  .profile .seasons li {
+    grid-template-columns: minmax(0, 1fr) 64px 48px;
+  }
+
+  .profile .seasons .sm {
+    display: none;
+  }
+
+  .profile .person-films {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+
+  .profile .name {
+    font-size: 22px;
+  }
+
+  .profile .kpi-top {
+    flex-wrap: wrap;
+  }
+}

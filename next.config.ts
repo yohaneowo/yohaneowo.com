@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
+  async redirects() {
+    return [
+      { source: "/trakt", destination: "/moviehub", permanent: false },
+      { source: "/trakt/:path*", destination: "/moviehub", permanent: false },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

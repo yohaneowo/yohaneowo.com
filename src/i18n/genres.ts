@@ -1,0 +1,55 @@
+import type { Locale } from "./config";
+
+// TMDB genre names arrive in Chinese (simplified or traditional, per MOVIE_LANGUAGE); the English
+// interface shows TMDB's English names. Names already in English (Sci-Fi & Fantasy…) pass through.
+const ENGLISH: Record<string, string> = {
+  动作: "Action",
+  動作: "Action",
+  冒险: "Adventure",
+  冒險: "Adventure",
+  动画: "Animation",
+  動畫: "Animation",
+  喜剧: "Comedy",
+  喜劇: "Comedy",
+  犯罪: "Crime",
+  纪录: "Documentary",
+  紀錄: "Documentary",
+  剧情: "Drama",
+  劇情: "Drama",
+  家庭: "Family",
+  奇幻: "Fantasy",
+  历史: "History",
+  歷史: "History",
+  恐怖: "Horror",
+  音乐: "Music",
+  音樂: "Music",
+  悬疑: "Mystery",
+  懸疑: "Mystery",
+  爱情: "Romance",
+  愛情: "Romance",
+  科幻: "Science Fiction",
+  电视电影: "TV Movie",
+  電視電影: "TV Movie",
+  惊悚: "Thriller",
+  驚悚: "Thriller",
+  战争: "War",
+  戰爭: "War",
+  西部: "Western",
+  动作冒险: "Action & Adventure",
+  動作冒險: "Action & Adventure",
+  儿童: "Kids",
+  兒童: "Kids",
+  新闻: "News",
+  新聞: "News",
+  真人秀: "Reality",
+  肥皂剧: "Soap",
+  肥皂劇: "Soap",
+  脱口秀: "Talk",
+  脫口秀: "Talk",
+  传记: "Biography",
+  傳記: "Biography",
+};
+
+export function genreName(genre: string, lang: Locale) {
+  return lang === "en" ? (ENGLISH[genre] ?? genre) : genre;
+}

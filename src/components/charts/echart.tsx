@@ -1,7 +1,13 @@
 "use client";
 
-import { BarChart, LineChart, PieChart, RadarChart } from "echarts/charts";
-import { GridComponent, LegendComponent, RadarComponent, TooltipComponent } from "echarts/components";
+import { BarChart, LineChart, PieChart, RadarChart, ScatterChart } from "echarts/charts";
+import {
+  GridComponent,
+  LegendComponent,
+  RadarComponent,
+  TooltipComponent,
+  MarkLineComponent,
+} from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsOption } from "echarts";
@@ -14,6 +20,8 @@ echarts.use([
   LineChart,
   PieChart,
   RadarChart,
+  ScatterChart,
+  MarkLineComponent,
   GridComponent,
   LegendComponent,
   RadarComponent,
