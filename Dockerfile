@@ -25,7 +25,10 @@ ENV NODE_ENV=production \
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
+# Pending migrations run before the server starts (scripts/migrate.mjs, needs only `pg`).
+COPY --from=build --chown=node:node /app/drizzle ./drizzle
+COPY --from=build --chown=node:node /app/scripts/migrate.mjs ./migrate.mjs
 USER node
 EXPOSE 3000
 ENTRYPOINT ["/bin/sh", "-c", "if [ -n \"$DOPPLER_TOKEN\" ]; then exec doppler run -- \"$@\"; else exec \"$@\"; fi", "--"]
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node migrate.mjs && exec node server.js"]
