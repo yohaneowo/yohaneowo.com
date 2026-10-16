@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3100",
+    "dev": "doppler run -p yohaneowo-site -c dev -- next dev -p 3100",
     "build": "next build",
-    "start": "next start",
+    "start": "doppler run -p yohaneowo-site -c dev -- next start",
     "lint": "eslint",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
+    "db:generate": "doppler run -p yohaneowo-site -c dev -- drizzle-kit generate",
+    "db:migrate": "doppler run -p yohaneowo-site -c dev -- drizzle-kit migrate",
+    "db:studio": "doppler run -p yohaneowo-site -c dev -- drizzle-kit studio",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

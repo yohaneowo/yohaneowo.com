@@ -1,8 +1,6 @@
-import { existsSync } from "node:fs";
 import { defineConfig } from "drizzle-kit";
 
-// drizzle-kit doesn't read Next's env files on its own.
-if (!process.env.DATABASE_URL && existsSync(".env.local")) process.loadEnvFile(".env.local");
+// DATABASE_URL comes from Doppler: the db:* scripts run drizzle-kit under `doppler run`.
 
 export default defineConfig({
   dialect: "postgresql",

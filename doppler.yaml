@@ -1,0 +1,5 @@
+# Secrets live in Doppler, not in .env files. One-time per machine: `doppler login`, then
+# `doppler setup` in this folder (reads this file). The package.json scripts wrap `doppler run`.
+setup:
+  project: yohaneowo-site
+  config: dev
