@@ -115,12 +115,16 @@ const showSection = z.object({
 export const movieResponseSchema = z.object({
   subscription: z
     .object({
-      userId: z.string(),
+      profileId: z.string(),
+      // Discord user id, once the account is linked.
+      userId: z.string().nullable(),
+      siteUserId: z.string().nullable(),
       traktUser: z.string(),
       traktName: z.string(),
       region: z.string(),
       subscribedAt: z.string(),
       active: z.boolean(),
+      recommendations: z.boolean(),
       revision: z.string(),
       syncedAt: z.string().nullable(),
       syncError: z.string().nullable(),

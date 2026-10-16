@@ -54,7 +54,8 @@ const en: Dictionary = {
     loading: "Loading your account…",
     signInFirst: "Sign in to manage linked accounts",
     current: (name, email) => `Signed in as ${name} · ${email}`,
-    discordDescription: "Only used to confirm your Discord identity. It won't join servers or post for you.",
+    discordDescription:
+      "Once linked, the bot on Discord finds your movie profile, and /movie subscribe sends you daily new-release picks. It won't join servers or post for you.",
     viewMovies: "View my movie statistics",
     linkFailed:
       "Linking Discord didn't finish. Please try again. If that Discord account is linked elsewhere, unlink it there first.",
@@ -62,10 +63,10 @@ const en: Dictionary = {
     unreachable: "Can't reach the account service. Check your connection and try again.",
     linked: (id) => `Discord linked · ${id}`,
     linkHint:
-      "Link the Discord account you subscribed to movie recommendations with; the site then reads its Trakt statistics.",
+      "If you subscribed in the bot before, linking picks up that profile and its recommendation history.",
     notOpen: "Linking Discord isn't available yet. Please come back later.",
     unlinkWarning:
-      "After unlinking you can't see this Discord account's movie statistics. Your movie subscription on Discord stays.",
+      "Unlinking stops the daily Discord picks; your movie profile and statistics on the site stay.",
     confirmUnlink: "Unlink",
     cancel: "Cancel",
     goingToDiscord: "Going to Discord…",
@@ -87,23 +88,26 @@ const en: Dictionary = {
       description:
         "Find your rating habits, favourite genres, directors and actors in your Trakt history. Only you can see your statistics.",
       action: "Sign in to see my statistics",
-      hint: "Signing in with Discord finds your subscription; Google users can link Discord after signing in.",
-    },
-    unlinked: {
-      title: "Link your Discord account",
-      description: "Your Discord identity finds the Trakt account you subscribed with in the bot.",
-      action: "Link Discord",
+      hint: "Sign in with Google or Discord; only you can see your statistics.",
     },
     unavailable: {
       title: "Statistics unavailable",
       fallback: "Your data can't be read right now. Please try again later.",
     },
-    unsubscribed: {
-      title: "No movie subscription yet",
-      description: "Your Discord identity is confirmed. Next, subscribe to movie recommendations on Discord.",
-      before: "Run",
-      after: " in the bot with your public Trakt profile and your region, then come back and check.",
-      check: "Check the linked Discord account",
+    setup: {
+      title: "Set up your movie profile",
+      description:
+        "Enter your public Trakt profile; the site reads your watch history and ratings for the statistics.",
+      traktLabel: "Trakt profile",
+      traktPlaceholder: "https://trakt.tv/users/your-name, or just the username",
+      traktHint: "The link from “Share profile” in the Trakt app; the account must be public.",
+      regionLabel: "Where you watch",
+      regionHint:
+        "Guessed from your network location; change it if it's wrong. Used to pick films showing near you.",
+      submit: "Create profile",
+      saving: "Checking the Trakt account…",
+      discord:
+        "Want daily new-release picks on Discord? Link Discord under Account settings, then run /movie subscribe in the bot.",
     },
     preparing: {
       title: "Preparing your movie profile",
@@ -120,7 +124,11 @@ const en: Dictionary = {
       badData: "Your movie data can't be read right now.",
       person: "This person's details can't be read right now.",
       signIn: "Please sign in first.",
-      linkDiscord: "Please link Discord first.",
+      noProfile: "No movie profile yet.",
+      traktInvalid: "That doesn't look like a Trakt link or username.",
+      traktNotFound: "No Trakt account by that name.",
+      traktPrivate: "That Trakt account is private; make it public in Trakt's settings.",
+      badRegion: "Please pick where you watch.",
       refreshFailed: "Can't update right now. Please try again later.",
       badSource: "That score platform isn't supported.",
       saveFailed: "Couldn't save. Please try again later.",

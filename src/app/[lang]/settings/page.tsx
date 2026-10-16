@@ -43,11 +43,9 @@ async function SettingsContent({ searchParams }: { searchParams: Promise<{ error
           />
         </CardContent>
       </Card>
-      {linked && (
-        <Link href={localePath(lang, "/moviehub")} className={buttonVariants({ variant: "outline" })}>
-          {t.settings.viewMovies}
-        </Link>
-      )}
+      <Link href={localePath(lang, "/moviehub")} className={buttonVariants({ variant: "outline" })}>
+        {t.settings.viewMovies}
+      </Link>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { FilmIcon, LinkIcon, LockKeyholeIcon } from "lucide-react";
+import { headers } from "next/headers";
+import { FilmIcon, LockKeyholeIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { localePath } from "@/i18n/config";
@@ -11,7 +12,9 @@ import { getSession } from "@/lib/auth";
 import { getDiscordAccount } from "@/lib/discord-account";
 import { getScoreSource } from "@/lib/movie-preference";
 import { getMovieStatistics, MoviesUnavailable } from "@/lib/movies";
+import { isRegionCode, listRegions } from "@/lib/regions";
 import { MovieProfile } from "./profile";
+import { ProfileSetup } from "./profile-setup";
 import { RefreshButton } from "./refresh-button";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -64,27 +67,12 @@ async function MyStatistics() {
         </Card>
       </Gate>
     );
+  // Discord is optional: a linked account lets the bot find this profile (and picks up one the
+  // bot created before the site existed).
   const linked = await getDiscordAccount(session.user.id);
-  if (!linked)
-    return (
-      <Gate t={t}>
-        <Card>
-          <CardHeader>
-            <LinkIcon className="mb-2 size-7" />
-            <CardTitle>{t.movies.unlinked.title}</CardTitle>
-            <CardDescription>{t.movies.unlinked.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href={localePath(lang, "/settings")} className={buttonVariants()}>
-              {t.movies.unlinked.action}
-            </Link>
-          </CardContent>
-        </Card>
-      </Gate>
-    );
   let result;
   try {
-    result = await getMovieStatistics(linked.accountId);
+    result = await getMovieStatistics(session.user.id, linked?.accountId ?? null);
   } catch (error) {
     return (
       <Gate t={t}>
@@ -104,28 +92,15 @@ async function MyStatistics() {
       </Gate>
     );
   }
-  if (!result.subscription)
+  if (!result.subscription) {
+    // Cloudflare tells us the visitor's country; it pre-selects the region, which they can change.
+    const country = ((await headers()).get("cf-ipcountry") ?? "").toUpperCase();
     return (
       <Gate t={t}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t.movies.unsubscribed.title}</CardTitle>
-            <CardDescription>{t.movies.unsubscribed.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm">
-              {t.movies.unsubscribed.before}{" "}
-              <code className="rounded bg-muted px-2 py-1">/movie subscribe</code>
-              {t.movies.unsubscribed.after}
-            </p>
-            <RefreshButton checkOnly />
-            <Link href={localePath(lang, "/settings")} className="text-sm text-muted-foreground underline">
-              {t.movies.unsubscribed.check}
-            </Link>
-          </CardContent>
-        </Card>
+        <ProfileSetup regions={listRegions(lang)} defaultRegion={isRegionCode(country) ? country : "TW"} />
       </Gate>
     );
+  }
   const { subscription, snapshot, platform } = result;
   const waiting = subscription.syncRequested || subscription.syncing;
   const syncError = syncErrorText(subscription.syncError, t);

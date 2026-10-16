@@ -34,7 +34,7 @@
 
 ## 登录
 
-- 支持 Google 或 Discord 登录。Google 用户仅在需要观影统计时关联 Discord；公开页面无需登录。关联使用 `authClient.linkSocial()`，允许不同 email，禁止仅凭相同 email 自动合并帐号。
+- 支持 Google 或 Discord 登录；公开页面无需登录。观影统计只要登录即可：档案（Trakt 帐号、地区）在 `/moviehub` 上填，存在 admin，以网站帐号 ID 为键。关联 Discord 是可选的（`authClient.linkSocial()`，允许不同 email，禁止仅凭相同 email 自动合并帐号）：关联后 bot 能找到同一份档案发每日推荐，以前在 bot 里建的档案也会接上。
 - Discord OAuth 回调：`<BETTER_AUTH_URL>/api/auth/callback/discord`，需要 `identify` 和 `email`。帐号与 Discord 身份都有唯一约束，不能跨网站帐号重复关联。
 - Google OAuth 的重定向 URI：`<BETTER_AUTH_URL>/api/auth/callback/google`，本机和正式站要分别加进 Google Cloud Console。
 
@@ -43,7 +43,7 @@
 - 数据库：`docker compose -f compose.dev.yaml up -d`（容器 `yohaneowo-site-postgres`，`127.0.0.1:15432`）。
 - 环境变量在 Doppler（项目 `yohaneowo-site`，本机用 `dev`，NAS 用 `prd`），`.env.example` 只列名称。新电脑先 `doppler login`，再在本目录 `doppler setup`（读 `doppler.yaml`）。`pnpm dev`、`pnpm start`、`pnpm db:*` 都已包在 `doppler run` 里；直接跑别的指令要自己加 `doppler run -p yohaneowo-site -c dev --`（明确写项目和配置：Doppler 比对 `doppler setup` 绑定的目录时区分路径大小写）。Git Bash 里执行 `doppler` 要加 `env -u PWD`（它会读 Unix 格式的 `PWD`，找不到登录状态）。
 - 改了 `schema.ts`：`pnpm db:generate --name <说明>` → 检查生成的 SQL → `pnpm db:migrate`。
-- 观影统计的资料、同步任务状态与快取保存在 admin MySQL；网站通过服务端接口读取。统计由 admin 自己同步（`module_bot/movie/sync/`，第一次有电影接口被调用时启动，每 15 秒检查一次），不再有独立 worker。启动与迁移说明见 `docs/movie-statistics.md`。
+- 观影统计的资料、同步任务状态与快取保存在 admin MySQL；网站通过服务端接口读取（`/website/movies/users/{网站帐号 ID}`，带上关联的 Discord ID）。地区的预设值来自 Cloudflare 的 `cf-ipcountry` 头。统计由 admin 自己同步（`module_bot/movie/sync/`，第一次有电影接口被调用时启动，每 15 秒检查一次），不再有独立 worker。启动与迁移说明见 `docs/movie-statistics.md`。
 
 ## 常用指令
 
