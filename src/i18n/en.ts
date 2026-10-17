@@ -109,7 +109,7 @@ const en: Dictionary = {
     setup: {
       title: "Set up your movie profile",
       description:
-        "Connect your Trakt account; the site reads your watch history and ratings for the statistics. Private accounts work too.",
+        "Connect your Trakt account; the site reads your watch history and ratings for the statistics.",
       reauthTitle: "Authorize Trakt again",
       reauthDescription:
         "Trakt's authorization stopped working (it may have been revoked there). Authorize again and the statistics keep updating.",

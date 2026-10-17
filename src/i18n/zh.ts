@@ -99,7 +99,7 @@ const zh = {
     },
     setup: {
       title: "建立你的观影档案",
-      description: "连上你的 Trakt 帐号，网站会读取你的观看与评分记录来做统计；私密帐号也可以。",
+      description: "连上你的 Trakt 帐号，网站会读取你的观看与评分记录来做统计。",
       reauthTitle: "重新授权 Trakt",
       reauthDescription: "Trakt 的授权已失效（可能在 Trakt 那边撤销了），重新授权后统计会继续更新。",
       regionLabel: "观影地区",
