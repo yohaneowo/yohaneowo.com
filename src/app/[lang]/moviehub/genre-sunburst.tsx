@@ -130,7 +130,7 @@ export function GenreSunburst({
         },
       ],
     }),
-    [data, total, films.length, genreLabel, otherLabel, muted, s],
+    [data, films.length, muted, s],
   );
 
   const events = useMemo(
