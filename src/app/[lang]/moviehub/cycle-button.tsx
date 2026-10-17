@@ -11,7 +11,7 @@ export type CycleOption<T extends string> = {
   ink: string;
 };
 
-const CYCLE_ICON = (
+export const CYCLE_ICON = (
   <svg
     viewBox="0 0 24 24"
     width="15"

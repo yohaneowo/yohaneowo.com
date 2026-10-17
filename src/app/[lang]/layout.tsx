@@ -45,7 +45,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
     >
       <body className="flex min-h-full flex-col">
         <LocaleProvider lang={lang}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
             <SiteHeader />
             <MainFrame>{children}</MainFrame>
           </ThemeProvider>

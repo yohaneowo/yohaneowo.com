@@ -1446,3 +1446,16 @@
     flex-wrap: wrap;
   }
 }
+
+/* The window toggle's cycling button: a small turn-over icon after the label. */
+.profile .toggle .cycle-mark {
+  display: inline-flex;
+  margin-left: 5px;
+  vertical-align: -2px;
+  opacity: 0.7;
+}
+
+.profile .toggle .cycle-mark svg {
+  width: 12px;
+  height: 12px;
+}

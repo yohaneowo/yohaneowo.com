@@ -28,7 +28,7 @@ import {
   type ShowSection,
 } from "@/lib/movie-types";
 import { saveScoreSource } from "./actions";
-import { CycleButton, type CycleOption } from "./cycle-button";
+import { CYCLE_ICON, CycleButton, type CycleOption } from "./cycle-button";
 import {
   ANIMATION_GENRES,
   AXES,
@@ -1309,8 +1309,14 @@ export function MovieProfile({
         <div className="hero-in">
           <div className="avatar" aria-hidden="true">
             {avatar ? (
+              // Trakt's CDN refuses hotlinks that carry a referer, so none is sent.
               // eslint-disable-next-line @next/next/no-img-element -- Trakt's CDN, no loader
-              <img src={avatar} alt="" className="h-full w-full rounded-full object-cover" />
+              <img
+                src={avatar}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="h-full w-full rounded-full object-cover"
+              />
             ) : (
               name.slice(0, 1)
             )}
@@ -1605,6 +1611,10 @@ export function MovieProfile({
                     title={t.profile.windowHint}
                   >
                     {windowSize === "all" ? t.profile.windowAll : t.profile.window(100)}
+                    {/* Shows this button cycles between the last 100 and everything. */}
+                    <span className="cycle-mark" aria-hidden="true">
+                      {CYCLE_ICON}
+                    </span>
                   </button>
                 </span>
               </h2>
