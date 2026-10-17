@@ -176,6 +176,9 @@ const en: Dictionary = {
     },
     pageSections: "Page sections",
     window: (count) => `Last ${count}`,
+    windowAll: "All",
+    windowHint: "Press again to switch between the last 100 and all",
+
     animeFilter: { all: "All movies", exclude: "No anime", only: "Anime only" },
     time: { all: "All time", month: "Last 30 days", quarter: "Last 90 days", older: "Over 90 days ago" },
     allGenres: "All genres",

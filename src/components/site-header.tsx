@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { HeaderShell } from "@/components/header-shell";
 import { LanguageSwitch } from "@/components/language-switch";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NAV_ITEMS } from "@/components/site-nav";
@@ -11,7 +12,7 @@ export async function SiteHeader() {
   const lang = await getLocale();
   const t = await getDictionary();
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+    <HeaderShell>
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4 sm:gap-6">
         <Link href={localePath(lang, "/")} className="shrink-0 font-semibold">
           yohaneowo
@@ -39,6 +40,6 @@ export async function SiteHeader() {
           </Suspense>
         </div>
       </div>
-    </header>
+    </HeaderShell>
   );
 }

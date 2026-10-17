@@ -157,6 +157,9 @@ const zh = {
     tabs: { overview: "概况", director: "导演", creator: "主创", staff: "制作", cast: "演员", voice: "声优" },
     pageSections: "页面分区",
     window: (count: number) => `近 ${count} 部`,
+    windowAll: "全部",
+    windowHint: "再按一次在「近 100 部」和「全部」之间切换",
+
     animeFilter: { all: "全部电影", exclude: "不含动漫", only: "只看动漫" },
     time: { all: "全部时间", month: "近 30 天", quarter: "近 90 天", older: "90 天前" },
     allGenres: "所有类型",

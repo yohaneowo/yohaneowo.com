@@ -28,7 +28,7 @@
 
 admin 菜单为「Bot管理 → 观影统计」，权限为 `module_bot:movies:query` / `module_bot:movies:refresh`。网站专用 token 只能读取统计和请求同步，不能修改订阅或推荐记录。
 
-验证命令：网站 `pnpm format`、`pnpm lint`、`pnpm build`；admin 后端 `python -m pytest tests/test_movie_statistics.py -q`、Ruff；admin 前端 ESLint、Prettier、`vue-tsc --noEmit`；bot `node --test tests/movie-statistics.test.js`、`npx eslint .`。授权回调最终仍需本人完成 Google / Discord OAuth。
+验证命令：网站 `pnpm format`、`pnpm lint`、`pnpm build`。要不登录就看完整档案页（例如截图比较深浅色），把 admin `GET /website/movies/users/{id}` 的回应存成 JSON，用 `MOVIE_PREVIEW_FIXTURE=<路径> pnpm dev` 启动后开 `/moviehub/preview/profile`（只在开发模式有效）；admin 后端 `python -m pytest tests/test_movie_statistics.py -q`、Ruff；admin 前端 ESLint、Prettier、`vue-tsc --noEmit`；bot `node --test tests/movie-statistics.test.js`、`npx eslint .`。授权回调最终仍需本人完成 Google / Discord OAuth。
 
 本轮只处理 dev，未迁移 NAS 或稳定版。以后部署需明确提供网站专用 token，并另行安排正式资料迁移。
 

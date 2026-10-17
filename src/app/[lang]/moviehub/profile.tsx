@@ -72,8 +72,9 @@ type ListItem = ProfileFilm &
 type Season = ShowItem["seasons"][number];
 type PersonRow = MovieSnapshot["people"][number] | ShowSection["people"][number];
 const MEDIA: Media[] = ["movie", "show", "anime"];
-type WindowSize = 25 | 100;
-const WINDOWS: WindowSize[] = [25, 100];
+// The taste sample: the last 25, the last 100, or everything. The second button alternates
+// between 100 and all; picking 25 puts it back to 100.
+type WindowSize = 25 | 100 | "all";
 type TimeFilter = "all" | "month" | "quarter" | "older";
 type AnimeFilter = "all" | "exclude" | "only";
 type Filters = { time: TimeFilter; genre: string; anime: AnimeFilter };
@@ -138,7 +139,7 @@ function Radar({ axes, muted, label }: { axes: RadarAxis[]; muted: boolean; labe
             key={step}
             points={axes.map((_, index) => radarPoint(index, count, RADAR_RADIUS * step).join(",")).join(" ")}
             fill="none"
-            stroke="#272d38"
+            stroke="var(--line)"
           />
         ))}
         {axes.map((axis, index) => {
@@ -146,12 +147,12 @@ function Radar({ axes, muted, label }: { axes: RadarAxis[]; muted: boolean; labe
           const [labelX, labelY] = radarPoint(index, count, RADAR_RADIUS + 20);
           return (
             <g key={axis.label}>
-              <line x1={RADAR_CENTER.x} y1={RADAR_CENTER.y} x2={x} y2={y} stroke="#272d38" />
+              <line x1={RADAR_CENTER.x} y1={RADAR_CENTER.y} x2={x} y2={y} stroke="var(--line)" />
               <text
                 x={labelX}
                 y={labelY + 5}
                 textAnchor="middle"
-                fill={active === index ? "#e6e8ec" : "#9aa1ad"}
+                fill={active === index ? "var(--fg)" : "var(--fg-2)"}
                 fontSize="13"
                 className="radar-label"
                 {...open(index)}
@@ -163,7 +164,8 @@ function Radar({ axes, muted, label }: { axes: RadarAxis[]; muted: boolean; labe
         })}
         <polygon
           points={axes.map((axis, index) => at(index, axis.value).join(",")).join(" ")}
-          fill={muted ? "rgba(107,114,128,.16)" : "rgba(224,176,74,.22)"}
+          fill={muted ? "var(--fg-3)" : "var(--gold)"}
+          fillOpacity={muted ? 0.16 : 0.22}
           stroke={stroke}
           strokeWidth="2"
           strokeLinejoin="round"
@@ -277,11 +279,11 @@ function DiffChart({ diffs, label }: { diffs: number[]; label: string }) {
   const slot = 300 / diffs.length;
   return (
     <svg viewBox="0 0 320 90" width="100%" role="img" aria-label={label}>
-      <line x1="10" y1="45" x2="310" y2="45" stroke="#6b7280" />
-      <text x="0" y="12" fill="#6b7280" fontSize="11">
+      <line x1="10" y1="45" x2="310" y2="45" stroke="var(--fg-3)" />
+      <text x="0" y="12" fill="var(--fg-3)" fontSize="11">
         +4
       </text>
-      <text x="0" y="88" fill="#6b7280" fontSize="11">
+      <text x="0" y="88" fill="var(--fg-3)" fontSize="11">
         −4
       </text>
       {diffs.map((diff, index) => {
@@ -293,7 +295,7 @@ function DiffChart({ diffs, label }: { diffs: number[]; label: string }) {
             y={diff >= 0 ? 45 - height : 45}
             width={Math.max(1, slot * 0.7)}
             height={Math.max(height, 1)}
-            fill={diff >= 0 ? "#3fb68b" : "#e2694f"}
+            fill={diff >= 0 ? "var(--up)" : "var(--down)"}
             rx="1"
           >
             <title>{formatSigned(diff)}</title>
@@ -1229,7 +1231,7 @@ export function MovieProfile({
     if (!isShow && filters.anime === "only" && !film.anime) return false;
     return true;
   });
-  const sample = filtered.slice(0, windowSize);
+  const sample = windowSize === "all" ? filtered : filtered.slice(0, windowSize);
   // The KPI counts what the filters leave; unfiltered (or from an older snapshot without plays) it
   // shows the totals, which also cover anything past the list's length limit.
   const filtering = filters.time !== "all" || filters.genre !== "all" || filters.anime !== "all";
@@ -1587,17 +1589,23 @@ export function MovieProfile({
                   ))}
                 </span>
                 <span className="toggle" role="group" aria-label={t.profile.range}>
-                  {WINDOWS.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={windowSize === value ? "on" : undefined}
-                      aria-pressed={windowSize === value}
-                      onClick={() => setWindowSize(value)}
-                    >
-                      {t.profile.window(value)}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    className={windowSize === 25 ? "on" : undefined}
+                    aria-pressed={windowSize === 25}
+                    onClick={() => setWindowSize(25)}
+                  >
+                    {t.profile.window(25)}
+                  </button>
+                  <button
+                    type="button"
+                    className={windowSize !== 25 ? "on" : undefined}
+                    aria-pressed={windowSize !== 25}
+                    onClick={() => setWindowSize(windowSize === 100 ? "all" : 100)}
+                    title={t.profile.windowHint}
+                  >
+                    {windowSize === "all" ? t.profile.windowAll : t.profile.window(100)}
+                  </button>
                 </span>
               </h2>
               {radarMode === "style" && style ? (
