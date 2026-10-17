@@ -64,8 +64,12 @@ export async function refreshMovieStatistics(userId: string) {
 }
 
 // Where to send the browser so the person can authorize this app on their Trakt account.
-export async function getTraktAuthorizeUrl(redirectUri: string, state: string): Promise<string> {
-  const params = new URLSearchParams({ redirectUri, state });
+export async function getTraktAuthorizeUrl(
+  redirectUri: string,
+  state: string,
+  codeChallenge: string,
+): Promise<string> {
+  const params = new URLSearchParams({ redirectUri, state, codeChallenge });
   const data = (await call(`/trakt/authorize?${params}`)) as { url: string };
   return data.url;
 }
@@ -74,7 +78,13 @@ export async function getTraktAuthorizeUrl(redirectUri: string, state: string): 
 // account's profile (a lookup on Trakt, so allow more time).
 export async function connectTrakt(
   userId: string,
-  input: { code: string; redirectUri: string; region: string; discordId: string | null },
+  input: {
+    code: string;
+    redirectUri: string;
+    codeVerifier: string;
+    region: string;
+    discordId: string | null;
+  },
 ) {
   const data = await call(`/users/${encodeURIComponent(userId)}/trakt`, {
     method: "POST",

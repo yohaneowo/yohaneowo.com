@@ -28,6 +28,7 @@ export async function GET(request: Request) {
     await connectTrakt(session.user.id, {
       code,
       redirectUri: `${origin}/api/trakt/callback`,
+      codeVerifier: state.verifier,
       region: state.region,
       discordId: linked?.accountId ?? null,
     });

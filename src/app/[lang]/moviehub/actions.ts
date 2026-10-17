@@ -42,9 +42,9 @@ export async function startTraktConnect(input: {
   const origin = process.env.BETTER_AUTH_URL?.replace(/\/+$/, "");
   if (!origin) return { error: "notConnected" };
   try {
-    const { state, token } = createTraktState({ userId: session.user.id, region, lang });
-    const url = await getTraktAuthorizeUrl(`${origin}/api/trakt/callback`, token);
-    (await cookies()).set(TRAKT_STATE_COOKIE, state.nonce, {
+    const { token, cookie, challenge } = createTraktState({ userId: session.user.id, region, lang });
+    const url = await getTraktAuthorizeUrl(`${origin}/api/trakt/callback`, token, challenge);
+    (await cookies()).set(TRAKT_STATE_COOKIE, cookie, {
       httpOnly: true,
       sameSite: "lax",
       secure: origin.startsWith("https://"),
