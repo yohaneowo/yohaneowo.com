@@ -233,7 +233,7 @@ const en: Dictionary = {
     genreChart: "Genres",
     sunburst: {
       other: "Other",
-      bands: { "9": "9+", "8": "8", "7": "7", "6": "6", low: "<6", unrated: "n/a" },
+      bands: { "9": "9+", "8": "8", "7": "7", "6": "6", low: "<6", unrated: "?" },
       bandsLong: { "9": "9 and up", "8": "8s", "7": "7s", "6": "6s", low: "Below 6", unrated: "Unrated" },
       tooltip: (count: number, percent: number) => `${count} titles · ${percent}%`,
       average: (value: string) => `avg ${value}`,

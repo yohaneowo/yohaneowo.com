@@ -213,7 +213,7 @@ const zh = {
     genreChart: "类型分布",
     sunburst: {
       other: "其他",
-      bands: { "9": "9+", "8": "8", "7": "7", "6": "6", low: "<6", unrated: "未评" },
+      bands: { "9": "9+", "8": "8", "7": "7", "6": "6", low: "<6", unrated: "?" },
       bandsLong: {
         "9": "9 分以上",
         "8": "8 分段",

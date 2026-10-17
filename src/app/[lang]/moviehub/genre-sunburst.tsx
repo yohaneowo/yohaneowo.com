@@ -11,7 +11,6 @@ import { genreColor, publicScore, type ScoredFilm } from "./stats";
 // main genre (its own hue), the other the viewer's rating bands (one neutral ramp, brighter = higher).
 // Neither nests in the other; a button swaps which is inside. Pointing at a slice lists its films
 // in the tooltip and puts its count in the centre. A stats strip sits under the chart.
-const TOP_GENRES = 4;
 const TOOLTIP_FILMS = 8;
 
 type BandKey = "9" | "8" | "7" | "6" | "low" | "unrated";
@@ -65,6 +64,26 @@ function blend(fg: string, bg: string, t: number) {
   return `rgb(${a.map((v, i) => Math.round(b[i] + (v - b[i]) * t)).join(",")})`;
 }
 
+// A colour for any genre: the table's where it has one, otherwise a hue derived from the name
+// (the same genre always gets the same hue).
+function genreHue(genre: string) {
+  const known = genreColor(genre);
+  if (known !== "#8b93a1") return known;
+  let hash = 0;
+  for (const ch of genre) hash = (hash * 31 + ch.charCodeAt(0)) % 360;
+  const h = hash / 360;
+  // HSL(h, 0.45, 0.55) → hex
+  const f = (n: number) => {
+    const k = (n + h * 12) % 12;
+    const a = 0.45 * Math.min(0.55, 1 - 0.55);
+    const c = 0.55 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
 function readPalette(el: HTMLElement, dark: boolean): Palette {
   const css = getComputedStyle(el);
   const v = (name: string) => css.getPropertyValue(name).trim();
@@ -89,7 +108,6 @@ export function GenreSunburst({
   otherLabel,
   source,
   sourceLabel,
-  rangeLabel,
   muted = false,
 }: {
   films: ScoredFilm[];
@@ -97,8 +115,6 @@ export function GenreSunburst({
   otherLabel: string;
   source: ListSource;
   sourceLabel: string;
-  // What the centre says when nothing is pointed at (近 25 部 / 全部).
-  rangeLabel: string;
   muted?: boolean;
 }) {
   const { t, lang } = useLocale();
@@ -106,8 +122,7 @@ export function GenreSunburst({
   const { resolvedTheme } = useTheme();
   const box = useRef<HTMLDivElement>(null);
   const [palette, setPalette] = useState<Palette | null>(null);
-  const [ratingsInside, setRatingsInside] = useState(true);
-  const [centre, setCentre] = useState<{ n: number; l: string } | null>(null);
+  const [centre, setCentre] = useState<number | null>(null);
 
   useEffect(() => {
     if (box.current) setPalette(readPalette(box.current, resolvedTheme === "dark"));
@@ -130,15 +145,9 @@ export function GenreSunburst({
         c: { color, opacity: 0.6, fontSize: 10, lineHeight: 12, fontFamily: palette.display },
       },
     });
-    const count = new Map<string, number>();
-    for (const film of films) if (film.genre) count.set(film.genre, (count.get(film.genre) ?? 0) + 1);
-    const keep = [...count.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, TOP_GENRES)
-      .map(([g]) => g);
     const byGenre = new Map<string | null, ScoredFilm[]>();
     for (const film of films) {
-      const key = film.genre && keep.includes(film.genre) ? film.genre : null;
+      const key = film.genre || null;
       byGenre.set(key, [...(byGenre.get(key) ?? []), film]);
     }
     const genres: Slice[] = [...byGenre.entries()]
@@ -151,7 +160,7 @@ export function GenreSunburst({
           films: items,
           other: genre == null,
           itemStyle: {
-            color: blend(genre ? genreColor(genre) : "#6b7280", palette.panel, genre ? 0.55 : 0.3),
+            color: blend(genre ? genreHue(genre) : "#6b7280", palette.panel, genre ? 0.55 : 0.3),
           },
           label: label(name, items.length, "#f3f4f6", false),
         };
@@ -228,16 +237,14 @@ export function GenreSunburst({
           return head + rows + more;
         },
       },
-      series: ratingsInside
-        ? [ring(bands, ["18%", "50%"], 3), ring(genres, ["54%", "96%"], 2)]
-        : [ring(genres, ["18%", "50%"], 3), ring(bands, ["54%", "96%"], 2)],
+      // Ratings inside, genres outside.
+      series: [ring(bands, ["18%", "50%"], 3), ring(genres, ["54%", "96%"], 2)],
     };
-  }, [palette, bands, genres, ratingsInside, muted, s, genreLabel, lang]);
+  }, [palette, bands, genres, muted, s, genreLabel, lang]);
 
   const events = useMemo(
     () => ({
-      mouseover: (params: { data?: Slice }) =>
-        params.data && setCentre({ n: params.data.films.length, l: params.data.long }),
+      mouseover: (params: { data?: Slice }) => params.data && setCentre(params.data.films.length),
       mouseout: () => setCentre(null),
     }),
     [],
@@ -270,25 +277,14 @@ export function GenreSunburst({
 
   return (
     <div className="rings" ref={box}>
-      <div className="rings-tools">
-        <button
-          type="button"
-          className="rings-swap"
-          onClick={() => setRatingsInside((value) => !value)}
-          aria-pressed={ratingsInside}
-        >
-          {ratingsInside ? s.ratingsInside : s.genresInside}
-        </button>
-      </div>
       <div className="chart-box">
         <div className="rings-chart" role="img" aria-label={t.profile.genreChart}>
           {palette && <EChart option={option} onEvents={events} />}
         </div>
         <div className="rings-centre" aria-hidden="true">
-          <div className="n num">{centre ? centre.n : films.length}</div>
-          <div className="l">{centre ? centre.l : rangeLabel}</div>
+          <div className="n num">{centre ?? films.length}</div>
         </div>
-        <div className="rings-key">{ratingsInside ? s.keyRatingsInside : s.keyGenresInside}</div>
+        <div className="rings-key">{s.keyRatingsInside}</div>
         <div className="rings-scale">
           {s.scaleLow} <i /> {s.scaleHigh}
         </div>

@@ -1617,28 +1617,6 @@
 }
 
 /* Genre / rating rings (类型 view): swap button, square chart with a centre readout, key, ramp, stats strip. */
-.profile .rings-tools {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 4px;
-}
-
-.profile .rings-swap {
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg-3);
-  font: 600 11px/1 var(--display);
-  letter-spacing: 0.04em;
-  padding: 7px 10px;
-}
-
-.profile .rings-swap:hover,
-.profile .rings-swap[aria-pressed="true"] {
-  color: var(--fg);
-  background: var(--panel-2);
-}
-
 .profile .chart-box {
   position: relative;
   width: 100%;
