@@ -20,6 +20,9 @@
   --backdrop: rgba(23, 26, 32, 0.55);
   --shadow: rgba(16, 19, 24, 0.14);
   --shadow-strong: rgba(16, 19, 24, 0.22);
+  /* The rating ring's brightness ramp (low → high). */
+  --ramp-lo: #e6e8ed;
+  --ramp-hi: #7b8292;
   --display: "Barlow Condensed", "Noto Sans SC", system-ui, sans-serif;
   --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   width: 100vw;
@@ -1613,80 +1616,138 @@
   color: var(--down);
 }
 
-/* Genre sunburst and the film list that follows the pointer. */
-.profile .sunburst-chart {
-  height: 300px;
-  margin: 4px -6px 0;
+/* Genre / rating rings (类型 view): swap button, square chart with a centre readout, key, ramp, stats strip. */
+.profile .rings-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
 }
 
-.profile .sunburst-list {
-  min-height: 72px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-}
-
-.profile .sunburst-hint,
-.profile .sunburst-more {
+.profile .rings-swap {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
   color: var(--fg-3);
-  font-size: 12px;
+  font: 600 11px/1 var(--display);
+  letter-spacing: 0.04em;
+  padding: 7px 10px;
 }
 
-.profile .sunburst-head {
-  font-weight: 600;
-  margin-bottom: 6px;
+.profile .rings-swap:hover,
+.profile .rings-swap[aria-pressed="true"] {
+  color: var(--fg);
+  background: var(--panel-2);
 }
 
-.profile .sunburst-list ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.profile .sunburst-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.profile .sb-poster {
-  width: 24px;
-  height: 34px;
-  border-radius: 3px;
-  overflow: hidden;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ink-on-gold);
-}
-
-.profile .sb-poster img {
+.profile .chart-box {
+  position: relative;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  aspect-ratio: 1 / 1;
 }
 
-.profile .sb-title {
-  flex: 1;
-  min-width: 0;
+.profile .rings-chart {
+  position: absolute;
+  inset: 0;
+}
+
+.profile .rings-centre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 26%;
+  text-align: center;
+  pointer-events: none;
+}
+
+.profile .rings-centre .n {
+  font: 700 20px/1 var(--display);
+  color: var(--fg-2);
+}
+
+.profile .rings-centre .l {
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--fg-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.profile .sb-title small {
+.profile .rings-key,
+.profile .rings-scale {
+  position: absolute;
+  bottom: 0;
+  font-size: 10px;
   color: var(--fg-3);
 }
 
-.profile .sb-rating {
-  width: 26px;
-  text-align: right;
-  font-weight: 700;
-  color: var(--gold);
+.profile .rings-key {
+  left: 0;
+}
+
+.profile .rings-scale {
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile .rings-scale i {
+  width: 54px;
+  height: 5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ramp-lo), var(--ramp-hi));
+}
+
+.profile .rings-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.profile .rings-stats .stat {
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.profile .rings-stats .stat:nth-child(even) {
+  border-left: 1px solid var(--line);
+}
+
+.profile .rings-stats .stat:nth-child(n + 3) {
+  border-top: 1px solid var(--line);
+}
+
+.profile .rings-stats .k {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fg-3);
+}
+
+.profile .rings-stats .v {
+  margin-top: 4px;
+  font: 700 17px/1.1 var(--display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile .rings-stats .v small {
+  font: 600 11px/1 var(--display);
+  margin-left: 6px;
+}
+
+.profile .rings-stats .v .up {
+  color: var(--up);
+}
+
+.profile .rings-stats .v .dn {
+  color: var(--down);
+}
+
+.profile .rings-stats .v .muted {
+  color: var(--fg-3);
 }

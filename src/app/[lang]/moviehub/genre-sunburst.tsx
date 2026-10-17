@@ -1,194 +1,340 @@
 "use client";
 import type { EChartsOption } from "echarts";
-import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EChart } from "@/components/charts/echart";
 import { useLocale } from "@/i18n/locale-provider";
-import { genreColor, genresOf, type ScoredFilm } from "./stats";
+import type { ListSource } from "@/lib/movie-types";
+import { genreColor, publicScore, type ScoredFilm } from "./stats";
 
-// What you watch, as a sunburst: the inner ring is the genres (a film counts in each of its
-// genres), the outer ring splits each genre by how you rated it. Pointing at a segment lists the
-// films in it under the chart; clicking a genre zooms into it (ECharts' own behaviour).
-const GENRE_LIMIT = 8;
-const LIST_LIMIT = 8;
-type Band = "high" | "mid" | "low" | "unrated";
-const BANDS: Band[] = ["high", "mid", "low", "unrated"];
-const BAND_OPACITY: Record<Band, number> = { high: 1, mid: 0.76, low: 0.52, unrated: 0.3 };
+// Two independent rings over the same films (the Stratz 趋势 layout): one ring is each film's
+// main genre (its own hue), the other the viewer's rating bands (one neutral ramp, brighter = higher).
+// Neither nests in the other; a button swaps which is inside. Pointing at a slice lists its films
+// in the tooltip and puts its count in the centre. A stats strip sits under the chart.
+const TOP_GENRES = 4;
+const TOOLTIP_FILMS = 8;
 
-function bandOf(film: ScoredFilm): Band {
-  if (film.myRating == null) return "unrated";
-  if (film.myRating >= 9) return "high";
-  if (film.myRating >= 7) return "mid";
-  return "low";
+type BandKey = "9" | "8" | "7" | "6" | "low" | "unrated";
+// t: position on the brightness ramp.
+const BANDS: { key: BandKey; test: (r: number | null) => boolean; t: number }[] = [
+  { key: "9", test: (r) => r != null && r >= 9, t: 1 },
+  { key: "8", test: (r) => r != null && r >= 8 && r < 9, t: 0.74 },
+  { key: "7", test: (r) => r != null && r >= 7 && r < 8, t: 0.5 },
+  { key: "6", test: (r) => r != null && r >= 6 && r < 7, t: 0.3 },
+  { key: "low", test: (r) => r != null && r < 6, t: 0.14 },
+  { key: "unrated", test: (r) => r == null, t: 0 },
+];
+
+type Slice = {
+  name: string;
+  long: string;
+  value: number;
+  films: ScoredFilm[];
+  // Top genres first, 其他 last (the genre ring only).
+  other?: boolean;
+  itemStyle: { color: string };
+  label: object;
+};
+
+type Palette = {
+  panel: string;
+  panel2: string;
+  line: string;
+  fg: string;
+  fg2: string;
+  fg3: string;
+  rampLo: string;
+  rampHi: string;
+  display: string;
+  body: string;
+  dark: boolean;
+};
+
+function rgb(color: string): [number, number, number] | null {
+  const m = /#([0-9a-f]{6})/i.exec(color);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-type Segment = { genre: string | null; band: Band | null; films: ScoredFilm[] };
+// `fg` over `bg` at opacity t, as a solid colour (canvas has no color-mix).
+function blend(fg: string, bg: string, t: number) {
+  const a = rgb(fg);
+  const b = rgb(bg);
+  if (!a || !b) return fg;
+  return `rgb(${a.map((v, i) => Math.round(b[i] + (v - b[i]) * t)).join(",")})`;
+}
 
-type Node = {
-  name: string;
-  value: number;
-  itemStyle: { color: string; opacity?: number };
-  segment: Segment;
-  children?: Node[];
-};
+function readPalette(el: HTMLElement, dark: boolean): Palette {
+  const css = getComputedStyle(el);
+  const v = (name: string) => css.getPropertyValue(name).trim();
+  return {
+    panel: v("--panel"),
+    panel2: v("--panel-2"),
+    line: v("--line"),
+    fg: v("--fg"),
+    fg2: v("--fg-2"),
+    fg3: v("--fg-3"),
+    rampLo: v("--ramp-lo"),
+    rampHi: v("--ramp-hi"),
+    display: v("--display"),
+    body: v("--body"),
+    dark,
+  };
+}
 
 export function GenreSunburst({
   films,
   genreLabel,
   otherLabel,
+  source,
+  sourceLabel,
+  rangeLabel,
   muted = false,
 }: {
   films: ScoredFilm[];
   genreLabel: (genre: string) => string;
-  // The name of the bucket for genres past the top few.
   otherLabel: string;
+  source: ListSource;
+  sourceLabel: string;
+  // What the centre says when nothing is pointed at (近 25 部 / 全部).
+  rangeLabel: string;
   muted?: boolean;
 }) {
   const { t, lang } = useLocale();
   const s = t.profile.sunburst;
-  const [picked, setPicked] = useState<Segment | null>(null);
+  const { resolvedTheme } = useTheme();
+  const box = useRef<HTMLDivElement>(null);
+  const [palette, setPalette] = useState<Palette | null>(null);
+  const [ratingsInside, setRatingsInside] = useState(true);
+  const [centre, setCentre] = useState<{ n: number; l: string } | null>(null);
 
-  const { data, total } = useMemo(() => {
-    const byGenre = new Map<string, ScoredFilm[]>();
-    for (const film of films)
-      for (const genre of genresOf(film)) byGenre.set(genre, [...(byGenre.get(genre) ?? []), film]);
-    const ranked = [...byGenre.entries()].sort((a, b) => b[1].length - a[1].length);
-    const top = ranked.slice(0, GENRE_LIMIT);
-    const rest = ranked.slice(GENRE_LIMIT).flatMap(([, items]) => items);
-    const groups: [string | null, ScoredFilm[]][] = [
-      ...top,
-      ...(rest.length ? [[null, rest] as [null, ScoredFilm[]]] : []),
-    ];
-    const nodes: Node[] = groups.map(([genre, items]) => {
-      const color = genre ? genreColor(genre) : "#8b93a1";
-      const children = BANDS.map((band) => ({ band, items: items.filter((film) => bandOf(film) === band) }))
-        .filter(({ items: inBand }) => inBand.length > 0)
-        .map(({ band, items: inBand }) => ({
-          name: s.bands[band],
-          value: inBand.length,
-          itemStyle: { color, opacity: BAND_OPACITY[band] },
-          segment: { genre, band, films: inBand },
-        }));
-      return {
-        name: genre ? genreLabel(genre) : otherLabel,
-        value: items.length,
-        itemStyle: { color },
-        segment: { genre, band: null, films: items },
-        children,
-      };
-    });
-    return { data: nodes, total: nodes.reduce((sum, node) => sum + node.value, 0) };
-  }, [films, genreLabel, otherLabel, s]);
+  useEffect(() => {
+    if (box.current) setPalette(readPalette(box.current, resolvedTheme === "dark"));
+  }, [resolvedTheme]);
 
-  const option = useMemo<EChartsOption>(
-    () => ({
-      animationDuration: 500,
-      title: {
-        text: String(films.length),
-        subtext: s.center,
-        left: "center",
-        top: "center",
-        textStyle: { fontSize: 22, fontWeight: 700, fontFamily: "var(--display)" },
-        subtextStyle: { fontSize: 11 },
-        itemGap: 2,
-      },
-      tooltip: { show: false },
-      series: [
-        {
-          type: "sunburst",
-          data,
-          radius: ["24%", "96%"],
-          sort: undefined,
-          nodeClick: "rootToNode",
-          // Point at a segment: its genre stays bright, the rest only fades a little (CJK labels
-          // read better upright than along the arc).
-          emphasis: { focus: "ancestor" },
-          blur: { itemStyle: { opacity: 0.4 } },
-          itemStyle: {
-            borderWidth: 2,
-            borderColor: "transparent",
-            borderRadius: 4,
-            opacity: muted ? 0.6 : undefined,
-          },
-          levels: [
-            {},
-            {
-              r0: "24%",
-              r: "64%",
-              label: {
-                rotate: 0,
-                minAngle: 16,
-                fontSize: 11,
-                color: "#fff",
-                fontWeight: 600,
-                textShadowBlur: 3,
-                textShadowColor: "rgba(0,0,0,0.65)",
-              },
-            },
-            { r0: "66%", r: "96%", label: { show: false } },
-          ],
+  const { genres, bands } = useMemo(() => {
+    if (!palette) return { genres: [] as Slice[], bands: [] as Slice[] };
+    const label = (top: string, count: number, color: string, mono: boolean) => ({
+      show: true,
+      position: "inside",
+      formatter: `{t|${top}}\n{c|${count}}`,
+      rich: {
+        t: {
+          color,
+          fontSize: mono ? 14 : 12,
+          fontWeight: 600,
+          lineHeight: 16,
+          fontFamily: mono ? palette.display : palette.body,
         },
-      ],
-    }),
-    [data, films.length, muted, s],
-  );
+        c: { color, opacity: 0.6, fontSize: 10, lineHeight: 12, fontFamily: palette.display },
+      },
+    });
+    const count = new Map<string, number>();
+    for (const film of films) if (film.genre) count.set(film.genre, (count.get(film.genre) ?? 0) + 1);
+    const keep = [...count.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, TOP_GENRES)
+      .map(([g]) => g);
+    const byGenre = new Map<string | null, ScoredFilm[]>();
+    for (const film of films) {
+      const key = film.genre && keep.includes(film.genre) ? film.genre : null;
+      byGenre.set(key, [...(byGenre.get(key) ?? []), film]);
+    }
+    const genres: Slice[] = [...byGenre.entries()]
+      .map(([genre, items]) => {
+        const name = genre ? genreLabel(genre) : otherLabel;
+        return {
+          name,
+          long: name,
+          value: items.length,
+          films: items,
+          other: genre == null,
+          itemStyle: {
+            color: blend(genre ? genreColor(genre) : "#6b7280", palette.panel, genre ? 0.55 : 0.3),
+          },
+          label: label(name, items.length, "#f3f4f6", false),
+        };
+      })
+      .sort((a, b) => Number(a.other) - Number(b.other) || b.value - a.value);
+    const bands: Slice[] = BANDS.map((band) => ({
+      band,
+      items: films
+        .filter((film) => band.test(film.myRating))
+        .sort((a, b) => (b.myRating ?? -1) - (a.myRating ?? -1)),
+    }))
+      .filter(({ items }) => items.length)
+      .map(({ band, items }) => {
+        // The ramp never gets bright enough for dark text in dark mode; light mode's low bands do.
+        const text = palette.dark || band.t >= 0.6 ? "#f3f4f6" : "#2a2e38";
+        return {
+          name: s.bands[band.key],
+          long: s.bandsLong[band.key],
+          value: items.length,
+          films: items,
+          itemStyle: { color: blend(palette.rampHi, palette.rampLo, band.t) },
+          label: label(s.bands[band.key], items.length, text, true),
+        };
+      })
+      .sort((a, b) => b.value - a.value);
+    return { genres, bands };
+  }, [films, genreLabel, otherLabel, palette, s]);
+
+  const option = useMemo<EChartsOption>(() => {
+    if (!palette) return {};
+    const titleOf = (film: ScoredFilm) => (lang === "en" && film.titleEn ? film.titleEn : film.title);
+    const ring = (data: Slice[], radius: [string, string], borderWidth: number) => ({
+      // Stratz order: start at 12 o'clock, run counterclockwise, biggest slice first.
+      type: "pie" as const,
+      data,
+      radius,
+      startAngle: 90,
+      clockwise: false,
+      avoidLabelOverlap: false,
+      minShowLabelAngle: 9,
+      itemStyle: { borderColor: palette.panel, borderWidth, borderRadius: 0, opacity: muted ? 0.65 : 1 },
+      label: { position: "inside" as const },
+      labelLine: { show: false },
+      emphasis: { scale: false, itemStyle: { borderColor: palette.fg3 } },
+      animationDurationUpdate: 400,
+    });
+    return {
+      tooltip: {
+        confine: true,
+        backgroundColor: palette.panel2,
+        borderColor: palette.line,
+        padding: [10, 12],
+        textStyle: { color: palette.fg, fontSize: 12 },
+        formatter: (params) => {
+          const p = params as unknown as { data: Slice; percent: number };
+          const d = p.data;
+          const sub = `color:${palette.fg2};font-size:11px`;
+          const rated = d.films.filter((film) => film.myRating != null);
+          const avg = rated.length
+            ? rated.reduce((sum, film) => sum + (film.myRating ?? 0), 0) / rated.length
+            : null;
+          const head = `<div style="margin-bottom:4px"><b>${d.long}</b> <span style="${sub}">${s.tooltip(d.films.length, Math.round(p.percent))}${avg != null ? ` · ${s.average(avg.toFixed(1))}` : ""}</span></div>`;
+          const rows = d.films
+            .slice(0, TOOLTIP_FILMS)
+            .map(
+              (film) =>
+                `<div style="display:flex;justify-content:space-between;gap:16px;${sub}"><span>${titleOf(film)}<span style="opacity:.6;margin-left:6px">${film.genre ? genreLabel(film.genre) : ""}</span></span><span style="font-family:${palette.display};font-weight:600;color:${palette.fg}">${film.myRating == null ? "–" : film.myRating}</span></div>`,
+            )
+            .join("");
+          const more =
+            d.films.length > TOOLTIP_FILMS
+              ? `<div style="${sub}">${s.more(d.films.length - TOOLTIP_FILMS)}</div>`
+              : "";
+          return head + rows + more;
+        },
+      },
+      series: ratingsInside
+        ? [ring(bands, ["18%", "50%"], 3), ring(genres, ["54%", "96%"], 2)]
+        : [ring(genres, ["18%", "50%"], 3), ring(bands, ["54%", "96%"], 2)],
+    };
+  }, [palette, bands, genres, ratingsInside, muted, s, genreLabel, lang]);
 
   const events = useMemo(
     () => ({
-      mouseover: (params: { data?: Node }) => params.data?.segment && setPicked(params.data.segment),
-      click: (params: { data?: Node }) => params.data?.segment && setPicked(params.data.segment),
+      mouseover: (params: { data?: Slice }) =>
+        params.data && setCentre({ n: params.data.films.length, l: params.data.long }),
+      mouseout: () => setCentre(null),
     }),
     [],
   );
 
-  const shown = picked ?? null;
-  const listed = shown
-    ? [...shown.films].sort(
-        (a, b) => (b.myRating ?? -1) - (a.myRating ?? -1) || b.watchedAt.localeCompare(a.watchedAt),
-      )
-    : [];
-  const heading = shown
-    ? `${shown.genre ? genreLabel(shown.genre) : otherLabel}${shown.band ? ` · ${s.bands[shown.band]}` : ""} · ${s.count(shown.films.length)}`
-    : null;
+  // The strip under the chart.
+  const strip = useMemo(() => {
+    const rated = films.filter((film) => film.myRating != null);
+    const avg = rated.length
+      ? rated.reduce((sum, film) => sum + (film.myRating ?? 0), 0) / rated.length
+      : null;
+    const pairs = rated.flatMap((film) => {
+      const score = publicScore(film, source);
+      return score == null ? [] : [(film.myRating ?? 0) - score];
+    });
+    const diff = pairs.length ? pairs.reduce((sum, d) => sum + d, 0) / pairs.length : null;
+    const count = new Map<string, number>();
+    for (const film of films) if (film.genre) count.set(film.genre, (count.get(film.genre) ?? 0) + 1);
+    const top = [...count.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+    const nine = rated.filter((film) => (film.myRating ?? 0) >= 9).length;
+    const best = [...rated].sort((a, b) => (b.myRating ?? 0) - (a.myRating ?? 0))[0] ?? null;
+    return { avg, diff, top, nine, best };
+  }, [films, source]);
+
+  const bestTitle = strip.best
+    ? lang === "en" && strip.best.titleEn
+      ? strip.best.titleEn
+      : strip.best.title
+    : "–";
 
   return (
-    <div className="sunburst">
-      <div className="sunburst-chart" role="img" aria-label={t.profile.genreChart}>
-        <EChart option={option} onEvents={events} />
+    <div className="rings" ref={box}>
+      <div className="rings-tools">
+        <button
+          type="button"
+          className="rings-swap"
+          onClick={() => setRatingsInside((value) => !value)}
+          aria-pressed={ratingsInside}
+        >
+          {ratingsInside ? s.ratingsInside : s.genresInside}
+        </button>
       </div>
-      <div className="sunburst-list" aria-live="polite">
-        {shown ? (
-          <>
-            <div className="sunburst-head">{heading}</div>
-            <ul>
-              {listed.slice(0, LIST_LIMIT).map((film) => (
-                <li key={`${film.id}-${film.watchedAt}`}>
-                  <span
-                    className="sb-poster"
-                    style={{ background: genreColor(film.genre) }}
-                    aria-hidden="true"
-                  >
-                    {film.poster ? (
-                      <Image src={film.poster} alt="" width={24} height={34} unoptimized />
-                    ) : (
-                      film.title.slice(0, 1)
-                    )}
-                  </span>
-                  <span className="sb-title">
-                    {lang === "en" && film.titleEn ? film.titleEn : film.title}
-                    {film.year ? <small> {film.year}</small> : null}
-                  </span>
-                  <span className="sb-rating num">{film.myRating == null ? "–" : film.myRating}</span>
-                </li>
-              ))}
-            </ul>
-            {listed.length > LIST_LIMIT && (
-              <div className="sunburst-more">{s.more(listed.length - LIST_LIMIT)}</div>
+      <div className="chart-box">
+        <div className="rings-chart" role="img" aria-label={t.profile.genreChart}>
+          {palette && <EChart option={option} onEvents={events} />}
+        </div>
+        <div className="rings-centre" aria-hidden="true">
+          <div className="n num">{centre ? centre.n : films.length}</div>
+          <div className="l">{centre ? centre.l : rangeLabel}</div>
+        </div>
+        <div className="rings-key">{ratingsInside ? s.keyRatingsInside : s.keyGenresInside}</div>
+        <div className="rings-scale">
+          {s.scaleLow} <i /> {s.scaleHigh}
+        </div>
+      </div>
+      <div className="rings-stats">
+        <div className="stat">
+          <div className="k">{s.statAverage}</div>
+          <div className="v num">
+            {strip.avg == null ? "–" : strip.avg.toFixed(1)}
+            {strip.diff != null && (
+              <small className={strip.diff >= 0 ? "up" : "dn"}>
+                {strip.diff >= 0 ? "▲" : "▼"} {s.statVersus(sourceLabel, Math.abs(strip.diff).toFixed(1))}
+              </small>
             )}
-          </>
-        ) : (
-          <div className="sunburst-hint">{s.hint}</div>
-        )}
+          </div>
+        </div>
+        <div className="stat">
+          <div className="k">{s.statTopGenre}</div>
+          <div className="v" style={{ color: strip.top ? genreColor(strip.top[0]) : undefined }}>
+            {strip.top ? genreLabel(strip.top[0]) : "–"}
+            {strip.top && <small className="muted num">{s.count(strip.top[1])}</small>}
+          </div>
+        </div>
+        <div className="stat">
+          <div className="k">{s.statNine}</div>
+          <div className="v num">
+            {strip.nine}
+            <small className="muted">
+              {s.statNineShare(films.length ? Math.round((strip.nine / films.length) * 100) : 0)}
+            </small>
+          </div>
+        </div>
+        <div className="stat">
+          <div className="k">{s.statBest}</div>
+          <div className="v">
+            {bestTitle}
+            {strip.best && (
+              <small
+                className="num"
+                style={{ color: strip.best.genre ? genreColor(strip.best.genre) : undefined }}
+              >
+                {strip.best.myRating}
+              </small>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

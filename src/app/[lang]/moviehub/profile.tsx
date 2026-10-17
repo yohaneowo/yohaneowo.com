@@ -1654,6 +1654,9 @@ export function MovieProfile({
                   films={sample}
                   genreLabel={genreLabel}
                   otherLabel={t.profile.sunburst.other}
+                  source={listSource}
+                  sourceLabel={sourceLabel}
+                  rangeLabel={windowSize === "all" ? t.profile.windowAll : t.profile.window(windowSize)}
                   muted={shortSample}
                 />
               ) : (
