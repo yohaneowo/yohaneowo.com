@@ -9,8 +9,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function CoinHubPage() {
   return (
-    // Fills the viewport under the 3.5rem header; data-fullbleed lifts the layout's width limit.
-    <div data-fullbleed className="h-[calc(100dvh-3.5rem-1px)] min-h-[420px]">
+    // Fills the viewport under the 3.5rem header; MainFrame drops the width limit on this route.
+    <div className="h-[calc(100dvh-3.5rem-1px)] min-h-[420px]">
       <TerminalLoader />
     </div>
   );

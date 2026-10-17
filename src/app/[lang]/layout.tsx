@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
+import { MainFrame } from "@/components/main-frame";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LOCALES, hasLocale } from "@/i18n/config";
@@ -46,10 +47,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
         <LocaleProvider lang={lang}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <SiteHeader />
-            {/* Full-bleed pages (CoinHub) mark their root with data-fullbleed to drop the width and padding. */}
-            <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 has-[[data-fullbleed]]:max-w-none has-[[data-fullbleed]]:p-0">
-              {children}
-            </main>
+            <MainFrame>{children}</MainFrame>
           </ThemeProvider>
         </LocaleProvider>
       </body>
