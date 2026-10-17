@@ -29,6 +29,13 @@
       "when": 1792110768116,
       "tag": "0003_coinhub_workspace",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792268901217,
+      "tag": "0004_discord_guilds",
+      "breakpoints": true
     }
   ]
 }

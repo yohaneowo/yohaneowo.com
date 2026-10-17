@@ -23,7 +23,8 @@ export const auth = betterAuth({
             clientId: process.env.DISCORD_CLIENT_ID,
             clientSecret: process.env.DISCORD_CLIENT_SECRET,
             disableDefaultScope: true,
-            scope: ["identify", "email"],
+            // guilds: the servers the person is in, for 羁绊 (people sharing a server).
+            scope: ["identify", "email", "guilds"],
           },
         }
       : {}),

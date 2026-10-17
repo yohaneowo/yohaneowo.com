@@ -1,4 +1,13 @@
-import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 // Better Auth core tables (user / session / account / verification). Property names must match
 // Better Auth's field names; the database columns are snake_case via `casing` in db/index.ts.
@@ -83,6 +92,21 @@ export const moviePreference = pgTable("movie_preference", {
   scoreSource: text().notNull().default("imdb"),
   ...timestamps,
 });
+
+// Discord servers each account is in (from the Discord OAuth `guilds` scope), for 羁绊: two
+// accounts that share a server see each other's watch overlap on the movie page. Refreshed from
+// Discord about once a day when the movie page is opened (lib/discord-guilds.ts).
+export const discordGuild = pgTable(
+  "discord_guild",
+  {
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    guildId: text().notNull(),
+    fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.guildId] }), index("discord_guild_guild_idx").on(t.guildId)],
+);
 
 // CoinHub workspace per site account: layout, charts, drawings, alerts and the paper account, as
 // the browser stores them (lib/coinhub/sync.ts). Last write wins.

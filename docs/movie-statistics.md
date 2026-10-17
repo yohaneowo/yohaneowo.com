@@ -28,6 +28,8 @@
 
 admin 菜单为「Bot管理 → 观影统计」，权限为 `module_bot:movies:query` / `module_bot:movies:refresh`。网站专用 token 只能读取统计和请求同步，不能修改订阅或推荐记录。
 
+羁绊（观影页右栏）：跟你在同一个 Discord 伺服器、又建了档案的人，以及对方也看过你多少（电影、剧集按部，动漫按季，百分比是占你看过的比例）。伺服器列表来自 Discord OAuth 的 `guilds` scope，存网站 PostgreSQL 的 `discord_guild`；交集由 admin 算（`POST /website/movies/users/{id}/bonds`，`movie/bonds.py`：Trakt 没有各季明细，看过的季用各季集数累计推算）。
+
 验证命令：网站 `pnpm format`、`pnpm lint`、`pnpm build`。要不登录就看完整档案页（例如截图比较深浅色），把 admin `GET /website/movies/users/{id}` 的回应存成 JSON，用 `MOVIE_PREVIEW_FIXTURE=<路径> pnpm dev` 启动后开 `/moviehub/preview/profile`（只在开发模式有效）；admin 后端 `python -m pytest tests/test_movie_statistics.py -q`、Ruff；admin 前端 ESLint、Prettier、`vue-tsc --noEmit`；bot `node --test tests/movie-statistics.test.js`、`npx eslint .`。授权回调最终仍需本人完成 Google / Discord OAuth。
 
 本轮只处理 dev，未迁移 NAS 或稳定版。以后部署需明确提供网站专用 token，并另行安排正式资料迁移。

@@ -28,6 +28,7 @@ import {
   type ShowSection,
 } from "@/lib/movie-types";
 import { saveScoreSource } from "./actions";
+import { BondsCard, type BondsProp } from "./bonds-card";
 import { CYCLE_ICON, CycleButton, type CycleOption } from "./cycle-button";
 import {
   ANIMATION_GENRES,
@@ -965,6 +966,7 @@ export function MovieProfile({
   name,
   avatar = null,
   notice = null,
+  bonds = null,
   traktUser,
   region,
   syncedAt,
@@ -999,6 +1001,8 @@ export function MovieProfile({
   avatar?: string | null;
   // Rendered under the hero: the "connect Trakt" prompt for profiles without a token.
   notice?: React.ReactNode;
+  // 羁绊 (people sharing a Discord server), or null when the server could not compute them.
+  bonds?: BondsProp | null;
   traktUser: string;
   region: string;
   syncedAt: string | null;
@@ -1701,6 +1705,8 @@ export function MovieProfile({
               )}
               <p className="note">{t.profile.ratingNote}</p>
             </section>
+
+            {bonds && <BondsCard bonds={bonds} />}
           </aside>
         </div>
         <p className="note">{t.profile.credits}</p>

@@ -252,6 +252,21 @@ const en: Dictionary = {
     diffs: (platform) => `My score − ${platform}, per title (old → new)`,
     diffChart: "My score minus the public score per title, oldest first",
     distribution: "Distribution",
+    bonds: {
+      title: "Bonds",
+      subtitle: "People in a Discord server with you",
+      empty: "Nobody who shares a Discord server with you has a movie profile yet.",
+      unlinked: "Link Discord to see how much the people in your servers have watched with you.",
+      reauthorize:
+        "Finding people in your servers needs one more Discord authorization (to read your server list).",
+      linkAction: "Link Discord",
+      reauthAction: "Authorize Discord again",
+      working: "Going to Discord…",
+      failed: "The authorization didn't finish. Please try again.",
+      breakdown: (movies: number, shows: number, seasons: number) =>
+        `${movies} films · ${shows} shows · ${seasons} anime seasons`,
+      hint: "Counts are what they have watched too (anime by season); the percentage is of what you have watched.",
+    },
     points: (score) => `${score}`,
     credits:
       "History and ratings: Trakt. Genres, countries and TMDB scores: TMDB. IMDb, Rotten Tomatoes and Metacritic: OMDb. Anime staff and scores: Bangumi, AniList, MyAnimeList. This site is not endorsed or certified by TMDB.",

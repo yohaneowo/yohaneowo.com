@@ -10,9 +10,11 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getSession } from "@/lib/auth";
 import { getDiscordAccount } from "@/lib/discord-account";
+import { bondCandidates, guildState } from "@/lib/discord-guilds";
 import { getScoreSource } from "@/lib/movie-preference";
-import { getMovieStatistics, MoviesUnavailable } from "@/lib/movies";
+import { getMovieBonds, getMovieStatistics, MoviesUnavailable } from "@/lib/movies";
 import { isRegionCode, listRegions } from "@/lib/regions";
+import type { BondsProp } from "./bonds-card";
 import { MovieProfile } from "./profile";
 import { ProfileSetup } from "./profile-setup";
 import { RefreshButton } from "./refresh-button";
@@ -47,6 +49,32 @@ function Gate({ t, children }: { t: Dictionary; children: React.ReactNode }) {
 }
 
 type SearchParams = Promise<{ error?: string | string[]; connected?: string | string[] }>;
+
+// 羁绊: accounts sharing a Discord server with this one, with the watch overlap admin computes.
+// Null when admin can't answer, so the card simply stays away.
+async function loadBonds(userId: string): Promise<BondsProp | null> {
+  const guilds = await guildState(userId);
+  if (guilds.kind !== "ready") return { state: guilds.kind, rows: [] };
+  const candidates = await bondCandidates(userId, guilds.guildIds);
+  if (candidates.length === 0) return { state: "ready", rows: [] };
+  try {
+    const overlaps = await getMovieBonds(
+      userId,
+      candidates.map((candidate) => candidate.discordId),
+    );
+    const byDiscord = new Map(candidates.map((candidate) => [candidate.discordId, candidate]));
+    return {
+      state: "ready",
+      rows: overlaps.flatMap((bond) => {
+        const person = byDiscord.get(bond.discordId);
+        return person ? [{ ...bond, name: person.name, image: person.image }] : [];
+      }),
+    };
+  } catch (error) {
+    console.warn("[bonds] admin bonds failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
+}
 
 // After the Trakt callback: say it worked, and point back to Discord (or to linking it).
 function ConnectedNotice({
@@ -175,8 +203,10 @@ async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
         </Card>
       </Gate>
     );
+  const bonds = await loadBonds(session.user.id);
   return (
     <MovieProfile
+      bonds={bonds}
       name={subscription.traktName}
       avatar={subscription.traktAvatar}
       notice={

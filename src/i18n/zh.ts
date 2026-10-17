@@ -231,6 +231,20 @@ const zh = {
     diffs: (platform: string) => `每部 我的分 − ${platform}（旧 → 新）`,
     diffChart: "每部的我的分数减大众分数，从旧到新",
     distribution: "评分分布",
+    bonds: {
+      title: "羁绊",
+      subtitle: "同一个 Discord 伺服器里的人",
+      empty: "还没有在同一个 Discord 伺服器里、也建了观影档案的人。",
+      unlinked: "关联 Discord 后，能看到跟你在同一个伺服器里的人和你共同看过多少。",
+      reauthorize: "要找到同一个伺服器里的人，需要再授权一次 Discord（多一个读取伺服器列表的权限）。",
+      linkAction: "关联 Discord",
+      reauthAction: "重新授权 Discord",
+      working: "正在前往 Discord…",
+      failed: "授权没有完成，请再试一次。",
+      breakdown: (movies: number, shows: number, seasons: number) =>
+        `电影 ${movies} · 剧集 ${shows} · 动漫 ${seasons} 季`,
+      hint: "数字是对方也看过的部数（动漫按季算），百分比是占你看过的比例。",
+    },
     points: (score: number) => `${score} 分`,
     credits:
       "记录与评分来源：Trakt；类型、国家与 TMDB 评分：TMDB；IMDb、烂番茄、Metacritic 评分：OMDb；动漫的制作人员与评分：Bangumi、AniList、MyAnimeList。本网站不受 TMDB 背书或认证。",

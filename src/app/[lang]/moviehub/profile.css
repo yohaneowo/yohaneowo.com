@@ -1505,3 +1505,110 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* 羁绊 card: one row per person sharing a Discord server. */
+.profile .bonds-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile .bond {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile .bond-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--panel-2);
+  font-weight: 700;
+}
+
+.profile .bond-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile .bond-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.profile .bond-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile .bond-detail {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.profile .bond-main .track {
+  height: 4px;
+}
+
+.profile .bond-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.profile .bond-stat .num {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.profile .bond-percent {
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.profile .bonds-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--fg-2);
+}
+
+.profile .bonds-empty p {
+  margin: 0;
+}
+
+.profile .bonds-action {
+  align-self: flex-start;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--ink-on-gold);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.profile .bonds-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.profile .bonds-error {
+  color: var(--down);
+}

@@ -35,7 +35,7 @@
 ## 登录
 
 - 支持 Google 或 Discord 登录；公开页面无需登录。观影统计只要登录即可：档案在 `/moviehub` 上建，Trakt 帐号只能经 Trakt OAuth 连接（`moviehub/actions.ts` 的 `startTraktConnect` 产生签名 `state` + `trakt_connect` cookie → Trakt → `/api/trakt/callback` → admin 换 token 并建档），不接受贴网址；地区选一下即可。档案存在 admin，以网站帐号 ID 为键。关联 Discord 是可选的（`authClient.linkSocial()`，允许不同 email，禁止仅凭相同 email 自动合并帐号）：关联后 bot 能找到同一份档案发每日推荐，以前在 bot 里建的档案也会接上。`/connect/discord` 是 bot 发出的「智能」链接：未登录就用 Discord 登录，已登录就把 Discord 关联到当前帐号。
-- Discord OAuth 回调：`<BETTER_AUTH_URL>/api/auth/callback/discord`，需要 `identify` 和 `email`。帐号与 Discord 身份都有唯一约束，不能跨网站帐号重复关联。
+- Discord OAuth 回调：`<BETTER_AUTH_URL>/api/auth/callback/discord`，需要 `identify`、`email`、`guilds`（`guilds` 给观影页的「羁绊」用：`lib/discord-guilds.ts` 用 Better Auth 存的 token 读 `/users/@me/guilds` 存进 `discord_guild` 表，每天最多刷新一次；没有这个 scope 的旧关联会在羁绊卡片看到「重新授权 Discord」）。帐号与 Discord 身份都有唯一约束，不能跨网站帐号重复关联。
 - Trakt OAuth 回调：`<BETTER_AUTH_URL>/api/trakt/callback`，要加进 Trakt app 的 Redirect URIs（正式、dev、本机各一条）。流程用 PKCE（网站产生 verifier 放 `trakt_connect` cookie，challenge 交给 admin 拼进授权网址）；Client ID 在 admin 的 Doppler，新 Trakt app 没有 secret，网站不碰 Trakt API。
 - Google OAuth 的重定向 URI：`<BETTER_AUTH_URL>/api/auth/callback/google`，本机和正式站要分别加进 Google Cloud Console。
 

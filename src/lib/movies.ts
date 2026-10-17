@@ -1,3 +1,4 @@
+import { z } from "zod";
 import "server-only";
 import { movieResponseSchema, personCardSchema } from "./movie-types";
 
@@ -61,6 +62,34 @@ export async function getMovieStatistics(userId: string, discordId: string | nul
 
 export async function refreshMovieStatistics(userId: string) {
   await call(`/users/${encodeURIComponent(userId)}/refresh`, { method: "POST" });
+}
+
+// 羁绊: what this account has watched in common with each of these Discord users' profiles.
+export const bondOverlapSchema = z.object({
+  common: z.number(),
+  mine: z.number(),
+  theirs: z.number().optional(),
+  share: z.number().optional(),
+});
+export const bondSchema = z.object({
+  discordId: z.string(),
+  traktUser: z.string(),
+  traktName: z.string(),
+  movies: bondOverlapSchema,
+  shows: bondOverlapSchema,
+  animeSeasons: bondOverlapSchema,
+  total: z.object({ common: z.number(), mine: z.number(), share: z.number() }),
+});
+export type Bond = z.infer<typeof bondSchema>;
+
+export async function getMovieBonds(userId: string, discordIds: string[]): Promise<Bond[]> {
+  if (discordIds.length === 0) return [];
+  const data = (await call(`/users/${encodeURIComponent(userId)}/bonds`, {
+    method: "POST",
+    body: { discordIds: discordIds.slice(0, 200) },
+    timeout: 20000,
+  })) as { bonds: unknown };
+  return z.array(bondSchema).parse(data.bonds);
 }
 
 // Where to send the browser so the person can authorize this app on their Trakt account.
