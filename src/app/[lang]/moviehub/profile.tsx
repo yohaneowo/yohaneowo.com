@@ -30,6 +30,7 @@ import {
 import { saveScoreSource } from "./actions";
 import { CycleButton, type CycleOption } from "./cycle-button";
 import {
+  ANIMATION_GENRES,
   AXES,
   SCORE_LABELS,
   abovePublic,
@@ -43,6 +44,7 @@ import {
   ratingOf,
   scoreTone,
   styleOf,
+  withoutAnimation,
 } from "./stats";
 import { useStatisticsRefresh } from "./use-statistics-refresh";
 import "./profile.css";
@@ -1038,9 +1040,17 @@ export function MovieProfile({
   const words = t.profile.words[isShow ? media : "movie"];
   const mediaOptions = MEDIA.filter((value) => value === "movie" || (value === "show" ? shows : anime));
   const listSource: ListSource = media === "anime" ? animeSource : source;
-  const films: ListItem[] = isShow ? section.items : movieFilms;
+  // On the anime tab "Animation" is every title's genre, so it is dropped from rows and charts.
+  const films: ListItem[] = useMemo(
+    () => (isShow ? (media === "anime" ? section.items.map(withoutAnimation) : section.items) : movieFilms),
+    [isShow, media, section, movieFilms],
+  );
   const people: PersonRow[] = isShow ? section.people : moviePeople;
-  const genres = isShow ? section.genres : movieGenres;
+  const genres = isShow
+    ? media === "anime"
+      ? section.genres.filter((row) => !ANIMATION_GENRES.has(row.name))
+      : section.genres
+    : movieGenres;
   const distribution = isShow ? section.distribution : movieDistribution;
   const mean = isShow ? section.mean : movieMean;
   const watchedCount = isShow ? section.watchedCount : movieWatchedCount;

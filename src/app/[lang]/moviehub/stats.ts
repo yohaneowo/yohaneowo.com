@@ -1,9 +1,19 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { ListSource, ProfileFilm } from "@/lib/movie-types";
 
-// 毒舌, 探索, 多样性, 深度, 数量 (names in the dictionary's style.axes).
-export const AXES = ["bite", "fresh", "diversity", "depth", "volume"] as const;
+// Radar order, clockwise from the top: 毒舌, 探索, 数量, 深度, 多样性 (names in style.axes).
+export const AXES = ["bite", "fresh", "volume", "depth", "diversity"] as const;
 export type Axis = (typeof AXES)[number];
+
+// TMDB tags every anime with this genre, so on the anime tab it says nothing; the other genres do.
+export const ANIMATION_GENRES = new Set(["动画", "動畫", "Animation"]);
+
+// An anime item with "Animation" dropped from its genres (kept when it is the only one).
+export function withoutAnimation<T extends { genre: string | null; genres: string[] }>(item: T): T {
+  const genres = item.genres.filter((genre) => !ANIMATION_GENRES.has(genre));
+  if (genres.length === 0) return item;
+  return { ...item, genres, genre: ANIMATION_GENRES.has(item.genre ?? "") ? genres[0] : item.genre };
+}
 
 export const SCORE_LABELS: Record<ListSource, string> = {
   imdb: "IMDb",
@@ -165,38 +175,53 @@ export function styleOf(films: ScoredFilm[], context: StyleContext): StyleStats 
 
   const percent = (value: number | null) =>
     value == null ? null : Math.round(Math.min(1, Math.max(0, value)) * 100);
-  const scores = [
-    bite == null ? null : percent(bite / 2),
-    percent(fresh),
-    percent(diversity),
-    percent(context.depth),
-    context.watchedPercentile == null ? null : Math.round(context.watchedPercentile),
-  ];
   const { t } = context;
   const label = SCORE_LABELS[context.source];
   const [topGenre, topGenreCount] = [...genreCount.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
-  const details = [
-    bite == null ? t.biteNone(label) : t.bite(pairs.length, label, bite >= 0, Math.abs(bite).toFixed(1)),
-    t.fresh(count, freshCount, context.kind === "show"),
-    topGenre
-      ? t.diversity(genreCount.size, context.genreLabel(topGenre), Math.round((topGenreCount / count) * 100))
-      : t.diversityNone,
-    context.kind === "show"
-      ? context.depth == null
-        ? t.showDepthNone
-        : t.showDepth(context.depthGroups, Math.round(context.depth * 100))
-      : context.depth == null
-        ? t.movieDepthNone
-        : t.movieDepth(context.depthGroups, Math.round(context.depth * 100)),
-    context.watchedPercentile == null
-      ? t.volumeNone
-      : t.volume(
-          context.watchedCount,
-          context.noun,
-          Math.round(context.watchedPercentile),
-          context.platformUsers,
-        ),
-  ];
+  // Each axis's score and sentence, then laid out in AXES order.
+  const axes: Record<Axis, { score: number | null; detail: string }> = {
+    bite: {
+      score: bite == null ? null : percent(bite / 2),
+      detail:
+        bite == null ? t.biteNone(label) : t.bite(pairs.length, label, bite >= 0, Math.abs(bite).toFixed(1)),
+    },
+    fresh: { score: percent(fresh), detail: t.fresh(count, freshCount, context.kind === "show") },
+    diversity: {
+      score: percent(diversity),
+      detail: topGenre
+        ? t.diversity(
+            genreCount.size,
+            context.genreLabel(topGenre),
+            Math.round((topGenreCount / count) * 100),
+          )
+        : t.diversityNone,
+    },
+    depth: {
+      score: percent(context.depth),
+      detail:
+        context.kind === "show"
+          ? context.depth == null
+            ? t.showDepthNone
+            : t.showDepth(context.depthGroups, Math.round(context.depth * 100))
+          : context.depth == null
+            ? t.movieDepthNone
+            : t.movieDepth(context.depthGroups, Math.round(context.depth * 100)),
+    },
+    volume: {
+      score: context.watchedPercentile == null ? null : Math.round(context.watchedPercentile),
+      detail:
+        context.watchedPercentile == null
+          ? t.volumeNone
+          : t.volume(
+              context.watchedCount,
+              context.noun,
+              Math.round(context.watchedPercentile),
+              context.platformUsers,
+            ),
+    },
+  };
+  const scores = AXES.map((axis) => axes[axis].score);
+  const details = AXES.map((axis) => axes[axis].detail);
   const ranked = scores
     .map((score, index) => ({ axis: AXES[index], score: score ?? -1 }))
     .sort((a, b) => b.score - a.score);
