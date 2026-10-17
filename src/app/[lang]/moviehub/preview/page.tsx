@@ -34,6 +34,8 @@ function film(
     country: "美国",
     publicScore,
     voteCount,
+    tags: [],
+    source: null,
     imdbId: null,
     // Sample IMDb scores sit a little above TMDB, as they usually do.
     imdbRating: Math.min(10, Math.round((publicScore + 0.3) * 10) / 10),

@@ -26,6 +26,9 @@ const profileFilm = z.object({
   voteCount: z.number().nullable(),
   // Fields added later stay optional so snapshots saved before them still parse.
   genres: z.array(z.string()).optional().default([]),
+  // Anime: AniList's top community tags and the adaptation source (MANGA, ORIGINAL, VIDEO_GAME…).
+  tags: z.array(z.string()).optional().default([]),
+  source: z.string().nullable().optional().default(null),
   imdbId: z.string().nullable().optional().default(null),
   imdbRating: z.number().nullable().optional().default(null),
   imdbVotes: z.number().nullable().optional().default(null),

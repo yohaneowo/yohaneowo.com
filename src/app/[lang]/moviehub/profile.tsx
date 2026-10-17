@@ -13,7 +13,7 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { genreName } from "@/i18n/genres";
+import { genreName, sourceName, tagName } from "@/i18n/genres";
 import { useLocale } from "@/i18n/locale-provider";
 import {
   ANIME_ROLES,
@@ -830,6 +830,14 @@ function WatchRow({
                 />
               ) : null,
               film.genre ? genreName(film.genre, lang) : null,
+              // Anime: where it was adapted from and its top AniList tags.
+              film.source ? sourceName(film.source, lang) : null,
+              film.tags.length
+                ? film.tags
+                    .slice(0, 3)
+                    .map((tag) => tagName(tag, lang))
+                    .join(" / ")
+                : null,
               series && film.episodesWatched != null
                 ? t.profile.episodes(
                     film.episodesWatched,
