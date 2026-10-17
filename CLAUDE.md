@@ -58,4 +58,4 @@
 
 ## 部署（Coolify）
 
-跑在家里的 Proxmox 虚拟机（Coolify，局域网 `http://192.168.0.210:8000`）。push 到 `main` 会经 GitHub webhook 自动用 `Dockerfile` 构建并部署；镜像启动时先跑 `scripts/migrate.mjs` 套用 drizzle 迁移，再启动 Next.js。正式站的密钥在 Doppler `prd`，容器只拿到一个 `DOPPLER_TOKEN`。对外经 Cloudflare Tunnel，TLS 由 Cloudflare 终结，所以 Coolify 里的域名写 `http://yohaneowo.com`。观影统计连的是同一台机器上的 admin（`ADMIN_API_URL=http://yohaneowo-admin-web`）。`develop` 是开发分支，合并进 `main` 才会上线。
+跑在家里的 Proxmox 虚拟机（Coolify，局域网 `http://192.168.0.210:8000`）。push 到 `main` 会经 GitHub webhook 自动用 `Dockerfile` 构建并部署；镜像启动时先跑 `scripts/migrate.mjs` 套用 drizzle 迁移，再启动 Next.js。正式站的密钥在 Doppler `prd`，容器只拿到一个 `DOPPLER_TOKEN`。对外经 Cloudflare Tunnel，TLS 由 Cloudflare 终结，所以 Coolify 里的域名写 `http://yohaneowo.com`。观影统计连的是同一台机器上的 admin（`ADMIN_API_URL=http://yohaneowo-admin-web`）。`develop` 是开发分支：push 后自动部署到 dev 站（https://dev.yohaneowo.com，Cloudflare Access 只有站长能开，Doppler `stg`，连的是 admin 的 dev 部署 `http://yohaneowo-admin-dev-web`）；用户在 dev 站看过并确认后，才把 `develop` 快进合并进 `main` 上线。**没有用户确认不要合并进 `main`。** admin、bot 也各有 dev 部署（`admin-dev.yohaneowo.com`、`line-dev.yohaneowo.com`），同样跟 `develop` 分支。
