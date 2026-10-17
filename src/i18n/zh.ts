@@ -97,6 +97,12 @@ const zh = {
       title: "暂时无法读取统计",
       fallback: "资料暂时无法读取，请稍后重试。",
     },
+    connected: {
+      title: "Trakt 已连接 🎉",
+      discord: "回到 Discord，输入 /movie recommend 拿一部推荐，或 /movie subscribe 订阅每日新片。",
+      linkDiscord: "想在 Discord 用推荐？关联你的 Discord 帐号，bot 就找得到这份档案。",
+      linkAction: "关联 Discord",
+    },
     connect: {
       title: "这个档案还没授权 Trakt",
       description:

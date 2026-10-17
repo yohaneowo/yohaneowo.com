@@ -17,7 +17,9 @@ export async function GET(request: Request) {
   const state = readTraktState(url.searchParams.get("state"), jar.get(TRAKT_STATE_COOKIE)?.value);
   jar.delete(TRAKT_STATE_COOKIE);
   const back = (lang: "zh" | "en", error?: string) =>
-    NextResponse.redirect(new URL(localePath(lang, "/moviehub") + (error ? `?error=${error}` : ""), origin));
+    NextResponse.redirect(
+      new URL(localePath(lang, "/moviehub") + (error ? `?error=${error}` : "?connected=1"), origin),
+    );
   if (!state) return back("zh", "traktState");
   const session = await getSession();
   if (!session || session.user.id !== state.userId) return back(state.lang, "signIn");

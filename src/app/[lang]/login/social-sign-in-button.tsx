@@ -6,7 +6,15 @@ import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
 import { authClient } from "@/lib/auth-client";
 
-export function SocialSignInButton({ provider }: { provider: "google" | "discord" }) {
+// next: the site path to land on afterwards (from ?next=); Discord sign-ins default to the movie
+// page, since that is what the bot sends people here for.
+export function SocialSignInButton({
+  provider,
+  next = null,
+}: {
+  provider: "google" | "discord";
+  next?: string | null;
+}) {
   const label = provider === "google" ? "Google" : "Discord";
   const { t, href } = useLocale();
   const [pending, setPending] = useState(false);
@@ -20,7 +28,7 @@ export function SocialSignInButton({ provider }: { provider: "google" | "discord
       // Keep the button disabled while the browser leaves for the provider.
       const { error } = await authClient.signIn.social({
         provider,
-        callbackURL: href(provider === "discord" ? "/moviehub" : "/"),
+        callbackURL: href(next ?? (provider === "discord" ? "/moviehub" : "/")),
         errorCallbackURL: href("/login"),
       });
       if (error) {

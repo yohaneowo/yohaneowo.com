@@ -12,16 +12,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; next?: string | string[] }>;
 };
+
+// Only a path on this site may be the return target.
+function nextPath(value: string | string[] | undefined) {
+  const path = Array.isArray(value) ? value[0] : value;
+  return path && path.startsWith("/") && !path.startsWith("//") ? path : null;
+}
 
 async function LoginContent({ searchParams }: LoginPageProps) {
   const session = await getSession();
   const lang = await getLocale();
   const t = await getDictionary();
-  if (session) redirect(localePath(lang, "/"));
+  const { error, next: nextParam } = await searchParams;
+  const next = nextPath(nextParam);
+  if (session) redirect(localePath(lang, next ?? "/"));
 
-  const { error } = await searchParams;
   const code = typeof error === "string" ? error : error?.[0];
   const message = code
     ? code === "access_denied"
@@ -38,9 +45,9 @@ async function LoginContent({ searchParams }: LoginPageProps) {
           {message}
         </p>
       )}
-      <SocialSignInButton provider="google" />
+      <SocialSignInButton provider="google" next={next} />
       {process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET && (
-        <SocialSignInButton provider="discord" />
+        <SocialSignInButton provider="discord" next={next} />
       )}
     </div>
   );

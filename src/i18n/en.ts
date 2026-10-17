@@ -106,6 +106,13 @@ const en: Dictionary = {
       title: "Statistics unavailable",
       fallback: "Your data can't be read right now. Please try again later.",
     },
+    connected: {
+      title: "Trakt connected 🎉",
+      discord:
+        "Back in Discord, run /movie recommend for a pick, or /movie subscribe for daily new releases.",
+      linkDiscord: "Want it on Discord? Link your Discord account so the bot can find this profile.",
+      linkAction: "Link Discord",
+    },
     connect: {
       title: "This profile hasn't authorized Trakt yet",
       description:

@@ -46,7 +46,33 @@ function Gate({ t, children }: { t: Dictionary; children: React.ReactNode }) {
   );
 }
 
-type SearchParams = Promise<{ error?: string | string[] }>;
+type SearchParams = Promise<{ error?: string | string[]; connected?: string | string[] }>;
+
+// After the Trakt callback: say it worked, and point back to Discord (or to linking it).
+function ConnectedNotice({
+  t,
+  lang,
+  discordLinked,
+}: {
+  t: Dictionary;
+  lang: "zh" | "en";
+  discordLinked: boolean;
+}) {
+  const c = t.movies.connected;
+  return (
+    <div className="notice" role="status">
+      <div className="notice-text">
+        <strong>{c.title}</strong>
+        <span>{discordLinked ? c.discord : c.linkDiscord}</span>
+      </div>
+      {!discordLinked && (
+        <Link href={localePath(lang, "/connect/discord")} className="notice-button">
+          {c.linkAction}
+        </Link>
+      )}
+    </div>
+  );
+}
 
 // A code from the Trakt callback's redirect, if it names one of our messages.
 function errorText(value: string | string[] | undefined, t: Dictionary) {
@@ -68,7 +94,7 @@ async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
             <CardDescription>{t.movies.signedOut.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Link href={localePath(lang, "/login")} className={buttonVariants()}>
+            <Link href={localePath(lang, "/login?next=/moviehub")} className={buttonVariants()}>
               {t.movies.signedOut.action}
             </Link>
             <p className="text-sm text-muted-foreground">{t.movies.signedOut.hint}</p>
@@ -101,7 +127,8 @@ async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
       </Gate>
     );
   }
-  const { error } = await searchParams;
+  const { error, connected } = await searchParams;
+  const justConnected = Boolean(connected);
   if (!result.subscription || result.subscription.traktReauth) {
     // Cloudflare tells us the visitor's country; it pre-selects the region, which they can change.
     const country = ((await headers()).get("cf-ipcountry") ?? "").toUpperCase();
@@ -129,6 +156,11 @@ async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
             <CardDescription>{t.movies.preparing.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {justConnected && (
+              <p className="text-sm">
+                {linked ? t.movies.connected.discord : t.movies.connected.linkDiscord}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               {subscription.traktName} · {waiting ? t.movies.preparing.syncing : t.movies.preparing.waiting}{" "}
               {t.movies.preparing.noBot}
@@ -147,7 +179,13 @@ async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
     <MovieProfile
       name={subscription.traktName}
       avatar={subscription.traktAvatar}
-      notice={subscription.traktConnected ? null : <TraktConnectBanner region={subscription.region} />}
+      notice={
+        !subscription.traktConnected ? (
+          <TraktConnectBanner region={subscription.region} />
+        ) : justConnected ? (
+          <ConnectedNotice t={t} lang={lang} discordLinked={Boolean(linked)} />
+        ) : null
+      }
       traktUser={subscription.traktUser}
       region={subscription.region}
       syncedAt={subscription.syncedAt}
