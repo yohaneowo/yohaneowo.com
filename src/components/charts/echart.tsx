@@ -1,10 +1,11 @@
 "use client";
 
-import { BarChart, LineChart, PieChart, RadarChart, ScatterChart } from "echarts/charts";
+import { BarChart, LineChart, PieChart, RadarChart, ScatterChart, SunburstChart } from "echarts/charts";
 import {
   GridComponent,
   LegendComponent,
   RadarComponent,
+  TitleComponent,
   TooltipComponent,
   MarkLineComponent,
 } from "echarts/components";
@@ -21,10 +22,12 @@ echarts.use([
   PieChart,
   RadarChart,
   ScatterChart,
+  SunburstChart,
   MarkLineComponent,
   GridComponent,
   LegendComponent,
   RadarComponent,
+  TitleComponent,
   TooltipComponent,
   CanvasRenderer,
 ]);
@@ -32,9 +35,11 @@ echarts.use([
 type EChartProps = {
   option: EChartsOption;
   className?: string;
+  // ECharts event name → handler (mouseover, click…), as echarts-for-react takes them.
+  onEvents?: Record<string, (params: never) => void>;
 };
 
-export function EChart({ option, className }: EChartProps) {
+export function EChart({ option, className, onEvents }: EChartProps) {
   const { resolvedTheme } = useTheme();
 
   return (
@@ -46,6 +51,7 @@ export function EChart({ option, className }: EChartProps) {
       theme={resolvedTheme === "dark" ? "dark" : undefined}
       className={className}
       style={{ height: "100%", width: "100%" }}
+      onEvents={onEvents}
       notMerge
     />
   );

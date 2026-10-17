@@ -211,6 +211,15 @@ const zh = {
     standout: (axes: string) => `最突出：${axes}`,
     styleChart: "观影风格",
     genreChart: "类型分布",
+    sunburst: {
+      center: "部",
+      other: "其他",
+      bands: { high: "9–10 分", mid: "7–8 分", low: "6 分以下", unrated: "未评分" },
+      tooltip: (count: number, percent: number) => `${count} 部 · 占 ${percent}%`,
+      count: (count: number) => `${count} 部`,
+      more: (count: number) => `还有 ${count} 部`,
+      hint: "滑到或点一段，看里面有哪些片；点类型可以放大。",
+    },
     genreHeadline: (count: number, percent: number) => `${count} 部 · ${percent}%`,
     genreDetail: (total: number, count: number, genre: string) =>
       `这个范围里 ${total} 部，有 ${count} 部含${genre}。一部可以算进多个类型。`,

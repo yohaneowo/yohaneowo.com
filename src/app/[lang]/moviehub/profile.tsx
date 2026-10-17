@@ -30,6 +30,7 @@ import {
 import { saveScoreSource } from "./actions";
 import { BondsCard, type BondsProp } from "./bonds-card";
 import { CYCLE_ICON, CycleButton, type CycleOption } from "./cycle-button";
+import { GenreSunburst } from "./genre-sunburst";
 import {
   ANIMATION_GENRES,
   AXES,
@@ -39,7 +40,6 @@ import {
   daysAgo,
   formatSigned,
   genreColor,
-  genreRadar,
   genresOf,
   publicScore,
   ratingOf,
@@ -1269,7 +1269,6 @@ export function MovieProfile({
     watchedCount,
     platformUsers: media === "show" ? showUsers : media === "anime" ? animeUsers : moviePlatformUsers,
   });
-  const genreAxes = genreRadar(sample);
   const rating = films.length ? ratingOf(sample, listSource) : null;
   // An empty or unrated sample falls back to the all-time distribution.
   const sampleRating = rating?.mine != null ? rating : null;
@@ -1650,16 +1649,12 @@ export function MovieProfile({
                     })}
                   />
                 </>
-              ) : radarMode === "genre" && genreAxes ? (
-                <Radar
-                  label={t.profile.genreChart}
+              ) : radarMode === "genre" && sample.length > 0 ? (
+                <GenreSunburst
+                  films={sample}
+                  genreLabel={genreLabel}
+                  otherLabel={t.profile.sunburst.other}
                   muted={shortSample}
-                  axes={genreAxes.map((axis) => ({
-                    label: genreLabel(axis.genre),
-                    value: axis.value,
-                    headline: t.profile.genreHeadline(axis.count, axis.percent),
-                    detail: t.profile.genreDetail(sample.length, axis.count, genreLabel(axis.genre)),
-                  }))}
                 />
               ) : (
                 <>

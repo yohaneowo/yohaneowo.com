@@ -231,6 +231,15 @@ const en: Dictionary = {
     standout: (axes) => `Strongest: ${axes}`,
     styleChart: "Viewing style",
     genreChart: "Genres",
+    sunburst: {
+      center: "titles",
+      other: "Other",
+      bands: { high: "9–10", mid: "7–8", low: "6 or less", unrated: "Unrated" },
+      tooltip: (count: number, percent: number) => `${count} titles · ${percent}%`,
+      count: (count: number) => `${count} titles`,
+      more: (count: number) => `${count} more`,
+      hint: "Point at or tap a segment to see its titles; click a genre to zoom in.",
+    },
     genreHeadline: (count, percent) => `${count} · ${percent}%`,
     genreDetail: (total, count, genre) =>
       `${count} of the ${total} titles in this range are ${genre}. A title can count for several genres.`,

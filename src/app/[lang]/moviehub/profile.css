@@ -1612,3 +1612,81 @@
 .profile .bonds-error {
   color: var(--down);
 }
+
+/* Genre sunburst and the film list that follows the pointer. */
+.profile .sunburst-chart {
+  height: 300px;
+  margin: 4px -6px 0;
+}
+
+.profile .sunburst-list {
+  min-height: 72px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.profile .sunburst-hint,
+.profile .sunburst-more {
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.profile .sunburst-head {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.profile .sunburst-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile .sunburst-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile .sb-poster {
+  width: 24px;
+  height: 34px;
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-on-gold);
+}
+
+.profile .sb-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile .sb-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile .sb-title small {
+  color: var(--fg-3);
+}
+
+.profile .sb-rating {
+  width: 26px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--gold);
+}
