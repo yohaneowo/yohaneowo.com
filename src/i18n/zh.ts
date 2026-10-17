@@ -97,6 +97,13 @@ const zh = {
       title: "暂时无法读取统计",
       fallback: "资料暂时无法读取，请稍后重试。",
     },
+    connect: {
+      title: "这个档案还没授权 Trakt",
+      description:
+        "统计照常，但 Discord 的「想看」「看过了」要写进你的 Trakt、以及读取私密帐号，都需要授权一次。",
+      button: "授权 Trakt",
+      working: "正在前往 Trakt…",
+    },
     setup: {
       title: "建立你的观影档案",
       description: "连上你的 Trakt 帐号，网站会读取你的观看与评分记录来做统计。",

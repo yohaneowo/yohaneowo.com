@@ -16,6 +16,7 @@ import { isRegionCode, listRegions } from "@/lib/regions";
 import { MovieProfile } from "./profile";
 import { ProfileSetup } from "./profile-setup";
 import { RefreshButton } from "./refresh-button";
+import { TraktConnectBanner } from "./trakt-connect-banner";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).movies.title };
@@ -146,6 +147,7 @@ async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
     <MovieProfile
       name={subscription.traktName}
       avatar={subscription.traktAvatar}
+      notice={subscription.traktConnected ? null : <TraktConnectBanner region={subscription.region} />}
       traktUser={subscription.traktUser}
       region={subscription.region}
       syncedAt={subscription.syncedAt}

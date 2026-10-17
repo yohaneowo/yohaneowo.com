@@ -106,6 +106,13 @@ const en: Dictionary = {
       title: "Statistics unavailable",
       fallback: "Your data can't be read right now. Please try again later.",
     },
+    connect: {
+      title: "This profile hasn't authorized Trakt yet",
+      description:
+        "Statistics work as they are, but Discord's 想看 / 看过了 buttons write to your Trakt, and private accounts can only be read, after one authorization.",
+      button: "Authorize Trakt",
+      working: "Going to Trakt…",
+    },
     setup: {
       title: "Set up your movie profile",
       description:

@@ -964,6 +964,7 @@ function seasonScore(season: Season, source: ListSource): [ListSource, string | 
 export function MovieProfile({
   name,
   avatar = null,
+  notice = null,
   traktUser,
   region,
   syncedAt,
@@ -996,6 +997,8 @@ export function MovieProfile({
 }: {
   name: string;
   avatar?: string | null;
+  // Rendered under the hero: the "connect Trakt" prompt for profiles without a token.
+  notice?: React.ReactNode;
   traktUser: string;
   region: string;
   syncedAt: string | null;
@@ -1390,6 +1393,7 @@ export function MovieProfile({
           </nav>
         </div>
       </header>
+      {notice}
 
       <div className="wrap">
         <div className="filters" ref={filtersRef}>
