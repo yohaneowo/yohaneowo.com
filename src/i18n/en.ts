@@ -322,7 +322,7 @@ const en: Dictionary = {
     separator: ", ",
     biteNone: (platform) => `Nothing in this range can be compared with ${platform}.`,
     bite: (count, platform, lower, points) =>
-      `Across ${plural(count, "comparable title")}, you rate ${points} ${lower ? "below" : "above"} ${platform} on average. 2 points below the public is the maximum.`,
+      `Across ${plural(count, "comparable title")}, you rate ${points} ${lower ? "below" : "above"} ${platform} on average. 1 point below the public is the maximum.`,
     fresh: (count, fresh, show) =>
       `${fresh} of ${count} watched within a year of ${show ? "first airing" : "release"}.`,
     diversity: (kinds, genre, percent) =>

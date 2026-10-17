@@ -300,7 +300,7 @@ const zh = {
     separator: "、",
     biteNone: (platform: string) => `这个范围里没有能和 ${platform} 比较的评分。`,
     bite: (count: number, platform: string, lower: boolean, points: string) =>
-      `${count} 部能比较的里，你平均比 ${platform} ${lower ? "低" : "高"} ${points} 分。比大众低 2 分为满分。`,
+      `${count} 部能比较的里，你平均比 ${platform} ${lower ? "低" : "高"} ${points} 分。比大众低 1 分为满分。`,
     fresh: (count: number, fresh: number, show: boolean) =>
       `${count} 部里有 ${fresh} 部是${show ? "首播" : "上映"}一年内看的。`,
     diversity: (kinds: number, genre: string, percent: number) =>

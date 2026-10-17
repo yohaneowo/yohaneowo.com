@@ -146,7 +146,7 @@ export type StyleContext = {
 export function styleOf(films: ScoredFilm[], context: StyleContext): StyleStats | null {
   const count = films.length;
   if (count === 0) return null;
-  // 毒舌: how far below the chosen platform the user rates on average; 2 points lower is 100.
+  // 毒舌: how far below the chosen platform the user rates on average; 1 point lower is 100.
   const pairs = compared(films, context.source);
   const bite = pairs.length
     ? pairs.reduce((sum, pair) => sum + pair.score - pair.mine, 0) / pairs.length
@@ -181,7 +181,7 @@ export function styleOf(films: ScoredFilm[], context: StyleContext): StyleStats 
   // Each axis's score and sentence, then laid out in AXES order.
   const axes: Record<Axis, { score: number | null; detail: string }> = {
     bite: {
-      score: bite == null ? null : percent(bite / 2),
+      score: bite == null ? null : percent(bite),
       detail:
         bite == null ? t.biteNone(label) : t.bite(pairs.length, label, bite >= 0, Math.abs(bite).toFixed(1)),
     },
