@@ -1,6 +1,6 @@
 # 观影统计：本机开发
 
-网站公开页面允许游客浏览；登录提供 Google 和 Discord。观影档案以网站帐号为主：登录后在 `/moviehub` 填公开的 Trakt 个人页和观影地区（地区预设取 Cloudflare 的 `cf-ipcountry`），admin 以网站帐号 ID 为键保存。关联 Discord 是可选的：关联后 admin 把同一份档案和 Discord ID 对上，bot 的 `/movie subscribe` 只负责开启每日推荐；以前在 bot 里建的档案会在关联时自动接上，两边都有时以网站这边为准、推荐记录合并。统计仅当前登录用户可见，网站帐号 ID 与 Discord ID 都从服务端读取，浏览器不能指定其他人的 ID。
+网站公开页面允许游客浏览；登录提供 Google 和 Discord。观影档案以网站帐号为主：登录后在 `/moviehub` 选观影地区（预设取 Cloudflare 的 `cf-ipcountry`）并授权 Trakt 帐号：网站向 admin 要授权网址（`GET /website/movies/trakt/authorize`），带上 HMAC 签名、绑定帐号与 10 分钟有效的 `state`（nonce 同时放在 `trakt_connect` cookie）；Trakt 回到 `/api/trakt/callback` 后，网站把 `code` 交给 admin（`POST /website/movies/users/{id}/trakt`），admin 换取 token、用 `users/me` 取得用户名 / 头像 / 是否私密并建档。token 加密存在 admin，同步时用它读取记录，所以私密帐号也能统计；token 失效时档案标 `traktReauth`，网页会要求重新授权。同一个 Trakt 帐号只能连到一个网站帐号（409 `traktTaken`），但 bot 时代没有主人的同名档案会被认领。不再接受手填 Trakt 网址。关联 Discord 是可选的：关联后 admin 把同一份档案和 Discord ID 对上，bot 的 `/movie subscribe` 只负责开启每日推荐；以前在 bot 里建的档案会在关联时自动接上，两边都有时以网站这边为准、推荐记录合并。统计仅当前登录用户可见，网站帐号 ID 与 Discord ID 都从服务端读取，浏览器不能指定其他人的 ID。
 
 网站 PostgreSQL 只保存网站帐号、关联与会话。admin MySQL 保存订阅、统计快照、推荐记录和 TMDB / Wikipedia / 向量快取。Discord bot 使用 admin 内部接口。统计同步在 admin 里执行（`backend/app/plugin/module_bot/movie/sync/`，从 bot 的 JS 移植，逐字段比对过）：第一次有电影接口被调用时启动背景循环，每 15 秒领取一个到期的订阅；网页或 bot 请求刷新时马上唤醒。同步同时写入网站用的 snapshot 和 bot 推荐用的口味资料（`taste` 栏位，bot 经 `GET /internal/movies/taste/{id}` 读取）。Discord bot 退出不影响网站与同步。
 
@@ -10,7 +10,7 @@
 2. 在 admin/backend 运行原有 dev 后端。新路由需要后端重新加载；不要自动关闭用户已有实例。独立联调可运行 `python -m uvicorn app:create_app --factory --host 127.0.0.1 --port 8011`，环境为 `ENVIRONMENT=dev`、`DEBUG=true`。此时在以下终端设置 `$env:ADMIN_API_URL='http://127.0.0.1:8011'`。
 3. 在网站目录运行 `pnpm db:migrate`，然后 `pnpm dev`。两者都经 `doppler run` 取得环境变量。
 4. 不需要另外启动 worker：admin 开着就会同步。快照超过 24 小时自动更新，也可在网页请求刷新。手动刷新间隔至少 5 分钟；失败保留旧快照，5 分钟后重试。
-5. 打开 `http://localhost:3100/moviehub`。旧地址 `/trakt` 会转到这里。登录后在页面上填 Trakt 个人页和地区建立档案；要让测试 bot 发推荐，到 `/settings` 关联 Discord 后在 bot 用 `/movie subscribe`。
+5. 打开 `http://localhost:3100/moviehub`。旧地址 `/trakt` 会转到这里。登录后在页面上选地区、按「用 Trakt 帐号授权」建立档案（Trakt app 的 Redirect URIs 要含 `http://localhost:3100/api/trakt/callback`）；要让测试 bot 发推荐，到 `/settings` 关联 Discord 后在 bot 用 `/movie subscribe`。
 
 网站连 admin 用的 `ADMIN_API_URL`、`ADMIN_MOVIES_TOKEN` 放在 Doppler。dev admin 没设 `WEBSITE_MOVIES_TOKEN` 时，会用 `BOT_API_TOKEN` 派生一个只读凭据，网站 dev 配置里存的就是这个派生值；admin 设了 `WEBSITE_MOVIES_TOKEN` 时，网站要改成同一个值。
 
@@ -52,7 +52,7 @@ admin 菜单为「Bot管理 → 观影统计」，权限为 `module_bot:movies:q
 
 ## 正式部署
 
-1. 环境变量照 `.env.example` 全部填好；admin 的 Doppler `prd` 要有 `OMDB_API_KEY`、`TMDB_API_TOKEN`、`TRAKT_CLIENT_ID`（bot 不再需要后两个，外部请求都经 admin 代查）。Discord、`ADMIN_*`、`TMDB_API_TOKEN` 缺了不会报错，只是对应功能隐藏或显示「暂时无法连接」。
+1. 环境变量照 `.env.example` 全部填好；admin 的 Doppler `prd` 要有 `OMDB_API_KEY`、`TMDB_API_TOKEN`、`TRAKT_CLIENT_ID`、`TRAKT_CLIENT_SECRET`（bot 不再需要这些，外部请求都经 admin 代查；Trakt OAuth 的 Redirect URIs 在 Trakt app 设定里加 `https://yohaneowo.com/api/trakt/callback` 与 `https://dev.yohaneowo.com/api/trakt/callback`）。Discord、`ADMIN_*`、`TMDB_API_TOKEN` 缺了不会报错，只是对应功能隐藏或显示「暂时无法连接」。
 2. Docker 镜像不包含 `drizzle/` 和 drizzle-kit，迁移要在换镜像前另外跑：在本机把 `DATABASE_URL` 指向正式库，执行 `pnpm db:migrate`。
 3. `0001_discord_account_identity` 会加唯一索引，若已有重复关联会失败。先检查：
 

@@ -1,16 +1,17 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { getSession } from "@/lib/auth";
-import { getDiscordAccount } from "@/lib/discord-account";
 import { setScoreSource } from "@/lib/movie-preference";
 import { scoreSourceSchema } from "@/lib/movie-types";
 import {
+  getTraktAuthorizeUrl,
   MoviesUnavailable,
   refreshMovieStatistics,
-  saveMovieProfile,
   type MoviesErrorCode,
 } from "@/lib/movies";
 import { isRegionCode } from "@/lib/regions";
+import { createTraktState, TRAKT_STATE_COOKIE } from "@/lib/trakt-state";
 
 // error: a key of the dictionary's movies.errors (the caller shows it in its language).
 type ActionError = MoviesErrorCode | "signIn" | "badRegion" | "refreshFailed" | "badSource" | "saveFailed";
@@ -27,23 +28,30 @@ export async function requestStatisticsRefresh(): Promise<{ error: ActionError |
   }
 }
 
-// The setup form: the account's Trakt profile and region. The linked Discord account (if any)
-// goes along so the bot can find the profile.
-export async function createMovieProfile(input: {
-  trakt: unknown;
+// The setup form: remembers the region, then hands back Trakt's authorization page. The state
+// is signed and bound to this account; its nonce also sits in a short-lived cookie.
+export async function startTraktConnect(input: {
   region: unknown;
-}): Promise<{ error: ActionError | null }> {
+  lang: unknown;
+}): Promise<{ url: string } | { error: ActionError }> {
   const session = await getSession();
   if (!session) return { error: "signIn" };
-  const trakt = typeof input.trakt === "string" ? input.trakt.trim() : "";
   const region = typeof input.region === "string" ? input.region.trim().toUpperCase() : "";
-  if (!trakt || trakt.length > 300) return { error: "traktInvalid" };
   if (!isRegionCode(region)) return { error: "badRegion" };
+  const lang = input.lang === "en" ? "en" : "zh";
+  const origin = process.env.BETTER_AUTH_URL?.replace(/\/+$/, "");
+  if (!origin) return { error: "notConnected" };
   try {
-    const linked = await getDiscordAccount(session.user.id);
-    await saveMovieProfile(session.user.id, { trakt, region, discordId: linked?.accountId ?? null });
-    revalidatePath("/[lang]/moviehub", "page");
-    return { error: null };
+    const { state, token } = createTraktState({ userId: session.user.id, region, lang });
+    const url = await getTraktAuthorizeUrl(`${origin}/api/trakt/callback`, token);
+    (await cookies()).set(TRAKT_STATE_COOKIE, state.nonce, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: origin.startsWith("https://"),
+      path: "/",
+      maxAge: 600,
+    });
+    return { url };
   } catch (error) {
     return { error: error instanceof MoviesUnavailable ? error.code : "saveFailed" };
   }

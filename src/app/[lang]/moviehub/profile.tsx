@@ -951,6 +951,7 @@ function seasonScore(season: Season, source: ListSource): [ListSource, string | 
 
 export function MovieProfile({
   name,
+  avatar = null,
   traktUser,
   region,
   syncedAt,
@@ -982,6 +983,7 @@ export function MovieProfile({
   animeUsers = 0,
 }: {
   name: string;
+  avatar?: string | null;
   traktUser: string;
   region: string;
   syncedAt: string | null;
@@ -1286,7 +1288,12 @@ export function MovieProfile({
       <header className="hero">
         <div className="hero-in">
           <div className="avatar" aria-hidden="true">
-            {name.slice(0, 1)}
+            {avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element -- Trakt's CDN, no loader
+              <img src={avatar} alt="" className="h-full w-full rounded-full object-cover" />
+            ) : (
+              name.slice(0, 1)
+            )}
           </div>
           <div className="identity">
             <h1 className="name">{name}</h1>

@@ -9,17 +9,16 @@ export type MoviesErrorCode =
   | "badData"
   | "person"
   | "noProfile"
-  | "traktInvalid"
-  | "traktNotFound"
-  | "traktPrivate";
+  | "traktTaken"
+  | "traktDenied";
 export class MoviesUnavailable extends Error {
   constructor(public code: MoviesErrorCode) {
     super(code);
   }
 }
 
-// admin answers 422 with one of these as its message when the Trakt details can't be used.
-const TRAKT_CODES = new Set<MoviesErrorCode>(["traktInvalid", "traktNotFound", "traktPrivate"]);
+// admin answers 409 / 422 with one of these as its message when a Trakt account can't be connected.
+const TRAKT_CODES = new Set<MoviesErrorCode>(["traktTaken", "traktDenied"]);
 
 function endpoint() {
   const base = process.env.ADMIN_API_URL;
@@ -46,7 +45,8 @@ async function call(path: string, init: { method?: string; body?: unknown; timeo
   if (response.status === 429) throw new MoviesUnavailable("tooSoon");
   if (response.status === 404) throw new MoviesUnavailable("noProfile");
   const result = await response.json().catch(() => null);
-  if (response.status === 422 && TRAKT_CODES.has(result?.msg)) throw new MoviesUnavailable(result.msg);
+  if ((response.status === 422 || response.status === 409) && TRAKT_CODES.has(result?.msg))
+    throw new MoviesUnavailable(result.msg);
   if (!response.ok) throw new MoviesUnavailable("unreachable");
   if (!result?.success) throw new MoviesUnavailable("badData");
   return result.data;
@@ -63,15 +63,22 @@ export async function refreshMovieStatistics(userId: string) {
   await call(`/users/${encodeURIComponent(userId)}/refresh`, { method: "POST" });
 }
 
-// Creates the profile, or points it at another Trakt account / region. admin checks the Trakt
-// account exists and is public (a lookup, so allow more time).
-export async function saveMovieProfile(
+// Where to send the browser so the person can authorize this app on their Trakt account.
+export async function getTraktAuthorizeUrl(redirectUri: string, state: string): Promise<string> {
+  const params = new URLSearchParams({ redirectUri, state });
+  const data = (await call(`/trakt/authorize?${params}`)) as { url: string };
+  return data.url;
+}
+
+// Trakt sent the browser back with a code: admin exchanges it and makes that Trakt account the
+// account's profile (a lookup on Trakt, so allow more time).
+export async function connectTrakt(
   userId: string,
-  input: { trakt: string; region: string; discordId: string | null },
+  input: { code: string; redirectUri: string; region: string; discordId: string | null },
 ) {
-  const data = await call(`/users/${encodeURIComponent(userId)}`, {
-    method: "PUT",
-    body: { trakt: input.trakt, region: input.region, discordId: input.discordId ?? undefined },
+  const data = await call(`/users/${encodeURIComponent(userId)}/trakt`, {
+    method: "POST",
+    body: { ...input, discordId: input.discordId ?? undefined },
     timeout: 30000,
   });
   return movieResponseSchema.parse(data).subscription;

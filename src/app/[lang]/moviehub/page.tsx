@@ -45,7 +45,15 @@ function Gate({ t, children }: { t: Dictionary; children: React.ReactNode }) {
   );
 }
 
-async function MyStatistics() {
+type SearchParams = Promise<{ error?: string | string[] }>;
+
+// A code from the Trakt callback's redirect, if it names one of our messages.
+function errorText(value: string | string[] | undefined, t: Dictionary) {
+  const code = Array.isArray(value) ? value[0] : value;
+  return code && code in t.movies.errors ? t.movies.errors[code as keyof typeof t.movies.errors] : null;
+}
+
+async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
   const lang = await getLocale();
   const t = await getDictionary();
   const session = await getSession();
@@ -92,12 +100,19 @@ async function MyStatistics() {
       </Gate>
     );
   }
-  if (!result.subscription) {
+  const { error } = await searchParams;
+  if (!result.subscription || result.subscription.traktReauth) {
     // Cloudflare tells us the visitor's country; it pre-selects the region, which they can change.
     const country = ((await headers()).get("cf-ipcountry") ?? "").toUpperCase();
+    const current = result.subscription?.region;
     return (
       <Gate t={t}>
-        <ProfileSetup regions={listRegions(lang)} defaultRegion={isRegionCode(country) ? country : "TW"} />
+        <ProfileSetup
+          regions={listRegions(lang)}
+          defaultRegion={current && isRegionCode(current) ? current : isRegionCode(country) ? country : "TW"}
+          initialError={errorText(error, t)}
+          reauth={Boolean(result.subscription)}
+        />
       </Gate>
     );
   }
@@ -130,6 +145,7 @@ async function MyStatistics() {
   return (
     <MovieProfile
       name={subscription.traktName}
+      avatar={subscription.traktAvatar}
       traktUser={subscription.traktUser}
       region={subscription.region}
       syncedAt={subscription.syncedAt}
@@ -163,7 +179,7 @@ async function MyStatistics() {
   );
 }
 
-export default async function MovieHubPage() {
+export default async function MovieHubPage({ searchParams }: { searchParams: SearchParams }) {
   const t = await getDictionary();
   return (
     <Suspense
@@ -173,7 +189,7 @@ export default async function MovieHubPage() {
         </div>
       }
     >
-      <MyStatistics />
+      <MyStatistics searchParams={searchParams} />
     </Suspense>
   );
 }

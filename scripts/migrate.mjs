@@ -21,7 +21,9 @@ try {
   await client.query(
     "CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (id SERIAL PRIMARY KEY, hash text NOT NULL, created_at bigint)",
   );
-  const { rows } = await client.query("SELECT created_at FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1");
+  const { rows } = await client.query(
+    "SELECT created_at FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1",
+  );
   const latest = rows[0] ? Number(rows[0].created_at) : 0;
   let applied = 0;
   for (const entry of journal.entries) {
@@ -33,7 +35,10 @@ try {
       for (const statement of sql.split("--> statement-breakpoint")) {
         if (statement.trim()) await client.query(statement);
       }
-      await client.query("INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)", [hash, entry.when]);
+      await client.query("INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)", [
+        hash,
+        entry.when,
+      ]);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");

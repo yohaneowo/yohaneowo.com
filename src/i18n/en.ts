@@ -48,6 +48,18 @@ const en: Dictionary = {
     goingTo: (provider) => `Going to ${provider}…`,
     providerFailed: (provider) => `Signing in with ${provider} isn't working right now. Please try later.`,
   },
+  connect: {
+    title: "Connect Discord",
+    signingIn: "Signing you in with Discord; you'll land on your movie profile afterwards.",
+    linking: "Linking this Discord account to the account you're signed in with.",
+    alreadyLinked: "This account already has Discord linked.",
+    working: "Going to Discord…",
+    signInFailed: "Signing in with Discord didn't finish. Please try again.",
+    linkFailed:
+      "Linking didn't finish. If that Discord account is already linked to another account here, sign out and sign in with that one.",
+    retry: "Try again",
+    goToMovies: "Go to my movie profile",
+  },
   settings: {
     title: "Account settings",
     description: "Manage your account and linked services.",
@@ -97,15 +109,17 @@ const en: Dictionary = {
     setup: {
       title: "Set up your movie profile",
       description:
-        "Enter your public Trakt profile; the site reads your watch history and ratings for the statistics.",
-      traktLabel: "Trakt profile",
-      traktPlaceholder: "https://trakt.tv/users/your-name, or just the username",
-      traktHint: "The link from “Share profile” in the Trakt app; the account must be public.",
+        "Connect your Trakt account; the site reads your watch history and ratings for the statistics. Private accounts work too.",
+      reauthTitle: "Authorize Trakt again",
+      reauthDescription:
+        "Trakt's authorization stopped working (it may have been revoked there). Authorize again and the statistics keep updating.",
       regionLabel: "Where you watch",
       regionHint:
         "Guessed from your network location; change it if it's wrong. Used to pick films showing near you.",
-      submit: "Create profile",
-      saving: "Checking the Trakt account…",
+      connect: "Authorize with Trakt",
+      connecting: "Going to Trakt…",
+      traktHint:
+        "You'll confirm on trakt.tv. We only read your history and ratings; nothing is done on your behalf.",
       discord:
         "Want daily new-release picks on Discord? Link Discord under Account settings, then run /movie subscribe in the bot.",
     },
@@ -125,9 +139,10 @@ const en: Dictionary = {
       person: "This person's details can't be read right now.",
       signIn: "Please sign in first.",
       noProfile: "No movie profile yet.",
-      traktInvalid: "That doesn't look like a Trakt link or username.",
-      traktNotFound: "No Trakt account by that name.",
-      traktPrivate: "That Trakt account is private; make it public in Trakt's settings.",
+      traktTaken:
+        "That Trakt account already has a profile on another account here. Sign in with that one; to use it on Discord, link Discord under Account settings.",
+      traktDenied: "The Trakt authorization didn't finish. Please try again.",
+      traktState: "That authorization expired or wasn't started here. Please start again.",
       badRegion: "Please pick where you watch.",
       refreshFailed: "Can't update right now. Please try again later.",
       badSource: "That score platform isn't supported.",
