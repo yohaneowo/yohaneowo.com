@@ -519,6 +519,25 @@
   white-space: pre-line;
 }
 
+.profile .studio-card p a {
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* [mask] in Bangumi text: a spoiler, readable on hover. */
+.profile .bbcode-mask {
+  background: var(--fg-3);
+  color: transparent;
+  border-radius: 2px;
+  transition: color 0.15s;
+}
+
+.profile .bbcode-mask:hover {
+  color: var(--fg);
+  background: transparent;
+}
+
 .profile .studio-works {
   grid-column: 1 / -1;
   min-width: 0;
@@ -562,9 +581,10 @@
   list-style: none;
 }
 
+/* Title, score and the rated mark stay on the left; the rest of the row is kept free. */
 .profile .studio-year li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px 14px;
+  grid-template-columns: minmax(0, 300px) 36px 16px minmax(0, 1fr);
   column-gap: 6px;
   line-height: 1.6;
 }
@@ -577,6 +597,7 @@
 }
 
 .profile .studio-year .film-score {
+  display: inline-block;
   text-align: right;
 }
 
@@ -601,16 +622,7 @@
   }
 }
 
-/* New works cascade in (blurred and a little low, sharpening into place); a score that just
-   arrived flashes gold; the description fades in. Off when the system asks for less motion. */
-@keyframes studio-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-    filter: blur(4px);
-  }
-}
-
+/* A score that just arrived glows gold for a moment (Motion pops it). */
 @keyframes score-in {
   from {
     color: var(--gold);
@@ -618,22 +630,12 @@
   }
 }
 
-.profile .studio-in {
-  animation: studio-in 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
 .profile .score-in {
   animation: score-in 1.2s ease-out;
 }
 
-.profile .studio-reveal {
-  animation: studio-in 0.35s ease-out both;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .profile .studio-in,
-  .profile .score-in,
-  .profile .studio-reveal {
+  .profile .score-in {
     animation: none;
   }
 }

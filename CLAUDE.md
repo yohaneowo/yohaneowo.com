@@ -1,6 +1,6 @@
 # yohaneowo.com
 
-个人网站：多个小功能的集合（观影统计、UIDHub 游戏 UID 公开页……）。Next.js 16（App Router）+ React 19 + shadcn/ui（base-nova 风格，组件在 `src/components/ui/`）+ Tailwind 4 + ECharts。登录用 Better Auth，资料存在网站自己的 PostgreSQL（Drizzle ORM）。
+个人网站：多个小功能的集合（观影统计、UIDHub 游戏 UID 公开页……）。Next.js 16（App Router）+ React 19 + shadcn/ui（base-nova 风格，组件在 `src/components/ui/`）+ Tailwind 4 + ECharts + Motion（`motion/react`，动画；包在 `MotionConfig reducedMotion="user"` 里尊重系统的减少动态效果）。登录用 Better Auth，资料存在网站自己的 PostgreSQL（Drizzle ORM）。
 
 相关 repo：
 

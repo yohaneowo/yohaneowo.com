@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 import Image from "next/image";
+import { MotionConfig, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -33,6 +34,7 @@ import {
   type ShowSection,
 } from "@/lib/movie-types";
 import { saveScoreSource } from "./actions";
+import { BangumiText } from "./bbcode";
 import { BondsCard, type BondsProp } from "./bonds-card";
 import type { StyleProfile } from "./compare";
 import { CYCLE_ICON, CycleButton, type CycleOption } from "./cycle-button";
@@ -712,9 +714,13 @@ type StudioSource = (typeof STUDIO_SOURCES)[number];
 type StudioWork = StudioWorks["works"][number];
 const POLL_MS = 3000;
 const MAX_POLLS = 20;
-// The cascade: each new work waits a little longer than the one before, up to a cap.
+// Motion: the card springs open; new works rise into place one after another (each STAGGER_MS
+// after the one before, up to a cap); a score that just arrived pops and glows (the glow is CSS).
+// MotionConfig reducedMotion="user" drops the movement when the system asks for less motion.
 const STAGGER_MS = 15;
 const STAGGER_CAP = 40;
+const CARD_SPRING = { type: "spring", stiffness: 520, damping: 34, mass: 0.7 } as const;
+const WORK_SPRING = { type: "spring", stiffness: 420, damping: 32, mass: 0.6 } as const;
 
 const workKey = (work: StudioWork) => `${work.anilistId ?? ""}-${work.bangumiId ?? ""}`;
 
@@ -843,88 +849,114 @@ function StudioCard({
   }
   const logo = info?.logo ?? tip.photo;
   return (
-    <div
-      ref={cardRef}
-      className={pinned ? "person-card studio-card pinned" : "person-card studio-card"}
-      style={{ left: tip.left }}
-    >
-      {pinned && (
-        <button type="button" className="person-card-close" aria-label={t.profile.close} onClick={onClose}>
-          ×
-        </button>
-      )}
-      <div className="person-card-photo logo">
-        {logo ? (
-          <Image src={logo} alt="" width={114} height={171} unoptimized referrerPolicy="no-referrer" />
-        ) : (
-          tip.name.slice(0, 1)
+    <MotionConfig reducedMotion="user">
+      <motion.div
+        ref={cardRef}
+        className={pinned ? "person-card studio-card pinned" : "person-card studio-card"}
+        style={{ left: tip.left }}
+        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={CARD_SPRING}
+      >
+        {pinned && (
+          <button type="button" className="person-card-close" aria-label={t.profile.close} onClick={onClose}>
+            ×
+          </button>
         )}
-      </div>
-      <div>
-        <div className="t">{info?.name ?? tip.name}</div>
-        <p key={info ? "info" : "loading"} className={info ? "studio-reveal" : undefined}>
-          {info
-            ? info.description || t.profile.studioNoDescription
-            : infoFailed
-              ? t.profile.biographyFailed
-              : t.profile.biographyLoading}
-        </p>
-      </div>
-      <div className="studio-works">
-        <div className="studio-works-head">
-          <span className="label">
-            {t.profile.works}
-            {works && works.works.length > 0 && <span className="num"> {works.works.length}</span>}
-          </span>
-          <CycleButton
-            variant="chip"
-            label={t.profile.worksSource}
-            options={platformOptions(STUDIO_SOURCES, t.profile)}
-            value={source}
-            onChange={onSource}
-          />
+        <div className="person-card-photo logo">
+          {logo ? (
+            <Image src={logo} alt="" width={114} height={171} unoptimized referrerPolicy="no-referrer" />
+          ) : (
+            tip.name.slice(0, 1)
+          )}
         </div>
-        {!works ? (
-          <div className="empty">{worksFailed ? t.profile.worksFailed : t.profile.studioWorksLoading}</div>
-        ) : works.works.length === 0 && !works.building ? (
-          <div className="empty">{t.profile.studioNoWorks}</div>
-        ) : (
-          years.map(([year, group]) => (
-            <section key={year} className="studio-year">
-              <h4 className="num">{year}</h4>
-              <ul>
-                {group.map((work) => {
-                  const key = workKey(work);
-                  const delay = works.fresh[key];
-                  return (
-                    <li
-                      key={key}
-                      className={delay != null ? "studio-in" : undefined}
-                      style={delay != null ? { animationDelay: `${delay * STAGGER_MS}ms` } : undefined}
-                    >
-                      <span className="film-title" title={work.title}>
-                        {work.title}
-                      </span>
-                      <span className={flashed.has(key) ? "num film-score score-in" : "num film-score"}>
-                        {scoreText(work) ?? "—"}
-                      </span>
-                      <span className="rated" title={rated(work) ? t.profile.rated : undefined}>
-                        {rated(work) ? "✓" : ""}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))
-        )}
-        {works && worksPending(works) && (
-          <div className="empty studio-pending">
-            {works.building ? t.profile.studioWorksLoading : t.profile.studioScoresPending}
+        <div>
+          <div className="t">{info?.name ?? tip.name}</div>
+          <motion.p
+            key={info ? "info" : "loading"}
+            initial={info ? { opacity: 0, y: 4 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            {info ? (
+              info.description ? (
+                <BangumiText text={info.description} />
+              ) : (
+                t.profile.studioNoDescription
+              )
+            ) : infoFailed ? (
+              t.profile.biographyFailed
+            ) : (
+              t.profile.biographyLoading
+            )}
+          </motion.p>
+        </div>
+        <div className="studio-works">
+          <div className="studio-works-head">
+            <span className="label">
+              {t.profile.works}
+              {works && works.works.length > 0 && <span className="num"> {works.works.length}</span>}
+            </span>
+            <CycleButton
+              variant="chip"
+              label={t.profile.worksSource}
+              options={platformOptions(STUDIO_SOURCES, t.profile)}
+              value={source}
+              onChange={onSource}
+            />
           </div>
-        )}
-      </div>
-    </div>
+          {!works ? (
+            <div className="empty">{worksFailed ? t.profile.worksFailed : t.profile.studioWorksLoading}</div>
+          ) : works.works.length === 0 && !works.building ? (
+            <div className="empty">{t.profile.studioNoWorks}</div>
+          ) : (
+            years.map(([year, group]) => (
+              <section key={year} className="studio-year">
+                <h4 className="num">{year}</h4>
+                <ul>
+                  {group.map((work) => {
+                    const key = workKey(work);
+                    const delay = works.fresh[key];
+                    const score = scoreText(work);
+                    const flash = flashed.has(key);
+                    return (
+                      <motion.li
+                        key={key}
+                        initial={delay != null ? { opacity: 0, y: 10, filter: "blur(6px)" } : false}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        transition={{ ...WORK_SPRING, delay: ((delay ?? 0) * STAGGER_MS) / 1000 }}
+                      >
+                        <span className="film-title" title={work.title}>
+                          {work.title}
+                        </span>
+                        <motion.span
+                          // A new value remounts it: a freshly arrived score pops in.
+                          key={`${source}:${score ?? ""}`}
+                          className={flash ? "num film-score score-in" : "num film-score"}
+                          initial={flash ? { scale: 1.45 } : false}
+                          animate={{ scale: 1 }}
+                          transition={WORK_SPRING}
+                        >
+                          {score ?? "—"}
+                        </motion.span>
+                        <span className="rated" title={rated(work) ? t.profile.rated : undefined}>
+                          {rated(work) ? "✓" : ""}
+                        </span>
+                      </motion.li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
+          )}
+          {works && worksPending(works) && (
+            <div className="empty studio-pending">
+              {works.building ? t.profile.studioWorksLoading : t.profile.studioScoresPending}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </MotionConfig>
   );
 }
 
