@@ -538,7 +538,11 @@
   background: transparent;
 }
 
+/* The list block: title, score and rated mark in --studio-list; the head's platform switch sits
+   over the score column and the year rules stop at the block's end. Right of it is kept free. */
 .profile .studio-works {
+  --studio-list: min(300px, 100%);
+  --studio-mark: 16px;
   grid-column: 1 / -1;
   min-width: 0;
   max-height: min(340px, 45vh);
@@ -550,6 +554,8 @@
   position: sticky;
   top: 0;
   z-index: 1;
+  /* Ends where the score column ends (the rated mark and its gap come after). */
+  width: calc(var(--studio-list) - var(--studio-mark) - 6px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -567,6 +573,7 @@
 }
 
 .profile .studio-year h4 {
+  width: var(--studio-list);
   margin: 0 0 2px;
   padding-bottom: 2px;
   border-bottom: 1px solid var(--line);
@@ -581,10 +588,11 @@
   list-style: none;
 }
 
-/* Title, score and the rated mark stay on the left; the rest of the row is kept free. */
 .profile .studio-year li {
   display: grid;
-  grid-template-columns: minmax(0, 300px) 36px 16px minmax(0, 1fr);
+  grid-template-columns:
+    minmax(0, calc(var(--studio-list) - 36px - var(--studio-mark) - 12px)) 36px var(--studio-mark)
+    minmax(0, 1fr);
   column-gap: 6px;
   line-height: 1.6;
 }
