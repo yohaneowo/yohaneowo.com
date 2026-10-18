@@ -296,6 +296,14 @@ const en: Dictionary = {
         `These are ${name}'s bonds: counts are what both they and ${name} have watched (anime by season); the percentage is of what ${name} has watched.`,
       you: "you",
     },
+    og: {
+      description: (name) => `${name}'s movie statistics: style radar, ratings and genres.`,
+      scope: (media, count) => `Style of the last ${count} ${media.toLowerCase()}`,
+      movies: (count) => `${count} films`,
+      shows: (count) => `${count} shows`,
+      anime: (count) => `${count} anime`,
+      mean: (mean) => `Average ${mean}`,
+    },
     viewing: {
       title: (name) => `${name}'s statistics`,
       banner: (name) => `You're viewing ${name}'s statistics.`,

@@ -281,6 +281,14 @@ const zh = {
         `这是 ${name} 的羁绊：数字是对方和 ${name} 都看过的部数（动漫按季算），百分比是占 ${name} 看过的比例。`,
       you: "你",
     },
+    og: {
+      description: (name: string) => `${name} 的观影统计：风格雷达、评分与类型。`,
+      scope: (media: string, count: number) => `近 ${count} 部${media}的风格`,
+      movies: (count: number) => `电影 ${count} 部`,
+      shows: (count: number) => `剧集 ${count} 部`,
+      anime: (count: number) => `动漫 ${count} 部`,
+      mean: (mean: string) => `均分 ${mean}`,
+    },
     viewing: {
       title: (name: string) => `${name} 的观影统计`,
       banner: (name: string) => `正在看 ${name} 的观影统计。`,

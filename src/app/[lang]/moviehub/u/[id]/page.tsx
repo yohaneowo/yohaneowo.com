@@ -21,10 +21,30 @@ type Params = Promise<{ lang: string; id: string }>;
 // included, whose client hooks read the path) renders per request.
 export const instant = false;
 
+// The link preview: Discord, LINE and others show the card drawn by /api/moviehub/og/<id>.
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const t = await getDictionary();
-  const person = await getSiteUser(decodeURIComponent((await params).id));
-  return { title: person ? t.profile.viewing.title(person.name) : t.movies.title };
+  const lang = await getLocale();
+  const id = decodeURIComponent((await params).id);
+  const person = await getSiteUser(id);
+  if (!person) return { title: t.movies.title };
+  const title = t.profile.viewing.title(person.name);
+  const description = t.profile.og.description(person.name);
+  const origin = (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
+  const image = `${origin}/api/moviehub/og/${encodeURIComponent(id)}${lang === "en" ? "?lang=en" : ""}`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `${origin}${localePath(lang, `/moviehub/u/${encodeURIComponent(id)}`)}`,
+      siteName: "yohaneowo",
+      type: "profile",
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  };
 }
 
 function taipeiToday() {
