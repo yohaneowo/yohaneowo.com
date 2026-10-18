@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EChart } from "@/components/charts/echart";
 import { useLocale } from "@/i18n/locale-provider";
 import type { ListSource } from "@/lib/movie-types";
-import { genreColor, publicScore, type ScoredFilm } from "./stats";
+import { genreColor, genresOf, publicScore, type ScoredFilm } from "./stats";
 
 // Two independent rings over the same films (the Stratz 趋势 layout): one ring is each film's
 // main genre (its own hue), the other the viewer's rating bands (one neutral ramp, brighter = higher).
@@ -145,10 +145,11 @@ export function GenreSunburst({
         c: { color, opacity: 0.6, fontSize: 10, lineHeight: 12, fontFamily: palette.display },
       },
     });
+    // A film with three genres sits in three slices; films with none go to 其他.
     const byGenre = new Map<string | null, ScoredFilm[]>();
     for (const film of films) {
-      const key = film.genre || null;
-      byGenre.set(key, [...(byGenre.get(key) ?? []), film]);
+      const keys = genresOf(film);
+      for (const key of keys.length ? keys : [null]) byGenre.set(key, [...(byGenre.get(key) ?? []), film]);
     }
     const genres: Slice[] = [...byGenre.entries()]
       .map(([genre, items]) => {
@@ -159,10 +160,16 @@ export function GenreSunburst({
           value: items.length,
           films: items,
           other: genre == null,
+          // Dark theme: the hue over the panel at 0.78 keeps it vivid against the slate; light
+          // theme: the hue is lightened and labelled in dark ink.
           itemStyle: {
-            color: blend(genre ? genreHue(genre) : "#6b7280", palette.panel, genre ? 0.55 : 0.3),
+            color: blend(
+              genre ? genreHue(genre) : "#8b93a1",
+              palette.dark ? palette.panel : "#ffffff",
+              genre ? (palette.dark ? 0.78 : 0.7) : 0.4,
+            ),
           },
-          label: label(name, items.length, "#f3f4f6", false),
+          label: label(name, items.length, palette.dark ? "#f6f1e6" : "#1f1a10", false),
         };
       })
       .sort((a, b) => Number(a.other) - Number(b.other) || b.value - a.value);
@@ -174,8 +181,8 @@ export function GenreSunburst({
     }))
       .filter(({ items }) => items.length)
       .map(({ band, items }) => {
-        // The ramp never gets bright enough for dark text in dark mode; light mode's low bands do.
-        const text = palette.dark || band.t >= 0.6 ? "#f3f4f6" : "#2a2e38";
+        // The top of the ramp is the page's gold: dark ink there, light ink on the dark end.
+        const text = band.t >= 0.6 ? "#1b1407" : palette.dark ? "#e6e8ec" : "#2a2e38";
         return {
           name: s.bands[band.key],
           long: s.bandsLong[band.key],
@@ -262,7 +269,8 @@ export function GenreSunburst({
     });
     const diff = pairs.length ? pairs.reduce((sum, d) => sum + d, 0) / pairs.length : null;
     const count = new Map<string, number>();
-    for (const film of films) if (film.genre) count.set(film.genre, (count.get(film.genre) ?? 0) + 1);
+    for (const film of films)
+      for (const genre of genresOf(film)) count.set(genre, (count.get(genre) ?? 0) + 1);
     const top = [...count.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
     const nine = rated.filter((film) => (film.myRating ?? 0) >= 9).length;
     const best = [...rated].sort((a, b) => (b.myRating ?? 0) - (a.myRating ?? 0))[0] ?? null;

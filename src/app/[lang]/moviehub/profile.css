@@ -21,8 +21,8 @@
   --shadow: rgba(16, 19, 24, 0.14);
   --shadow-strong: rgba(16, 19, 24, 0.22);
   /* The rating ring's brightness ramp (low → high). */
-  --ramp-lo: #e6e8ed;
-  --ramp-hi: #7b8292;
+  --ramp-lo: #e3e6ec;
+  --ramp-hi: #c9962e;
   --display: "Barlow Condensed", "Noto Sans SC", system-ui, sans-serif;
   --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   width: 100vw;
@@ -50,8 +50,10 @@
   --down: #e2694f;
   --ink-on-gold: #101318;
   --backdrop: rgba(8, 10, 14, 0.86);
-  --shadow: var(--shadow);
-  --shadow-strong: var(--shadow-strong);
+  --shadow: rgba(0, 0, 0, 0.45);
+  --shadow-strong: rgba(0, 0, 0, 0.55);
+  --ramp-lo: #232933;
+  --ramp-hi: #e0b04a;
   color-scheme: dark;
 }
 
