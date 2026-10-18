@@ -175,6 +175,7 @@ const en: Dictionary = {
   profile: {
     media: { movie: "Movies", show: "Shows", anime: "Anime" },
     mediaGroup: "Movies, shows or anime",
+    staffRoles: "Staff roles",
     words: {
       movie: { noun: "movies", watched: "movies watched", plays: "plays", heading: "Watch history" },
       show: { noun: "shows", watched: "shows watched", plays: "episode plays", heading: "Show history" },

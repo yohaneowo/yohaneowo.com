@@ -17,8 +17,8 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { genreName, sourceName, tagName } from "@/i18n/genres";
 import { useLocale } from "@/i18n/locale-provider";
 import {
-  ANIME_ROLES,
   SCORE_SOURCES,
+  type AnimeRole,
   personCardSchema,
   type ListSource,
   type MovieSnapshot,
@@ -82,6 +82,8 @@ type TimeFilter = "all" | "month" | "quarter" | "older";
 type AnimeFilter = "all" | "exclude" | "only";
 type Filters = { time: TimeFilter; genre: string; anime: AnimeFilter };
 const TABS: Tab[] = ["overview", "people", "cast"];
+// The anime staff tab shows one role at a time, picked with buttons in this order.
+const STAFF_ROLES: AnimeRole[] = ["studio", "original", "director", "music", "chiefAnimationDirector"];
 const TIMES: TimeFilter[] = ["all", "month", "quarter", "older"];
 // Films only: anime series have their own tab, anime films stay with the films.
 const ANIME_FILTERS: AnimeFilter[] = ["all", "exclude", "only"];
@@ -1115,6 +1117,7 @@ function ProfileView({
   const [sourceError, setSourceError] = useState("");
   const [radarMode, setRadarMode] = useState<RadarMode>("style");
   const [comparing, setComparing] = useState(false);
+  const [staffRole, setStaffRole] = useState<AnimeRole>("studio");
   // The director card's score column; kept while moving between directors.
   const [cardSource, setCardSource] = useState<CardSource>("imdb");
   const ratedSet = useMemo(() => new Set(ratedIds), [ratedIds]);
@@ -1415,9 +1418,17 @@ function ProfileView({
   const shortSample = sample.length > 0 && sample.length < 20;
   const genreOptions = [...new Set(films.flatMap(genresOf))];
   const fallbackGenres = [...genres].sort((a, b) => b.count - a.count).slice(0, 5);
-  // Anime staff are grouped by role; the other lists have one role per tab.
+  // Anime staff: one role at a time, only roles with someone in them get a button. The chosen
+  // role falls back to the first one with people (studio when there is any).
+  const staffTab = media === "anime" && tab === "people";
+  const staffCounts = STAFF_ROLES.map(
+    (role) => [role, people.filter((person) => person.role === role).length] as const,
+  ).filter(([, count]) => count > 0);
+  const activeStaff = staffCounts.some(([role]) => role === staffRole)
+    ? staffRole
+    : (staffCounts[0]?.[0] ?? "studio");
   const roles: PersonRow["role"][] =
-    tab === "cast" ? ["cast"] : media === "anime" ? [...ANIME_ROLES] : [isShow ? "creator" : "director"];
+    tab === "cast" ? ["cast"] : media === "anime" ? [activeStaff] : [isShow ? "creator" : "director"];
   const peopleForTab = people.filter((person) => roles.includes(person.role));
   const tabLabel = (item: Tab) =>
     item === "overview"
@@ -1664,20 +1675,34 @@ function ProfileView({
             ) : (
               <>
                 <h2>
-                  {t.profile.favourites(tabLabel(tab))}
+                  {t.profile.favourites(staffTab ? t.profile.roles[activeStaff] : tabLabel(tab))}
                   <small>{t.profile.favouritesRule}</small>
                 </h2>
+                {staffTab && staffCounts.length > 0 && (
+                  <div className="staff-roles">
+                    <span className="toggle" role="group" aria-label={t.profile.staffRoles}>
+                      {staffCounts.map(([role, count]) => (
+                        <button
+                          key={role}
+                          type="button"
+                          className={role === activeStaff ? "on" : undefined}
+                          aria-pressed={role === activeStaff}
+                          onClick={() => setStaffRole(role)}
+                        >
+                          {t.profile.roles[role]}
+                          <span className="staff-count num">{count}</span>
+                        </button>
+                      ))}
+                    </span>
+                  </div>
+                )}
                 {peopleForTab.length === 0 ? (
-                  <p className="empty">{t.profile.noFavourites(tabLabel(tab))}</p>
+                  <p className="empty">
+                    {t.profile.noFavourites(staffTab ? t.profile.roles[activeStaff] : tabLabel(tab))}
+                  </p>
                 ) : (
-                  peopleForTab.map((person, index) => (
+                  peopleForTab.map((person) => (
                     <div className="row person" key={`${person.role}:${person.id}`}>
-                      {/* Anime staff: a heading where each role's group starts. */}
-                      {roles.length > 1 && peopleForTab[index - 1]?.role !== person.role && (
-                        <h3 className="role-head">
-                          {t.profile.roles[person.role as (typeof ANIME_ROLES)[number]]}
-                        </h3>
-                      )}
                       {person.photo ? (
                         <button
                           type="button"

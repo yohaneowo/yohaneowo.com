@@ -161,6 +161,7 @@ const zh = {
   profile: {
     media: { movie: "电影", show: "剧集", anime: "动漫" },
     mediaGroup: "电影、剧集或动漫",
+    staffRoles: "制作人员的职务",
     // Per list: the 数量 sentence's noun, the KPI and the list heading.
     words: {
       movie: { noun: "电影", watched: "部已看", plays: "次观看", heading: "观影记录" },
