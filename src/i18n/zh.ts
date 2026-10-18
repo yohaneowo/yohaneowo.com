@@ -341,6 +341,7 @@ const zh = {
     noWorks: "TMDB 没有收录导演作品。",
     studioNoDescription: "Bangumi 没有收录这家公司的简介。",
     studioNoWorks: "没有找到这家公司的作品。",
+    studioScoresPending: "部分中文名和评分还在读取，稍后再打开会更完整。",
     next: (name: string) => `下一个：${name}`,
     cycleSwitched: (name: string) => `已切换到 ${name}`,
     cycleTitle: (next: string) => `点击切换到 ${next}，Shift+点击返回上一个`,

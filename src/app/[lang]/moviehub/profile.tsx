@@ -811,6 +811,7 @@ function StudioCard({
               ))}
             </ul>
           )}
+          {detail.scoresPending && <div className="empty">{t.profile.studioScoresPending}</div>}
         </div>
       )}
     </div>

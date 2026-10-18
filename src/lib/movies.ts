@@ -139,8 +139,8 @@ export async function getStudioCard(
   if (query.anilistId) params.set("anilistId", String(query.anilistId));
   if (query.bangumiId) params.set("bangumiId", String(query.bangumiId));
   try {
-    // A first look fetches the works' Bangumi and MyAnimeList scores.
-    return studioCardSchema.parse(await call(`/studios/lookup?${params}`, { timeout: 45000 }));
+    // A first look lists every work (several AniList pages) before admin's ~20 s of score lookups.
+    return studioCardSchema.parse(await call(`/studios/lookup?${params}`, { timeout: 90000 }));
   } catch (error) {
     if (error instanceof MoviesUnavailable && error.code === "noProfile") return null;
     throw error;

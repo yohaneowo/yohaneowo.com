@@ -237,6 +237,8 @@ export const studioCardSchema = z.object({
       malScore: z.number().nullable(),
     }),
   ),
+  // Some titles or scores are still being looked up (in the background); a later look has more.
+  scoresPending: z.boolean().optional().default(false),
 });
 export type StudioCard = z.infer<typeof studioCardSchema>;
 export type MovieSnapshot = NonNullable<MovieResponse["snapshot"]>;
