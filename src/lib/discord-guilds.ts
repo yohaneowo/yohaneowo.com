@@ -34,14 +34,15 @@ async function storedGuilds(userId: string) {
 }
 
 // The person's Discord servers, refreshed from Discord when the stored list is a day old. A
-// failed refresh keeps the stored list (Discord down, token revoked…).
-export async function guildState(userId: string): Promise<GuildState> {
+// failed refresh keeps the stored list (Discord down, token revoked…). refresh: false (someone
+// else's page) only reads the stored list and never spends the person's token.
+export async function guildState(userId: string, { refresh = true } = {}): Promise<GuildState> {
   const linked = await discordAccount(userId);
   if (!linked) return { kind: "unlinked" };
   if (!(linked.scope ?? "").split(/[\s,]+/).includes("guilds")) return { kind: "reauthorize" };
   const stored = await storedGuilds(userId);
   const newest = stored.reduce((max, row) => Math.max(max, row.fetchedAt.getTime()), 0);
-  if (stored.length && Date.now() - newest < REFRESH_AFTER_MS)
+  if (!refresh || (stored.length && Date.now() - newest < REFRESH_AFTER_MS))
     return { kind: "ready", guildIds: stored.map((row) => row.guildId) };
   try {
     const fresh = await fetchGuildIds(userId, linked.id);

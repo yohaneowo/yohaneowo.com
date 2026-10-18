@@ -253,7 +253,7 @@ const zh = {
     myRatings: "我的评分",
     recent: (count: number) => `近 ${count} 部`,
     allRated: "全部已评分",
-    ratingNote: "我的分数来自 Trakt 的 10 分制；Metacritic 按 10 分制换算后比较。",
+    ratingNote: "分数来自 Trakt 的 10 分制；Metacritic 按 10 分制换算后比较。",
     myMean: "我的均分",
     platformMean: (platform: string) => `${platform} 均分`,
     bite: "毒舌指数",
@@ -272,7 +272,31 @@ const zh = {
       failed: "授权没有完成，请再试一次。",
       breakdown: (movies: number, shows: number, seasons: number) =>
         `电影 ${movies} · 剧集 ${shows} · 动漫 ${seasons} 季`,
-      hint: "数字是对方也看过的部数（动漫按季算），百分比是占你看过的比例。",
+      hint: "数字是对方也看过的部数（动漫按季算），百分比是占你看过的比例。点一下就能看对方的统计。",
+      viewingSubtitle: (name: string) => `跟 ${name} 在同一个 Discord 伺服器里的人`,
+      viewingUnlinked: (name: string) => `${name} 还没有关联 Discord。`,
+      viewingReauthorize: (name: string) => `${name} 还没有授权读取 Discord 伺服器列表。`,
+      viewingEmpty: (name: string) => `还没有跟 ${name} 在同一个伺服器里、也建了观影档案的人。`,
+      viewingHint: (name: string) =>
+        `这是 ${name} 的羁绊：数字是对方和 ${name} 都看过的部数（动漫按季算），百分比是占 ${name} 看过的比例。`,
+      you: "你",
+    },
+    viewing: {
+      title: (name: string) => `${name} 的观影统计`,
+      banner: (name: string) => `正在看 ${name} 的观影统计。`,
+      back: "回到我的统计",
+      signIn: "登录看自己的",
+      ratingsOf: (name: string) => `${name} 的评分`,
+      mean: "TA 的均分",
+      diffs: (platform: string) => `每部 TA 的分 − ${platform}（旧 → 新）`,
+      diffChart: "每部 TA 的分数减大众分数，从旧到新",
+      compare: "对比",
+      compareHint: "把我的风格叠在同一张雷达图上",
+      notFound: "找不到这个人。",
+      noProfile: (name: string) => `${name} 还没有建观影档案。`,
+      preparing: (name: string) => `${name} 的统计还在准备中，已经帮 TA 排进同步，稍后再来看看。`,
+      reauth: (name: string) => `${name} 的 Trakt 连接需要重新授权，暂时看不到统计。`,
+      unavailable: "暂时无法读取这个人的观影统计。",
     },
     points: (score: number) => `${score} 分`,
     credits:
@@ -329,7 +353,7 @@ const zh = {
     separator: "、",
     biteNone: (platform: string) => `这个范围里没有能和 ${platform} 比较的评分。`,
     bite: (count: number, platform: string, lower: boolean, points: string) =>
-      `${count} 部能比较的里，你平均比 ${platform} ${lower ? "低" : "高"} ${points} 分。比大众低 1 分为满分。`,
+      `${count} 部能比较的里，平均比 ${platform} ${lower ? "低" : "高"} ${points} 分。比大众低 1 分为满分。`,
     fresh: (count: number, fresh: number, show: boolean) =>
       `${count} 部里有 ${fresh} 部是${show ? "首播" : "上映"}一年内看的。`,
     diversity: (kinds: number, genre: string, percent: number) =>

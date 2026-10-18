@@ -267,7 +267,7 @@ const en: Dictionary = {
     myRatings: "My ratings",
     recent: (count) => `last ${count}`,
     allRated: "everything rated",
-    ratingNote: "Your scores are Trakt's 1–10; Metacritic is scaled to 10 for comparison.",
+    ratingNote: "Scores are Trakt's 1–10; Metacritic is scaled to 10 for comparison.",
     myMean: "My average",
     platformMean: (platform) => `${platform} average`,
     bite: "Bite",
@@ -287,7 +287,33 @@ const en: Dictionary = {
       failed: "The authorization didn't finish. Please try again.",
       breakdown: (movies: number, shows: number, seasons: number) =>
         `${movies} films · ${shows} shows · ${seasons} anime seasons`,
-      hint: "Counts are what they have watched too (anime by season); the percentage is of what you have watched.",
+      hint: "Counts are what they have watched too (anime by season); the percentage is of what you have watched. Click someone to see their statistics.",
+      viewingSubtitle: (name) => `People in a Discord server with ${name}`,
+      viewingUnlinked: (name) => `${name} hasn't linked Discord.`,
+      viewingReauthorize: (name) => `${name} hasn't allowed reading their Discord server list.`,
+      viewingEmpty: (name) => `Nobody who shares a Discord server with ${name} has a movie profile yet.`,
+      viewingHint: (name) =>
+        `These are ${name}'s bonds: counts are what both they and ${name} have watched (anime by season); the percentage is of what ${name} has watched.`,
+      you: "you",
+    },
+    viewing: {
+      title: (name) => `${name}'s statistics`,
+      banner: (name) => `You're viewing ${name}'s statistics.`,
+      back: "Back to mine",
+      signIn: "Sign in to see yours",
+      ratingsOf: (name) => `${name}'s ratings`,
+      mean: "Their average",
+      diffs: (platform) => `Their score − ${platform}, per title (old → new)`,
+      diffChart: "Their score minus the public score per title, oldest first",
+      compare: "Compare",
+      compareHint: "Draw my style on the same radar",
+      notFound: "This person doesn't exist.",
+      noProfile: (name) => `${name} hasn't made a movie profile yet.`,
+      preparing: (name) =>
+        `${name}'s statistics are still being prepared; a sync has been queued. Check back soon.`,
+      reauth: (name) =>
+        `${name}'s Trakt connection needs to be authorized again, so their statistics aren't available.`,
+      unavailable: "Their statistics can't be loaded right now.",
     },
     points: (score) => `${score}`,
     credits:
@@ -344,7 +370,7 @@ const en: Dictionary = {
     separator: ", ",
     biteNone: (platform) => `Nothing in this range can be compared with ${platform}.`,
     bite: (count, platform, lower, points) =>
-      `Across ${plural(count, "comparable title")}, you rate ${points} ${lower ? "below" : "above"} ${platform} on average. 1 point below the public is the maximum.`,
+      `Across ${plural(count, "comparable title")}, ratings run ${points} ${lower ? "below" : "above"} ${platform} on average. 1 point below the public is the maximum.`,
     fresh: (count, fresh, show) =>
       `${fresh} of ${count} watched within a year of ${show ? "first airing" : "release"}.`,
     diversity: (kinds, genre, percent) =>

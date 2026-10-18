@@ -29,6 +29,7 @@ import {
 } from "@/lib/movie-types";
 import { saveScoreSource } from "./actions";
 import { BondsCard, type BondsProp } from "./bonds-card";
+import type { StyleProfile } from "./compare";
 import { CYCLE_ICON, CycleButton, type CycleOption } from "./cycle-button";
 import { GenreSunburst } from "./genre-sunburst";
 import {
@@ -102,8 +103,20 @@ function radarPoint(index: number, count: number, radius: number) {
 }
 
 type RadarAxis = { label: string; value: number | null; headline: string; detail: string };
+// The comparison radar: the viewer's own scores drawn over the profile's, with both names.
+type RadarOverlay = { subject: string; name: string; values: (number | null)[]; headlines: string[] };
 
-function Radar({ axes, muted, label }: { axes: RadarAxis[]; muted: boolean; label: string }) {
+function Radar({
+  axes,
+  muted,
+  label,
+  overlay = null,
+}: {
+  axes: RadarAxis[];
+  muted: boolean;
+  label: string;
+  overlay?: RadarOverlay | null;
+}) {
   const [active, setActive] = useState<number | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -171,6 +184,35 @@ function Radar({ axes, muted, label }: { axes: RadarAxis[]; muted: boolean; labe
           strokeWidth="2"
           strokeLinejoin="round"
         />
+        {overlay && (
+          <>
+            <polygon
+              points={axes.map((_, index) => at(index, overlay.values[index]).join(",")).join(" ")}
+              fill="var(--compare)"
+              fillOpacity={0.12}
+              stroke="var(--compare)"
+              strokeWidth="2"
+              strokeDasharray="5 3"
+              strokeLinejoin="round"
+              pointerEvents="none"
+            />
+            {axes.map((axis, index) => {
+              const [x, y] = at(index, overlay.values[index]);
+              return (
+                <circle
+                  key={axis.label}
+                  cx={x}
+                  cy={y}
+                  r={active === index ? 4.5 : 3}
+                  fill="var(--compare)"
+                  stroke="var(--panel)"
+                  strokeWidth="1.5"
+                  pointerEvents="none"
+                />
+              );
+            })}
+          </>
+        )}
         {axes.map((axis, index) => {
           const [x, y] = at(index, axis.value);
           return (
@@ -216,8 +258,18 @@ function Radar({ axes, muted, label }: { axes: RadarAxis[]; muted: boolean; labe
         >
           <div className="radar-tip-head">
             <span>{tip.label}</span>
-            <b className="num">{tip.headline}</b>
+            {!overlay && <b className="num">{tip.headline}</b>}
           </div>
+          {overlay && active != null && (
+            <div className="radar-tip-rows">
+              <span className="radar-swatch" aria-hidden="true" />
+              <span>{overlay.subject}</span>
+              <b className="num">{tip.headline}</b>
+              <span className="radar-swatch compare" aria-hidden="true" />
+              <span>{overlay.name}</span>
+              <b className="num">{overlay.headlines[active]}</b>
+            </div>
+          )}
           <p>{tip.detail}</p>
         </div>
       )}
@@ -996,6 +1048,7 @@ export function MovieProfile({
   anime = null,
   animePercentile = null,
   animeUsers = 0,
+  viewing = null,
 }: {
   name: string;
   avatar?: string | null;
@@ -1032,6 +1085,15 @@ export function MovieProfile({
   anime?: ShowSection | null;
   animePercentile?: number | null;
   animeUsers?: number;
+  // Someone else's page: who it belongs to (their website name), the visitor's own style data
+  // for the comparison radar (null when signed out or without statistics), and whether a new
+  // score platform is saved as the visitor's preference.
+  viewing?: {
+    subject: string;
+    compare: StyleProfile | null;
+    saveSource: boolean;
+    viewerId: string | null;
+  } | null;
 }) {
   const { t, lang } = useLocale();
   const { pending, message, refresh } = useStatisticsRefresh({ poll, checkOnly: waiting });
@@ -1040,6 +1102,7 @@ export function MovieProfile({
   const [animeSource, setAnimeSource] = useState<ListSource>(lang === "zh" ? "bangumi" : "mal");
   const [sourceError, setSourceError] = useState("");
   const [radarMode, setRadarMode] = useState<RadarMode>("style");
+  const [comparing, setComparing] = useState(false);
   // The director card's score column; kept while moving between directors.
   const [cardSource, setCardSource] = useState<CardSource>("imdb");
   const ratedSet = useMemo(() => new Set(ratedIds), [ratedIds]);
@@ -1198,6 +1261,7 @@ export function MovieProfile({
     const previous = source;
     setSource(chosen);
     setSourceError("");
+    if (viewing && !viewing.saveSource) return;
     try {
       const result = await saveScoreSource(chosen);
       if (result.error) {
@@ -1228,7 +1292,7 @@ export function MovieProfile({
     };
   }, [openFilter]);
 
-  const filtered = films.filter((film) => {
+  const keep = (film: ListItem) => {
     const ago = daysAgo(film.watchedAt, today);
     if (filters.time === "month" && ago > 30) return false;
     if (filters.time === "quarter" && ago > 90) return false;
@@ -1237,8 +1301,10 @@ export function MovieProfile({
     if (!isShow && filters.anime === "exclude" && film.anime) return false;
     if (!isShow && filters.anime === "only" && !film.anime) return false;
     return true;
-  });
-  const sample = windowSize === "all" ? filtered : filtered.slice(0, windowSize);
+  };
+  const filtered = films.filter(keep);
+  const windowOf = (items: ListItem[]) => (windowSize === "all" ? items : items.slice(0, windowSize));
+  const sample = windowOf(filtered);
   // The KPI counts what the filters leave; unfiltered (or from an older snapshot without plays) it
   // shows the totals, which also cover anything past the list's length limit.
   const filtering = filters.time !== "all" || filters.genre !== "all" || filters.anime !== "all";
@@ -1248,27 +1314,75 @@ export function MovieProfile({
   const sourceLabel = SCORE_LABELS[listSource];
   const genreLabel = (genre: string) => genreName(genre, lang);
   // Shows: 深度 is how much of each show in the window was watched (episode plays over aired).
-  const withProgress = sample.filter((item) => item.episodesAired);
-  const style = styleOf(sample, {
-    kind: isShow ? "show" : "movie",
-    noun: words.noun,
-    source: listSource,
-    genreLabel,
-    t: t.style,
-    depth: isShow
-      ? withProgress.length
-        ? withProgress.reduce(
-            (sum, item) => sum + Math.min(1, (item.episodesWatched ?? 0) / item.episodesAired!),
-            0,
-          ) / withProgress.length
-        : null
-      : movieDepth,
-    depthGroups: isShow ? withProgress.length : movieDepthGroups,
-    watchedPercentile:
+  const styleFor = (
+    items: ListItem[],
+    who: {
+      depth: number | null;
+      depthGroups: number;
+      percentile: number | null;
+      watched: number;
+      users: number;
+    },
+  ) => {
+    const withProgress = items.filter((item) => item.episodesAired);
+    return styleOf(items, {
+      kind: isShow ? "show" : "movie",
+      noun: words.noun,
+      source: listSource,
+      genreLabel,
+      t: t.style,
+      depth: isShow
+        ? withProgress.length
+          ? withProgress.reduce(
+              (sum, item) => sum + Math.min(1, (item.episodesWatched ?? 0) / item.episodesAired!),
+              0,
+            ) / withProgress.length
+          : null
+        : who.depth,
+      depthGroups: isShow ? withProgress.length : who.depthGroups,
+      watchedPercentile: who.percentile,
+      watchedCount: who.watched,
+      platformUsers: who.users,
+    });
+  };
+  const style = styleFor(sample, {
+    depth: movieDepth,
+    depthGroups: movieDepthGroups,
+    percentile:
       media === "show" ? showsPercentile : media === "anime" ? animePercentile : movieWatchedPercentile,
-    watchedCount,
-    platformUsers: media === "show" ? showUsers : media === "anime" ? animeUsers : moviePlatformUsers,
+    watched: watchedCount,
+    users: media === "show" ? showUsers : media === "anime" ? animeUsers : moviePlatformUsers,
   });
+  // The visitor's own style under the same tab, filters, window and platform.
+  const mine = viewing?.compare ?? null;
+  const mineItems: ListItem[] | null = !mine
+    ? null
+    : media === "show"
+      ? mine.shows
+      : media === "anime"
+        ? (mine.anime?.map(withoutAnimation) ?? null)
+        : mine.films;
+  const mineStyle =
+    mine && mineItems?.length
+      ? styleFor(windowOf(mineItems.filter(keep)), {
+          depth: mine.depth,
+          depthGroups: mine.depthGroups,
+          percentile: mine.percentile[media],
+          watched: mine.watched[media],
+          users: mine.users[media],
+        })
+      : null;
+  const overlay =
+    comparing && mine && mineStyle && viewing
+      ? {
+          subject: viewing.subject,
+          name: mine.name,
+          values: mineStyle.scores,
+          headlines: mineStyle.scores.map((score) =>
+            score == null ? "—" : `${(score / 10).toFixed(1)} / 10`,
+          ),
+        }
+      : null;
   const rating = films.length ? ratingOf(sample, listSource) : null;
   // An empty or unrated sample falls back to the all-time distribution.
   const sampleRating = rating?.mine != null ? rating : null;
@@ -1343,12 +1457,12 @@ export function MovieProfile({
               {syncedAt ? t.profile.updatedAt(syncedAt) : t.profile.firstSync}
               {showRatingCount > 0 && showMean != null ? ` · ${t.profile.showMean(showMean.toFixed(1))}` : ""}
             </div>
-            {waiting && (
+            {waiting && !viewing && (
               <p className="sub" role="status">
                 {poll ? t.profile.syncing : t.profile.waiting}
               </p>
             )}
-            {syncError && (
+            {syncError && !viewing && (
               <p className="sub" role="status">
                 {syncError}
               </p>
@@ -1359,13 +1473,15 @@ export function MovieProfile({
               </p>
             )}
           </div>
-          <button type="button" className="refresh" disabled={pending} onClick={refresh}>
-            {pending
-              ? t.movies.refresh.checking
-              : waiting
-                ? t.movies.refresh.progress
-                : t.movies.refresh.update}
-          </button>
+          {!viewing && (
+            <button type="button" className="refresh" disabled={pending} onClick={refresh}>
+              {pending
+                ? t.movies.refresh.checking
+                : waiting
+                  ? t.movies.refresh.progress
+                  : t.movies.refresh.update}
+            </button>
+          )}
           <nav className="tabs" aria-label={t.profile.pageSections}>
             {mediaOptions.length > 1 && (
               <span className="toggle media-toggle" role="group" aria-label={t.profile.mediaGroup}>
@@ -1638,6 +1754,7 @@ export function MovieProfile({
                   <Radar
                     label={t.profile.styleChart}
                     muted={shortSample}
+                    overlay={overlay}
                     axes={AXES.map((axis, index) => {
                       const score = style.scores[index];
                       return {
@@ -1648,6 +1765,30 @@ export function MovieProfile({
                       };
                     })}
                   />
+                  {mineStyle && viewing && (
+                    <div className="radar-foot">
+                      <label className="radar-compare" title={t.profile.viewing.compareHint}>
+                        <input
+                          type="checkbox"
+                          checked={comparing}
+                          onChange={(event) => setComparing(event.target.checked)}
+                        />
+                        {t.profile.viewing.compare}
+                      </label>
+                      {overlay && (
+                        <ul className="radar-legend">
+                          <li>
+                            <span className="radar-swatch" aria-hidden="true" />
+                            <span>{overlay.subject}</span>
+                          </li>
+                          <li>
+                            <span className="radar-swatch compare" aria-hidden="true" />
+                            <span>{overlay.name}</span>
+                          </li>
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : radarMode === "genre" && sample.length > 0 ? (
                 <GenreSunburst
@@ -1694,18 +1835,29 @@ export function MovieProfile({
 
             <section className="card">
               <h2>
-                {t.profile.myRatings}{" "}
+                {viewing ? t.profile.viewing.ratingsOf(viewing.subject) : t.profile.myRatings}{" "}
                 <small>{sampleRating ? t.profile.recent(sample.length) : t.profile.allRated}</small>
               </h2>
               {sampleRating ? (
-                <RatingBody rating={sampleRating} sourceLabel={sourceLabel} />
+                <RatingBody rating={sampleRating} sourceLabel={sourceLabel} other={Boolean(viewing)} />
               ) : (
-                <FallbackRatings mean={mean} distribution={distribution} sourceLabel={sourceLabel} />
+                <FallbackRatings
+                  mean={mean}
+                  distribution={distribution}
+                  sourceLabel={sourceLabel}
+                  other={Boolean(viewing)}
+                />
               )}
               <p className="note">{t.profile.ratingNote}</p>
             </section>
 
-            {bonds && <BondsCard bonds={bonds} />}
+            {bonds && (
+              <BondsCard
+                bonds={bonds}
+                owner={viewing?.subject ?? null}
+                viewerId={viewing ? viewing.viewerId : null}
+              />
+            )}
           </aside>
         </div>
         <p className="note">{t.profile.credits}</p>
@@ -1733,14 +1885,23 @@ export function MovieProfile({
   );
 }
 
-function RatingBody({ rating, sourceLabel }: { rating: ReturnType<typeof ratingOf>; sourceLabel: string }) {
+// other: someone else's ratings, so the labels don't say "my".
+function RatingBody({
+  rating,
+  sourceLabel,
+  other = false,
+}: {
+  rating: ReturnType<typeof ratingOf>;
+  sourceLabel: string;
+  other?: boolean;
+}) {
   const { t } = useLocale();
   const max = Math.max(...rating.counts.map((item) => item.count), 1);
   return (
     <>
       <div className="rstats">
         <div className="rstat">
-          <div className="l">{t.profile.myMean}</div>
+          <div className="l">{other ? t.profile.viewing.mean : t.profile.myMean}</div>
           <div className="v num">{rating.mine!.toFixed(1)}</div>
         </div>
         <div className="rstat">
@@ -1759,8 +1920,10 @@ function RatingBody({ rating, sourceLabel }: { rating: ReturnType<typeof ratingO
       </div>
       {rating.diffs.length > 0 && (
         <>
-          <div className="sec">{t.profile.diffs(sourceLabel)}</div>
-          <DiffChart diffs={rating.diffs} label={t.profile.diffChart} />
+          <div className="sec">
+            {other ? t.profile.viewing.diffs(sourceLabel) : t.profile.diffs(sourceLabel)}
+          </div>
+          <DiffChart diffs={rating.diffs} label={other ? t.profile.viewing.diffChart : t.profile.diffChart} />
         </>
       )}
       <div className="sec">{t.profile.distribution}</div>
@@ -1785,10 +1948,12 @@ function FallbackRatings({
   mean,
   distribution,
   sourceLabel,
+  other = false,
 }: {
   mean: number | null;
   distribution: number[];
   sourceLabel: string;
+  other?: boolean;
 }) {
   const { t } = useLocale();
   const counts = distribution.map((count, index) => ({ score: index + 1, count })).reverse();
@@ -1797,7 +1962,7 @@ function FallbackRatings({
     <>
       <div className="rstats">
         <div className="rstat">
-          <div className="l">{t.profile.myMean}</div>
+          <div className="l">{other ? t.profile.viewing.mean : t.profile.myMean}</div>
           <div className="v num">{mean == null ? "–" : mean.toFixed(1)}</div>
         </div>
         <div className="rstat">

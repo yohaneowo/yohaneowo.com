@@ -3,30 +3,51 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { movieResponseSchema } from "@/lib/movie-types";
+import { styleProfile } from "../../compare";
 import { MovieProfile } from "../../profile";
 
 export const metadata: Metadata = { title: "档案预览" };
 
 // Design sandbox for the full profile page without signing in: development only, fed by a saved
 // admin response (`GET /website/movies/users/{id}`'s `data`) whose path is in
-// MOVIE_PREVIEW_FIXTURE. Lets the page be screenshotted in both themes with real data.
-export default function ProfilePreviewPage() {
+// MOVIE_PREVIEW_FIXTURE. Lets the page be screenshotted in both themes with real data. ?view=1
+// shows it as someone else's page, compared with the same data oldest-first.
+type SearchParams = Promise<{ view?: string }>;
+
+export default function ProfilePreviewPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Suspense fallback={null}>
-      <Preview />
+      <Preview searchParams={searchParams} />
     </Suspense>
   );
 }
 
 // Reads the fixture at request time, so it lives under <Suspense> like the real page's data.
-async function Preview() {
+async function Preview({ searchParams }: { searchParams: SearchParams }) {
   const path = process.env.MOVIE_PREVIEW_FIXTURE;
   if (process.env.NODE_ENV === "production" || !path) notFound();
   const raw = JSON.parse(await readFile(path, "utf8")) as { data?: unknown };
   const { subscription, snapshot, platform } = movieResponseSchema.parse(raw.data ?? raw);
   if (!subscription || !snapshot) notFound();
+  const view = Boolean((await searchParams).view);
+  const reversed = {
+    ...snapshot,
+    films: [...snapshot.films].reverse(),
+    shows: snapshot.shows && { ...snapshot.shows, items: [...snapshot.shows.items].reverse() },
+    anime: snapshot.anime && { ...snapshot.anime, items: [...snapshot.anime.items].reverse() },
+  };
   return (
     <MovieProfile
+      viewing={
+        view
+          ? {
+              subject: subscription.traktName,
+              compare: styleProfile("Preview visitor", reversed, platform),
+              saveSource: false,
+              viewerId: null,
+            }
+          : null
+      }
       name={subscription.traktName}
       avatar={subscription.traktAvatar}
       traktUser={subscription.traktUser}

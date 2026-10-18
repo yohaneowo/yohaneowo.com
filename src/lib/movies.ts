@@ -60,6 +60,13 @@ export async function getMovieStatistics(userId: string, discordId: string | nul
   return movieResponseSchema.parse(await call(`/users/${encodeURIComponent(userId)}${query}`));
 }
 
+// Someone else's statistics (or the viewer's own, for the comparison radar): read-only, so a
+// visit never claims or merges profiles the way the owner's own page does.
+export async function viewMovieStatistics(userId: string, discordId: string | null) {
+  const query = discordId ? `?discordId=${encodeURIComponent(discordId)}` : "";
+  return movieResponseSchema.parse(await call(`/users/${encodeURIComponent(userId)}/view${query}`));
+}
+
 export async function refreshMovieStatistics(userId: string) {
   await call(`/users/${encodeURIComponent(userId)}/refresh`, { method: "POST" });
 }
