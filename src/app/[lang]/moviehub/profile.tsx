@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { genreName, sourceName, tagName } from "@/i18n/genres";
@@ -1014,7 +1015,15 @@ function seasonScore(season: Season, source: ListSource): [ListSource, string | 
   return ["tmdb", season.publicScore?.toFixed(1) ?? null];
 }
 
-export function MovieProfile({
+// With cacheComponents, Next keeps a page it navigated away from (hidden, state intact) and shows
+// it again on return. Keying on bfcacheId starts the page fresh (style radar, first tab, no
+// filters) each time a link opens it, while the back button still restores where it was.
+export function MovieProfile(props: React.ComponentProps<typeof ProfileView>) {
+  const { bfcacheId } = useRouter();
+  return <ProfileView key={bfcacheId} {...props} />;
+}
+
+function ProfileView({
   name,
   avatar = null,
   notice = null,
