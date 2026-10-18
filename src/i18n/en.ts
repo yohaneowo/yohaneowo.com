@@ -85,6 +85,16 @@ const en: Dictionary = {
     unlink: "Unlink",
     link: "Link Discord",
     onlyLogin: "Discord is your only way to sign in, so it can't be unlinked for now.",
+    anime: {
+      title: "Anime picks",
+      description: "/anime recommend on Discord picks anime from what you have watched.",
+      airing: "Include this season's airing anime",
+      airingHint:
+        "When off, picks come from sequels, your taste, bridges and new territory only; choosing airing only in the command ignores this setting.",
+      noProfile: "Set up your movie statistics first to change anime picks.",
+      unavailable: "Anime pick settings can't be loaded right now. Try again later.",
+      saveFailed: "That didn't save. Please try again.",
+    },
   },
   uidhub: {
     description: "Put your game UIDs on one public page, so people can add you without you opening the game.",

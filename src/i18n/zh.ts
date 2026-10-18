@@ -77,6 +77,15 @@ const zh = {
     unlink: "解除关联",
     link: "关联 Discord",
     onlyLogin: "Discord 是你唯一的登录方式，目前不能解除关联。",
+    anime: {
+      title: "动漫推荐",
+      description: "Discord 里的 /anime recommend 会依你的追番记录挑动漫。",
+      airing: "推荐包含本季新番",
+      airingHint: "关掉后只会从续作、猜你喜欢、跨界和新坑里挑；指令里选「只要新番」时不受这个设定影响。",
+      noProfile: "先在观影统计建立档案，才能设定动漫推荐。",
+      unavailable: "暂时无法读取动漫推荐的设定，稍后再试。",
+      saveFailed: "没有存成功，请再试一次。",
+    },
   },
   uidhub: {
     description: "把你在各个游戏的 UID 放在一个公开页面，别人想加好友时直接看，不用你开游戏查。",

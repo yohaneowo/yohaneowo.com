@@ -73,6 +73,24 @@ export async function viewMovieStatistics(userId: string, discordId: string | nu
   return movieResponseSchema.parse(await call(`/users/${encodeURIComponent(userId)}/view${query}`));
 }
 
+// /anime recommend's settings on the movie profile: null when the account has no profile yet.
+const animeSettingsSchema = z.object({ airing: z.boolean() });
+
+export async function getAnimeSettings(userId: string) {
+  try {
+    return animeSettingsSchema.parse(await call(`/users/${encodeURIComponent(userId)}/anime-settings`));
+  } catch (error) {
+    if (error instanceof MoviesUnavailable && error.code === "noProfile") return null;
+    throw error;
+  }
+}
+
+export async function setAnimeSettings(userId: string, settings: { airing: boolean }) {
+  return animeSettingsSchema.parse(
+    await call(`/users/${encodeURIComponent(userId)}/anime-settings`, { method: "PUT", body: settings }),
+  );
+}
+
 export async function refreshMovieStatistics(userId: string) {
   await call(`/users/${encodeURIComponent(userId)}/refresh`, { method: "POST" });
 }
