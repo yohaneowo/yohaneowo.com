@@ -307,12 +307,6 @@ const en: Dictionary = {
       anime: (count) => `${count} anime`,
       mean: (mean) => `Average ${mean}`,
     },
-    common: {
-      title: "Watched by both",
-      subtitle: (count, noun, rated) => `${count} ${noun} · ${rated} rated by both`,
-      empty: (noun) => `You haven't watched any of the same ${noun} yet.`,
-      hint: "Titles you both rated come first, biggest disagreement first. The right column is your score: gold when higher than theirs, grey when lower.",
-    },
     viewing: {
       title: (name) => `${name}'s statistics`,
       banner: (name) => `You're viewing ${name}'s statistics.`,

@@ -30,7 +30,6 @@ import {
 } from "@/lib/movie-types";
 import { saveScoreSource } from "./actions";
 import { BondsCard, type BondsProp } from "./bonds-card";
-import { CommonCard } from "./common-card";
 import type { StyleProfile } from "./compare";
 import { CYCLE_ICON, CycleButton, type CycleOption } from "./cycle-button";
 import { GenreSunburst } from "./genre-sunburst";
@@ -1860,16 +1859,6 @@ function ProfileView({
               )}
               <p className="note">{t.profile.ratingNote}</p>
             </section>
-
-            {viewing && mine && (
-              <CommonCard
-                theirs={films}
-                mine={mineItems ?? []}
-                subject={viewing.subject}
-                viewer={mine.name}
-                noun={words.noun}
-              />
-            )}
 
             {bonds && (
               <BondsCard

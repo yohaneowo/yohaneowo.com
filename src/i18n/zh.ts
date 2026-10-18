@@ -292,12 +292,6 @@ const zh = {
       anime: (count: number) => `动漫 ${count} 部`,
       mean: (mean: string) => `均分 ${mean}`,
     },
-    common: {
-      title: "共同看过",
-      subtitle: (count: number, noun: string, rated: number) => `${count} 部${noun} · 都评过 ${rated} 部`,
-      empty: (noun: string) => `你们还没有共同看过的${noun}。`,
-      hint: "两人都评过分的排在前面，分差越大越前；右边一栏是你的分数，金色比对方高、灰色比对方低。",
-    },
     viewing: {
       title: (name: string) => `${name} 的观影统计`,
       banner: (name: string) => `正在看 ${name} 的观影统计。`,
