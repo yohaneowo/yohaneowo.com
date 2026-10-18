@@ -1,4 +1,5 @@
 import coinhubEn from "./coinhub-en";
+import moviehubEn from "./moviehub-en";
 import type { Dictionary } from "./zh";
 
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
@@ -421,6 +422,7 @@ const en: Dictionary = {
       `${count} ${noun} watched, as many as or more than ${percent}% of the site's ${plural(users, "user")}. Uses your whole history.`,
   },
   coinhub: coinhubEn,
+  moviehub: moviehubEn,
 };
 
 export default en;

@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 
 // The sticky header slides away while the page scrolls down and comes back as soon as it scrolls
-// up (or is near the top), so it never costs reading space but is always one flick away.
+// up (or is near the top), so it never costs reading space but is always one flick away. The
+// state is mirrored on <html data-header-hidden> so bars stuck below it (观影统计's sub-navigation)
+// can move up into its place.
 const HIDE_AFTER = 80;
 const MIN_DELTA = 6;
 
@@ -29,6 +31,10 @@ export function HeaderShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-header-hidden", hidden);
+  }, [hidden]);
 
   return (
     <header

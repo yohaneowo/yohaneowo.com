@@ -1,5 +1,6 @@
 // Chinese texts; the English dictionary must have the same shape (see Dictionary).
 import coinhubZh from "./coinhub-zh";
+import moviehubZh from "./moviehub-zh";
 
 const zh = {
   site: {
@@ -403,6 +404,7 @@ const zh = {
       `看过 ${count} 部${noun}，不少于平台上 ${percent}% 的用户（共 ${users} 位）。按全部观影记录计算。`,
   },
   coinhub: coinhubZh,
+  moviehub: moviehubZh,
 };
 
 export default zh;
