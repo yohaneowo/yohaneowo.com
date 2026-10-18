@@ -501,6 +501,150 @@
   display: block;
 }
 
+/* The studio card: wider, a bigger logo, a taller description and works by year in two columns. */
+.profile .person-card.studio-card {
+  width: min(640px, calc(100vw - 24px));
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+}
+
+.profile .studio-card .person-card-photo {
+  width: 120px;
+  height: 120px;
+}
+
+.profile .studio-card p {
+  max-height: 150px;
+  white-space: pre-line;
+}
+
+.profile .studio-works {
+  grid-column: 1 / -1;
+  min-width: 0;
+  max-height: min(340px, 45vh);
+  overflow: auto;
+  font-size: 12px;
+}
+
+.profile .studio-works-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 4px;
+  background: var(--panel);
+}
+
+.profile .studio-works .label,
+.profile .studio-works .empty {
+  color: var(--fg-3);
+}
+
+.profile .studio-year {
+  margin-top: 6px;
+}
+
+.profile .studio-year h4 {
+  margin: 0 0 2px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+  color: var(--fg-3);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.profile .studio-year ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile .studio-year li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px 14px;
+  column-gap: 6px;
+  line-height: 1.6;
+}
+
+.profile .studio-year .film-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile .studio-year .film-score {
+  text-align: right;
+}
+
+.profile .studio-year .rated {
+  color: var(--up);
+  font-weight: 700;
+  text-align: center;
+}
+
+.profile .studio-pending {
+  margin-top: 6px;
+}
+
+@media (max-width: 560px) {
+  .profile .person-card.studio-card {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .profile .studio-card .person-card-photo {
+    width: 84px;
+    height: 84px;
+  }
+
+  .profile .studio-year ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* New works cascade in (blurred and a little low, sharpening into place); a score that just
+   arrived flashes gold; the description fades in. Off when the system asks for less motion. */
+@keyframes studio-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+  }
+}
+
+@keyframes score-in {
+  from {
+    color: var(--gold);
+    text-shadow: 0 0 10px var(--gold);
+  }
+}
+
+.profile .studio-in {
+  animation: studio-in 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.profile .score-in {
+  animation: score-in 1.2s ease-out;
+}
+
+.profile .studio-reveal {
+  animation: studio-in 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile .studio-in,
+  .profile .score-in,
+  .profile .studio-reveal {
+    animation: none;
+  }
+}
+
 /* A studio's logo: whole, on white. */
 .profile .person-card-photo.logo {
   background: #ffffff;

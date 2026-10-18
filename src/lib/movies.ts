@@ -1,6 +1,6 @@
 import { z } from "zod";
 import "server-only";
-import { movieResponseSchema, personCardSchema, studioCardSchema } from "./movie-types";
+import { movieResponseSchema, personCardSchema, studioInfoSchema, studioWorksSchema } from "./movie-types";
 
 // code names the message in the dictionary (movies.errors).
 export type MoviesErrorCode =
@@ -130,8 +130,10 @@ export async function connectTrakt(
   return movieResponseSchema.parse(data).subscription;
 }
 
-// The studio card: AniList studio ID and/or Bangumi company ID. Null when neither is known.
-export async function getStudioCard(
+// The studio card, by AniList studio ID and/or Bangumi company ID: its head, or its works as known
+// right now (admin never waits on its sources for these). Null when neither source knows it.
+export async function getStudioPart(
+  part: "info" | "works",
   query: { anilistId: number | null; bangumiId: number | null },
   lang: "zh" | "en",
 ) {
@@ -139,8 +141,8 @@ export async function getStudioCard(
   if (query.anilistId) params.set("anilistId", String(query.anilistId));
   if (query.bangumiId) params.set("bangumiId", String(query.bangumiId));
   try {
-    // A first look lists every work (several AniList pages) before admin's ~20 s of score lookups.
-    return studioCardSchema.parse(await call(`/studios/lookup?${params}`, { timeout: 90000 }));
+    const data = await call(`/studios/${part}?${params}`, { timeout: 20000 });
+    return part === "info" ? studioInfoSchema.parse(data) : studioWorksSchema.parse(data);
   } catch (error) {
     if (error instanceof MoviesUnavailable && error.code === "noProfile") return null;
     throw error;

@@ -20,11 +20,13 @@ import {
   SCORE_SOURCES,
   type AnimeRole,
   personCardSchema,
-  studioCardSchema,
+  studioInfoSchema,
+  studioWorksSchema,
   type ListSource,
   type MovieSnapshot,
   type PersonCard,
-  type StudioCard as StudioCardData,
+  type StudioInfo,
+  type StudioWorks,
   type ProfileFilm,
   type ScoreSource,
   type ShowItem,
@@ -561,7 +563,8 @@ function DirectorName({
   function locate(): DirectorTip | null {
     const rect = ref.current?.getBoundingClientRect();
     if (!rect) return null;
-    const left = anchorLeft(rect, Math.min(400, window.innerWidth - 24));
+    // The studio card is wider: studios have long descriptions and hundreds of works.
+    const left = anchorLeft(rect, Math.min(studio ? 640 : 400, window.innerWidth - 24));
     return { key, name, personId, photo, studio, left, anchorTop: rect.top, anchorBottom: rect.bottom };
   }
   function show() {
@@ -699,11 +702,101 @@ function DirectorCard({
   );
 }
 
-// The studio card: the director card's layout with the studio's logo, Bangumi's description and
-// its best-known works, scored on Bangumi or MyAnimeList. ratedAnime holds "a<AniList ID>" and
-// "b<Bangumi ID>" for every season of a rated series.
+// The studio card: the director card, wider, with the studio's logo, Bangumi's description and
+// every work it made, grouped by year in two columns and scored on Bangumi or MyAnimeList. The head
+// and the works load separately, so whichever comes first shows first; while admin is still
+// listing works or looking up titles and scores, the card asks again every POLL_MS and new works
+// cascade in. ratedAnime holds "a<AniList ID>" and "b<Bangumi ID>" for every season of a rated series.
 const STUDIO_SOURCES = ["bangumi", "mal"] as const;
 type StudioSource = (typeof STUDIO_SOURCES)[number];
+type StudioWork = StudioWorks["works"][number];
+const POLL_MS = 3000;
+const MAX_POLLS = 20;
+// The cascade: each new work waits a little longer than the one before, up to a cap.
+const STAGGER_MS = 15;
+const STAGGER_CAP = 40;
+
+const workKey = (work: StudioWork) => `${work.anilistId ?? ""}-${work.bangumiId ?? ""}`;
+
+// One part of the studio card, asked again every POLL_MS while `more` says more is coming.
+// `annotate` sees the previous answer next to the new one (what changed is worked out there, not
+// during render).
+function useStudioPart<T>(
+  part: "info" | "works",
+  ids: StudioIds,
+  lang: string,
+  parse: (data: unknown) => T | null,
+  more: (value: T) => boolean,
+  annotate: (previous: T | null, next: T) => T,
+) {
+  const [value, setValue] = useState<T | null>(null);
+  const [failed, setFailed] = useState(false);
+  const { anilistId, bangumiId } = ids;
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer: number | undefined;
+    let polls = 0;
+    let previous: T | null = null;
+    const params = new URLSearchParams({ part, lang });
+    if (anilistId) params.set("anilistId", String(anilistId));
+    if (bangumiId) params.set("bangumiId", String(bangumiId));
+    const load = () => {
+      fetch(`/api/moviehub/studio?${params}`, { signal: controller.signal })
+        .then(async (response) => {
+          if (!response.ok) throw new Error(String(response.status));
+          return response.json();
+        })
+        .then((data) => {
+          const parsed = parse(data);
+          if (!parsed) throw new Error("bad data");
+          previous = annotate(previous, parsed);
+          setValue(previous);
+          polls += 1;
+          if (more(parsed) && polls < MAX_POLLS) timer = window.setTimeout(load, POLL_MS);
+        })
+        .catch((error: unknown) => {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          setFailed(true);
+        });
+    };
+    load();
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [part, anilistId, bangumiId, lang, parse, more, annotate]);
+  return [value, failed] as const;
+}
+
+// Works with what changed since the last answer: new ones (their place in the cascade) and the
+// ones whose score just arrived.
+type ShownWorks = StudioWorks & { fresh: Record<string, number>; flashed: string[] };
+
+const parseInfo = (data: unknown) => studioInfoSchema.safeParse(data).data ?? null;
+const parseWorks = (data: unknown): ShownWorks | null => {
+  const works = studioWorksSchema.safeParse(data).data;
+  return works ? { ...works, fresh: {}, flashed: [] } : null;
+};
+const noMore = () => false;
+const asIs = <T,>(_previous: T | null, next: T) => next;
+const worksPending = (works: StudioWorks) => works.building || works.scoresPending;
+function annotateWorks(previous: ShownWorks | null, next: ShownWorks): ShownWorks {
+  const before = new Map((previous?.works ?? []).map((work) => [workKey(work), work]));
+  const fresh: Record<string, number> = {};
+  const flashed: string[] = [];
+  let order = 0;
+  for (const work of next.works) {
+    const key = workKey(work);
+    const old = before.get(key);
+    if (!old) fresh[key] = Math.min(order++, STAGGER_CAP);
+    else if (
+      (old.bangumiScore == null && work.bangumiScore != null) ||
+      (old.malScore == null && work.malScore != null)
+    )
+      flashed.push(key);
+  }
+  return { ...next, fresh, flashed };
+}
 
 function StudioCard({
   tip,
@@ -721,42 +814,40 @@ function StudioCard({
   onClose: () => void;
 }) {
   const { t, lang } = useLocale();
-  const [detail, setDetail] = useState<StudioCardData | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [info, infoFailed] = useStudioPart<StudioInfo>("info", tip.studio, lang, parseInfo, noMore, asIs);
+  const [works, worksFailed] = useStudioPart<ShownWorks>(
+    "works",
+    tip.studio,
+    lang,
+    parseWorks,
+    worksPending,
+    annotateWorks,
+  );
   const cardRef = useRef<HTMLDivElement>(null);
-  usePlaceBelow(cardRef, tip.anchorTop, tip.anchorBottom, detail ?? failed);
-  const { anilistId, bangumiId } = tip.studio;
-  useEffect(() => {
-    const controller = new AbortController();
-    const params = new URLSearchParams({ lang });
-    if (anilistId) params.set("anilistId", String(anilistId));
-    if (bangumiId) params.set("bangumiId", String(bangumiId));
-    fetch(`/api/moviehub/studio?${params}`, { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(String(response.status));
-        return response.json();
-      })
-      .then((data) => {
-        const parsed = studioCardSchema.safeParse(data);
-        if (parsed.success) setDetail(parsed.data);
-        else setFailed(true);
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setFailed(true);
-      });
-    return () => controller.abort();
-  }, [anilistId, bangumiId, lang]);
-  const logo = detail?.logo ?? tip.photo;
-  const rated = (work: StudioCardData["works"][number]) =>
+  usePlaceBelow(cardRef, tip.anchorTop, tip.anchorBottom, `${Boolean(info)}${works?.works.length ?? 0}`);
+  const scoreOf = (work: StudioWork) => (source === "bangumi" ? work.bangumiScore : work.malScore);
+  const flashed = new Set(works?.flashed ?? []);
+  const rated = (work: StudioWork) =>
     (work.anilistId != null && ratedAnime.has(`a${work.anilistId}`)) ||
     (work.bangumiId != null && ratedAnime.has(`b${work.bangumiId}`));
-  const score = (work: StudioCardData["works"][number]) => {
-    const value = source === "bangumi" ? work.bangumiScore : work.malScore;
+  const scoreText = (work: StudioWork) => {
+    const value = scoreOf(work);
     return value == null ? null : value.toFixed(source === "mal" ? 2 : 1);
   };
+  const years: [string, StudioWork[]][] = [];
+  for (const work of works?.works ?? []) {
+    const year = work.year ? String(work.year) : "—";
+    const group = years.at(-1);
+    if (group && group[0] === year) group[1].push(work);
+    else years.push([year, [work]]);
+  }
+  const logo = info?.logo ?? tip.photo;
   return (
-    <div ref={cardRef} className={pinned ? "person-card pinned" : "person-card"} style={{ left: tip.left }}>
+    <div
+      ref={cardRef}
+      className={pinned ? "person-card studio-card pinned" : "person-card studio-card"}
+      style={{ left: tip.left }}
+    >
       {pinned && (
         <button type="button" className="person-card-close" aria-label={t.profile.close} onClick={onClose}>
           ×
@@ -770,50 +861,69 @@ function StudioCard({
         )}
       </div>
       <div>
-        <div className="t">{detail?.name ?? tip.name}</div>
-        <p>
-          {detail
-            ? detail.description || t.profile.studioNoDescription
-            : failed
+        <div className="t">{info?.name ?? tip.name}</div>
+        <p key={info ? "info" : "loading"} className={info ? "studio-reveal" : undefined}>
+          {info
+            ? info.description || t.profile.studioNoDescription
+            : infoFailed
               ? t.profile.biographyFailed
               : t.profile.biographyLoading}
         </p>
       </div>
-      {detail && (
-        <div className="person-card-films">
-          <div className="films-head">
-            <span className="films-label">
-              <span className="label">{t.profile.works}</span>
-            </span>
-            <CycleButton
-              variant="chip"
-              label={t.profile.worksSource}
-              options={platformOptions(STUDIO_SOURCES, t.profile)}
-              value={source}
-              onChange={onSource}
-            />
-          </div>
-          {detail.works.length === 0 ? (
-            <div className="empty">{t.profile.studioNoWorks}</div>
-          ) : (
-            <ul>
-              {detail.works.map((work) => (
-                <li key={`${work.anilistId ?? ""}-${work.bangumiId ?? ""}`}>
-                  <span className="num">{work.year ?? "—"}</span>
-                  <span className="film-title" title={work.title}>
-                    {work.title}
-                  </span>
-                  <span className="num film-score">{score(work) ?? "—"}</span>
-                  <span className="rated" title={rated(work) ? t.profile.rated : undefined}>
-                    {rated(work) ? "✓" : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {detail.scoresPending && <div className="empty">{t.profile.studioScoresPending}</div>}
+      <div className="studio-works">
+        <div className="studio-works-head">
+          <span className="label">
+            {t.profile.works}
+            {works && works.works.length > 0 && <span className="num"> {works.works.length}</span>}
+          </span>
+          <CycleButton
+            variant="chip"
+            label={t.profile.worksSource}
+            options={platformOptions(STUDIO_SOURCES, t.profile)}
+            value={source}
+            onChange={onSource}
+          />
         </div>
-      )}
+        {!works ? (
+          <div className="empty">{worksFailed ? t.profile.worksFailed : t.profile.studioWorksLoading}</div>
+        ) : works.works.length === 0 && !works.building ? (
+          <div className="empty">{t.profile.studioNoWorks}</div>
+        ) : (
+          years.map(([year, group]) => (
+            <section key={year} className="studio-year">
+              <h4 className="num">{year}</h4>
+              <ul>
+                {group.map((work) => {
+                  const key = workKey(work);
+                  const delay = works.fresh[key];
+                  return (
+                    <li
+                      key={key}
+                      className={delay != null ? "studio-in" : undefined}
+                      style={delay != null ? { animationDelay: `${delay * STAGGER_MS}ms` } : undefined}
+                    >
+                      <span className="film-title" title={work.title}>
+                        {work.title}
+                      </span>
+                      <span className={flashed.has(key) ? "num film-score score-in" : "num film-score"}>
+                        {scoreText(work) ?? "—"}
+                      </span>
+                      <span className="rated" title={rated(work) ? t.profile.rated : undefined}>
+                        {rated(work) ? "✓" : ""}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))
+        )}
+        {works && worksPending(works) && (
+          <div className="empty studio-pending">
+            {works.building ? t.profile.studioWorksLoading : t.profile.studioScoresPending}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

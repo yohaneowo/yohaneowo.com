@@ -222,11 +222,15 @@ export const personCardSchema = z.object({
 });
 export type PersonCard = z.infer<typeof personCardSchema>;
 
-// The studio card (动画制作), as admin assembles it from Bangumi, AniList and MyAnimeList.
-export const studioCardSchema = z.object({
+// The studio card (动画制作), in two parts from admin: the head (Bangumi's company entry) and the
+// works as known so far. `building` / `scoresPending` mean more is coming: the card polls again.
+export const studioInfoSchema = z.object({
   name: z.string(),
   logo: z.string().nullable(),
   description: z.string().nullable(),
+});
+export type StudioInfo = z.infer<typeof studioInfoSchema>;
+export const studioWorksSchema = z.object({
   works: z.array(
     z.object({
       anilistId: z.number().nullable(),
@@ -237,10 +241,10 @@ export const studioCardSchema = z.object({
       malScore: z.number().nullable(),
     }),
   ),
-  // Some titles or scores are still being looked up (in the background); a later look has more.
-  scoresPending: z.boolean().optional().default(false),
+  building: z.boolean(),
+  scoresPending: z.boolean(),
 });
-export type StudioCard = z.infer<typeof studioCardSchema>;
+export type StudioWorks = z.infer<typeof studioWorksSchema>;
 export type MovieSnapshot = NonNullable<MovieResponse["snapshot"]>;
 export type ProfileFilm = MovieSnapshot["films"][number];
 export type ShowSection = NonNullable<MovieSnapshot["shows"]>;
