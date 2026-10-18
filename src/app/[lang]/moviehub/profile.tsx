@@ -703,7 +703,7 @@ function DirectorCard({
 }
 
 // The studio card: the director card, wider, with the studio's logo, Bangumi's description and
-// every work it made, grouped by year in two columns and scored on Bangumi or MyAnimeList. The head
+// every work it made, grouped by year and scored on Bangumi or MyAnimeList. The head
 // and the works load separately, so whichever comes first shows first; while admin is still
 // listing works or looking up titles and scores, the card asks again every POLL_MS and new works
 // cascade in. ratedAnime holds "a<AniList ID>" and "b<Bangumi ID>" for every season of a rated series.
