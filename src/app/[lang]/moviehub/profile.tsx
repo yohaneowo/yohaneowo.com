@@ -1955,12 +1955,6 @@ function ProfileView({
               </button>
             ))}
           </nav>
-          {/* A row of its own under the tabs, at its end. */}
-          {!viewing && shareId && (
-            <div className="share-row">
-              <ShareButton userId={shareId} name={name} />
-            </div>
-          )}
         </div>
       </header>
       {notice}
@@ -1996,6 +1990,8 @@ function ProfileView({
               onChange={(value) => setFilter("anime", value as AnimeFilter)}
             />
           )}
+          {/* At the filter row's far end. */}
+          {!viewing && shareId && <ShareButton userId={shareId} name={name} />}
         </div>
 
         <section className="kpis" aria-label={t.profile.overview}>

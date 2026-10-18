@@ -38,9 +38,15 @@ export function ShareButton({ userId, name }: { userId: string; name: string }) 
   }
 
   return (
-    <button type="button" className="refresh share" onClick={share} title={t.profile.share.hint}>
+    <button
+      type="button"
+      className="refresh share"
+      onClick={share}
+      title={t.profile.share.hint}
+      aria-label={state === "copied" ? t.profile.share.copied : t.profile.share.label}
+    >
       {state === "copied" ? <CheckIcon aria-hidden /> : <Share2Icon aria-hidden />}
-      <span role="status">{state === "copied" ? t.profile.share.copied : t.profile.share.label}</span>
+      <span aria-hidden>{state === "copied" ? t.profile.share.copied : t.profile.share.label}</span>
     </button>
   );
 }

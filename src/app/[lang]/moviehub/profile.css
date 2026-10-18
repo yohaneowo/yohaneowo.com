@@ -186,16 +186,16 @@
   border-color: var(--gold);
 }
 
-.profile .share-row {
-  flex-basis: 100%;
-  display: flex;
-  justify-content: flex-end;
-}
-
 .profile .refresh.share {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-left: auto;
+  color: var(--fg-2);
+}
+
+.profile .refresh.share:hover {
+  color: var(--fg);
 }
 
 .profile .refresh.share svg {
@@ -1799,6 +1799,11 @@
 }
 
 @media (max-width: 640px) {
+  /* Icon only, so it still fits on the filter row next to three menus. */
+  .profile .refresh.share span {
+    display: none;
+  }
+
   .profile .row {
     grid-template-columns: 34px minmax(0, 1fr) 36px auto;
     row-gap: 6px;
