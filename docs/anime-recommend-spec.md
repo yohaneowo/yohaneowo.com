@@ -133,8 +133,8 @@
 ## 六、额度与资料储存
 
 - **额度**：每天 5 次（第一次 + 四次「换一部」），台北时间半夜重置；评分退还每天最多 3 次。跟电影版各自独立。
-- **奖励次数**：每人一开始有 100 次（`movie_subscriber.anime_bonus_picks`，默认 100），不会每天重置。当天的 5 次用完才用奖励次数（那次推荐记 `uses_bonus`）；用奖励次数抽到的那部评分退还时，退回奖励次数。卡片下方显示「今天还能换 X 次，另有 Y 次奖励次数」。
-- **加奖励次数**：站长专用的 `/anime-bonus user amount`（负数是扣回，最低到 0）。伺服器里只有管理员看得到，执行时再核对是不是 bot 应用的拥有者（或团队成员）；呼叫 admin `POST /internal/movies/anime-picks/{discord_id}/bonus`。
+- **奖励次数**：每人一开始有 100 次（admin 的通用表 `bot_pick_bonus`，每人每个功能一行，第一次变动时才建，没有那行就是 100；见 `bonus.py`），不会每天重置。当天的 5 次用完才用奖励次数（那次推荐记 `uses_bonus`）；用奖励次数抽到的那部评分退还时，退回奖励次数。卡片下方显示「今天还能换 X 次，另有 Y 次奖励次数」。
+- **加奖励次数**：站长指令组 `/owner`：`/owner bonus user feature amount` 给某人某个功能加（负数是扣回，最低到 0），`/owner check user` 查某人各功能今天剩几次与奖励次数。伺服器里只有管理员看得到，执行时再核对是不是 bot 应用的拥有者（或团队成员）；呼叫 admin `POST /internal/movies/owner/{discord_id}/bonus` 与 `GET /internal/movies/owner/{discord_id}`。以后别的功能要有奖励次数：admin `bonus.FEATURES` 加一项，bot `owner.js` 的 `FEATURES` 加一项。
 - **推荐记录**：新表 `bot_anime_pick`（AniList ID、TMDB ID、季数、Trakt ID、池、评分、写回的 history ID、退还标记），结构比照 `bot_movie_pick`。
 - **新番开关**：存在 admin 的观影档案（`movie_subscriber.anime_airing`，默认 `true`）。网站「帐号设定」透过 admin 的接口读写，跟评分来源偏好存在网站资料库不同，因为推荐在 admin 里跑。
 - **测试帐号额度**：沿用 `pick_quota` 的做法，动漫额度另设一个栏位（`anime_pick_quota`，取代每天的 5 次）。
