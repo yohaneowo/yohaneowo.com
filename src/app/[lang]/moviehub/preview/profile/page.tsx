@@ -48,6 +48,7 @@ async function Preview({ searchParams }: { searchParams: SearchParams }) {
             }
           : null
       }
+      shareId={view ? null : "preview"}
       name={subscription.traktName}
       avatar={subscription.traktAvatar}
       traktUser={subscription.traktUser}
