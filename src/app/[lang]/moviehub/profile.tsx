@@ -1918,7 +1918,6 @@ function ProfileView({
               </p>
             )}
           </div>
-          {!viewing && shareId && <ShareButton userId={shareId} name={name} />}
           {!viewing && (
             <button type="button" className="refresh" disabled={pending} onClick={refresh}>
               {pending
@@ -1956,6 +1955,8 @@ function ProfileView({
               </button>
             ))}
           </nav>
+          {/* At the end of the tabs row. */}
+          {!viewing && shareId && <ShareButton userId={shareId} name={name} />}
         </div>
       </header>
       {notice}

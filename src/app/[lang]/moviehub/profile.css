@@ -190,6 +190,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* Level with the tab buttons (they sit 12px below the row's top). */
+  align-self: flex-end;
 }
 
 .profile .refresh.share svg {
