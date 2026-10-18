@@ -186,6 +186,12 @@
   border-color: var(--gold);
 }
 
+.profile .share-row {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .profile .refresh.share {
   display: inline-flex;
   align-items: center;
@@ -1789,11 +1795,6 @@
 
   .profile .tabs {
     margin-left: 0;
-  }
-
-  /* The tabs no longer push right here; the share button keeps to the row's end. */
-  .profile .refresh.share {
-    margin-left: auto;
   }
 }
 

@@ -1955,8 +1955,12 @@ function ProfileView({
               </button>
             ))}
           </nav>
-          {/* At the end of the tabs row. */}
-          {!viewing && shareId && <ShareButton userId={shareId} name={name} />}
+          {/* A row of its own under the tabs, at its end. */}
+          {!viewing && shareId && (
+            <div className="share-row">
+              <ShareButton userId={shareId} name={name} />
+            </div>
+          )}
         </div>
       </header>
       {notice}
