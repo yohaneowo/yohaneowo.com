@@ -407,17 +407,21 @@ function FilterMenu({
   );
 }
 
-const TMDB_POSTER = /^https:\/\/image\.tmdb\.org\/t\/p\/w185\/([A-Za-z0-9._-]+)$/;
+const TMDB_IMAGE = /^https:\/\/image\.tmdb\.org\/t\/p\/w185\/([A-Za-z0-9._-]+)$/;
 
-function clearPosterUrl(poster: string) {
-  const file = poster.match(TMDB_POSTER)?.[1];
-  return file ? `https://image.tmdb.org/t/p/original/${file}` : poster;
+// TMDB's full-size file for a w185 poster or profile photo; other hosts' URLs stay as they are.
+function clearImageUrl(image: string) {
+  const file = image.match(TMDB_IMAGE)?.[1];
+  return file ? `https://image.tmdb.org/t/p/original/${file}` : image;
 }
 
-function PosterOverlay({ film, onClose }: { film: ProfileFilm; onClose: () => void }) {
-  const { t, lang } = useLocale();
+// A poster or a person's photo, opened large over the page (falls back to the small file).
+type Lightbox = { key: string; image: string; alt: string; label: string };
+
+function ImageOverlay({ image, alt, label, onClose }: Omit<Lightbox, "key"> & { onClose: () => void }) {
+  const { t } = useLocale();
   const closeRef = useRef<HTMLButtonElement>(null);
-  const [src, setSrc] = useState(() => clearPosterUrl(film.poster ?? ""));
+  const [src, setSrc] = useState(() => clearImageUrl(image));
   useEffect(() => {
     closeRef.current?.focus();
     function onKey(event: KeyboardEvent) {
@@ -431,24 +435,23 @@ function PosterOverlay({ film, onClose }: { film: ProfileFilm; onClose: () => vo
       document.body.style.overflow = previousOverflow;
     };
   }, [onClose]);
-  if (!film.poster) return null;
   return (
     <div className="lightbox" onMouseDown={onClose}>
       <div
         className="lightbox-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label={t.profile.posterOf(titleOf(film, lang))}
+        aria-label={label}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <Image
           src={src}
-          alt={titleOf(film, lang)}
+          alt={alt}
           width={780}
           height={1170}
           unoptimized
           className="lightbox-poster"
-          onError={() => setSrc(film.poster!)}
+          onError={() => setSrc(image)}
         />
         <button
           ref={closeRef}
@@ -1145,13 +1148,26 @@ function ProfileView({
   const watchedCount = isShow ? section.watchedCount : movieWatchedCount;
   const plays = isShow ? section.episodes : moviePlays;
   const sampleCount = isShow ? section.items.length : movieSampleCount;
-  const [posterFilm, setPosterFilm] = useState<ProfileFilm | null>(null);
+  const [lightbox, setLightbox] = useState<Lightbox | null>(null);
+  const openPoster = useCallback(
+    (film: ProfileFilm) => {
+      if (!film.poster) return;
+      const title = titleOf(film, lang);
+      setLightbox({
+        key: `film-${film.id}-${film.watchedAt}`,
+        image: film.poster,
+        alt: title,
+        label: t.profile.posterOf(title),
+      });
+    },
+    [lang, t],
+  );
   const [directorTip, setDirectorTip] = useState<DirectorTip | null>(null);
   const [pinnedKey, setPinnedKey] = useState<string | null>(null);
   const directorTimer = useRef<number | null>(null);
   const pinnedKeyRef = useRef<string | null>(null);
   const suppressHover = useRef(false);
-  const closePoster = useCallback(() => setPosterFilm(null), []);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
   const closeDirector = useCallback(() => {
     if (directorTimer.current) window.clearTimeout(directorTimer.current);
     pinnedKeyRef.current = null;
@@ -1625,7 +1641,7 @@ function ProfileView({
                         film={film}
                         today={today}
                         people={people}
-                        onOpenPoster={setPosterFilm}
+                        onOpenPoster={openPoster}
                         onDirectorEnter={showDirector}
                         onDirectorLeave={hideDirector}
                         onDirectorPin={pinDirector}
@@ -1662,13 +1678,27 @@ function ProfileView({
                           {t.profile.roles[person.role as (typeof ANIME_ROLES)[number]]}
                         </h3>
                       )}
-                      <div className="poster" aria-hidden="true">
-                        {person.photo ? (
+                      {person.photo ? (
+                        <button
+                          type="button"
+                          className="poster"
+                          aria-label={t.profile.photo(personName(person, lang))}
+                          onClick={() =>
+                            setLightbox({
+                              key: `person-${person.role}-${person.id}`,
+                              image: person.photo!,
+                              alt: personName(person, lang),
+                              label: t.profile.photoOf(personName(person, lang)),
+                            })
+                          }
+                        >
                           <Image src={person.photo} alt="" width={34} height={48} unoptimized />
-                        ) : (
-                          personName(person, lang).slice(0, 1)
-                        )}
-                      </div>
+                        </button>
+                      ) : (
+                        <div className="poster" aria-hidden="true">
+                          {personName(person, lang).slice(0, 1)}
+                        </div>
+                      )}
                       <div className="title">
                         <div className="t">
                           {person.role === "director" ? (
@@ -1871,11 +1901,13 @@ function ProfileView({
         </div>
         <p className="note">{t.profile.credits}</p>
       </div>
-      {posterFilm && (
-        <PosterOverlay
-          key={`${posterFilm.id}-${posterFilm.watchedAt}`}
-          film={posterFilm}
-          onClose={closePoster}
+      {lightbox && (
+        <ImageOverlay
+          key={lightbox.key}
+          image={lightbox.image}
+          alt={lightbox.alt}
+          label={lightbox.label}
+          onClose={closeLightbox}
         />
       )}
       {directorTip && (

@@ -328,6 +328,8 @@ const en: Dictionary = {
       "History and ratings: Trakt. Genres, countries and TMDB scores: TMDB. IMDb, Rotten Tomatoes and Metacritic: OMDb. Anime staff and scores: Bangumi, AniList, MyAnimeList. This site is not endorsed or certified by TMDB.",
     poster: (title) => `View the poster of ${title}`,
     posterOf: (title) => `Poster of ${title}`,
+    photo: (name) => `View the photo of ${name}`,
+    photoOf: (name) => `Photo of ${name}`,
     close: "Close",
     episodes: (watched, aired) => `${watched}/${aired} eps`,
     seasonCount: (count) => plural(count, "season"),

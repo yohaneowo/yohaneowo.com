@@ -810,25 +810,25 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .profile .row:not(.person) .poster {
+  .profile .row button.poster {
     z-index: 1;
   }
 
-  .profile .row:not(.person) .poster * {
+  .profile .row button.poster * {
     pointer-events: none;
   }
 
-  .profile .row:not(.person) .poster img {
+  .profile .row button.poster img {
     transform-origin: left center;
     transition: transform 0.16s ease;
   }
 
-  .profile .row:not(.person) .poster:hover {
+  .profile .row button.poster:hover {
     overflow: visible;
     z-index: 8;
   }
 
-  .profile .row:not(.person) .poster:hover img {
+  .profile .row button.poster:hover img {
     position: relative;
     z-index: 8;
     transform: scale(4.4);

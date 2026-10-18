@@ -311,6 +311,8 @@ const zh = {
       "记录与评分来源：Trakt；类型、国家与 TMDB 评分：TMDB；IMDb、烂番茄、Metacritic 评分：OMDb；动漫的制作人员与评分：Bangumi、AniList、MyAnimeList。本网站不受 TMDB 背书或认证。",
     poster: (title: string) => `查看${title}的海报`,
     posterOf: (title: string) => `${title}的海报`,
+    photo: (name: string) => `查看${name}的照片`,
+    photoOf: (name: string) => `${name}的照片`,
     close: "关闭",
     episodes: (watched: number, aired: string) => `${watched}/${aired} 集`,
     seasonCount: (count: number) => `${count} 季`,
