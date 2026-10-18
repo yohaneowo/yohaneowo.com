@@ -21,8 +21,11 @@ const BACKGROUND = { light: "oklch(1 0 0)", dark: "oklch(0.145 0 0)" };
 // e: view transition with the browser's default cross-fade (no circle)
 // f: like a, with the header's and sub-navigation's backdrop blur turned off during the switch
 // g: like a, without the old theme's color under the snapshots
-type Variant = "a" | "b" | "c" | "d" | "e" | "f" | "g";
-const VARIANTS: Variant[] = ["a", "b", "c", "d", "e", "f", "g"];
+// h: to dark too, the old snapshot stays on top and a growing circular hole opens in it (the same
+//    layering as going back to light, which doesn't flash)
+type Variant = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h";
+const VARIANTS: Variant[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
 function variant(): Variant {
   const value = new URLSearchParams(window.location.search).get("reveal");
   return VARIANTS.find((v) => v === value) ?? "a";
@@ -95,7 +98,7 @@ export function ModeToggle() {
     if (mode === "g") root.dataset.themeNoBackdrop = "";
 
     const expand = next === "dark";
-    root.dataset.themeReveal = expand ? "expand" : "shrink";
+    root.dataset.themeReveal = expand ? (mode === "h" ? "hole" : "expand") : "shrink";
     // Where the circle starts; globals.css clips the new snapshot to it from its very first frame,
     // since the script's animation only starts a frame later (after `ready`).
     root.style.setProperty("--theme-reveal-at", `${x}px ${y}px`);
@@ -110,6 +113,19 @@ export function ModeToggle() {
     if (mode === "b") transition.updateCallbackDone.then(() => setTheme(next)).catch(() => undefined);
     transition.ready
       .then(() => {
+        if (expand && mode === "h") {
+          // The hole is a mask on the old snapshot (globals.css) sized by --theme-hole.
+          root.animate(
+            { "--theme-hole": ["0px", `${radius}px`] },
+            {
+              duration: REVEAL_MS,
+              easing: REVEAL_EASING,
+              fill: "forwards",
+              pseudoElement: "::view-transition-old(root)",
+            },
+          );
+          return;
+        }
         root.animate(
           { clipPath: expand ? circle : [...circle].reverse() },
           {

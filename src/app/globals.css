@@ -138,14 +138,16 @@ html[data-theme-reveal]::view-transition-new(root) {
   mix-blend-mode: normal;
 }
 
-html[data-theme-reveal="shrink"]::view-transition-old(root) {
+html[data-theme-reveal="shrink"]::view-transition-old(root),
+html[data-theme-reveal="hole"]::view-transition-old(root) {
   z-index: 1;
 }
 
 /* Under the snapshots, the old theme's background (literal values: by now the variables are the
    new theme's). If a browser shows a frame before the old snapshot is ready, the page stays the
    old color instead of flashing the black canvas. */
-html[data-theme-reveal="expand"]::view-transition {
+html[data-theme-reveal="expand"]::view-transition,
+html[data-theme-reveal="hole"]::view-transition {
   background: oklch(1 0 0);
 }
 
@@ -186,4 +188,24 @@ html[data-theme-no-blur] .backdrop-blur {
 /* TEMPORARY (?reveal=g in mode-toggle.tsx): nothing under the snapshots. */
 html[data-theme-reveal][data-theme-no-backdrop]::view-transition {
   background: none;
+}
+
+/* TEMPORARY (?reveal=h): to dark, a growing hole in the old snapshot (the radius is animated). */
+@property --theme-hole {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+html[data-theme-reveal="hole"]::view-transition-old(root) {
+  -webkit-mask-image: radial-gradient(
+    circle at var(--theme-reveal-at),
+    transparent var(--theme-hole),
+    #000 calc(var(--theme-hole) + 0.5px)
+  );
+  mask-image: radial-gradient(
+    circle at var(--theme-reveal-at),
+    transparent var(--theme-hole),
+    #000 calc(var(--theme-hole) + 0.5px)
+  );
 }
