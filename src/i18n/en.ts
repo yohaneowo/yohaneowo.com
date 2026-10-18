@@ -357,6 +357,8 @@ const en: Dictionary = {
     worksSource: "Score source for works",
     worksFailed: "The works can't be read right now.",
     noWorks: "TMDB lists no films directed.",
+    studioNoDescription: "No English description of this studio.",
+    studioNoWorks: "No works found for this studio.",
     next: (name) => `Next: ${name}`,
     cycleSwitched: (name) => `Switched to ${name}`,
     cycleTitle: (next) => `Click for ${next}; Shift+click to go back`,

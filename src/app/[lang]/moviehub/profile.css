@@ -501,6 +501,16 @@
   display: block;
 }
 
+/* A studio's logo: whole, on white. */
+.profile .person-card-photo.logo {
+  background: #ffffff;
+}
+
+.profile .person-card-photo.logo img {
+  padding: 6px;
+  object-fit: contain;
+}
+
 .profile .person-card p {
   margin: 6px 0 0;
   max-height: 120px;

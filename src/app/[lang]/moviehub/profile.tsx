@@ -20,9 +20,11 @@ import {
   SCORE_SOURCES,
   type AnimeRole,
   personCardSchema,
+  studioCardSchema,
   type ListSource,
   type MovieSnapshot,
   type PersonCard,
+  type StudioCard as StudioCardData,
   type ProfileFilm,
   type ScoreSource,
   type ShowItem,
@@ -514,11 +516,15 @@ type DirectorTip = {
   name: string;
   personId: number | null;
   photo: string | null;
+  // An anime studio (动画制作): the studio card instead of the director card.
+  studio?: StudioIds | null;
   left: number;
   // Viewport edges of the hovered name; the card picks its side after measuring itself.
   anchorTop: number;
   anchorBottom: number;
 };
+
+type StudioIds = { anilistId: number | null; bangumiId: number | null };
 
 function largerPhoto(photo: string | null) {
   return photo?.replace("/t/p/w185/", "/t/p/w342/") ?? null;
@@ -529,6 +535,7 @@ function DirectorName({
   label = name,
   personId,
   photo,
+  studio = null,
   pinnedKey,
   onEnter,
   onLeave,
@@ -539,18 +546,23 @@ function DirectorName({
   label?: string;
   personId: number | null;
   photo: string | null;
+  studio?: StudioIds | null;
   pinnedKey: string | null;
   onEnter: (tip: DirectorTip) => void;
   onLeave: () => void;
   onPin: (tip: DirectorTip) => void;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const key = personId ? String(personId) : name;
+  const key = studio
+    ? `studio:${studio.anilistId ?? ""}:${studio.bangumiId ?? ""}`
+    : personId
+      ? String(personId)
+      : name;
   function locate(): DirectorTip | null {
     const rect = ref.current?.getBoundingClientRect();
     if (!rect) return null;
     const left = anchorLeft(rect, Math.min(400, window.innerWidth - 24));
-    return { key, name, personId, photo, left, anchorTop: rect.top, anchorBottom: rect.bottom };
+    return { key, name, personId, photo, studio, left, anchorTop: rect.top, anchorBottom: rect.bottom };
   }
   function show() {
     const tip = locate();
@@ -676,6 +688,124 @@ function DirectorCard({
                   {/* Rated only: a seen-but-unrated film stays unmarked as a nudge to rate it. */}
                   <span className="rated" title={ratedIds.has(film.id) ? t.profile.rated : undefined}>
                     {ratedIds.has(film.id) ? "✓" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The studio card: the director card's layout with the studio's logo, Bangumi's description and
+// its best-known works, scored on Bangumi or MyAnimeList. ratedAnime holds "a<AniList ID>" and
+// "b<Bangumi ID>" for every season of a rated series.
+const STUDIO_SOURCES = ["bangumi", "mal"] as const;
+type StudioSource = (typeof STUDIO_SOURCES)[number];
+
+function StudioCard({
+  tip,
+  pinned,
+  ratedAnime,
+  source,
+  onSource,
+  onClose,
+}: {
+  tip: DirectorTip & { studio: StudioIds };
+  pinned: boolean;
+  ratedAnime: Set<string>;
+  source: StudioSource;
+  onSource: (source: StudioSource) => void;
+  onClose: () => void;
+}) {
+  const { t, lang } = useLocale();
+  const [detail, setDetail] = useState<StudioCardData | null>(null);
+  const [failed, setFailed] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  usePlaceBelow(cardRef, tip.anchorTop, tip.anchorBottom, detail ?? failed);
+  const { anilistId, bangumiId } = tip.studio;
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ lang });
+    if (anilistId) params.set("anilistId", String(anilistId));
+    if (bangumiId) params.set("bangumiId", String(bangumiId));
+    fetch(`/api/moviehub/studio?${params}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json();
+      })
+      .then((data) => {
+        const parsed = studioCardSchema.safeParse(data);
+        if (parsed.success) setDetail(parsed.data);
+        else setFailed(true);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setFailed(true);
+      });
+    return () => controller.abort();
+  }, [anilistId, bangumiId, lang]);
+  const logo = detail?.logo ?? tip.photo;
+  const rated = (work: StudioCardData["works"][number]) =>
+    (work.anilistId != null && ratedAnime.has(`a${work.anilistId}`)) ||
+    (work.bangumiId != null && ratedAnime.has(`b${work.bangumiId}`));
+  const score = (work: StudioCardData["works"][number]) => {
+    const value = source === "bangumi" ? work.bangumiScore : work.malScore;
+    return value == null ? null : value.toFixed(source === "mal" ? 2 : 1);
+  };
+  return (
+    <div ref={cardRef} className={pinned ? "person-card pinned" : "person-card"} style={{ left: tip.left }}>
+      {pinned && (
+        <button type="button" className="person-card-close" aria-label={t.profile.close} onClick={onClose}>
+          ×
+        </button>
+      )}
+      <div className="person-card-photo logo">
+        {logo ? (
+          <Image src={logo} alt="" width={114} height={171} unoptimized referrerPolicy="no-referrer" />
+        ) : (
+          tip.name.slice(0, 1)
+        )}
+      </div>
+      <div>
+        <div className="t">{detail?.name ?? tip.name}</div>
+        <p>
+          {detail
+            ? detail.description || t.profile.studioNoDescription
+            : failed
+              ? t.profile.biographyFailed
+              : t.profile.biographyLoading}
+        </p>
+      </div>
+      {detail && (
+        <div className="person-card-films">
+          <div className="films-head">
+            <span className="films-label">
+              <span className="label">{t.profile.works}</span>
+            </span>
+            <CycleButton
+              variant="chip"
+              label={t.profile.worksSource}
+              options={platformOptions(STUDIO_SOURCES, t.profile)}
+              value={source}
+              onChange={onSource}
+            />
+          </div>
+          {detail.works.length === 0 ? (
+            <div className="empty">{t.profile.studioNoWorks}</div>
+          ) : (
+            <ul>
+              {detail.works.map((work) => (
+                <li key={`${work.anilistId ?? ""}-${work.bangumiId ?? ""}`}>
+                  <span className="num">{work.year ?? "—"}</span>
+                  <span className="film-title" title={work.title}>
+                    {work.title}
+                  </span>
+                  <span className="num film-score">{score(work) ?? "—"}</span>
+                  <span className="rated" title={rated(work) ? t.profile.rated : undefined}>
+                    {rated(work) ? "✓" : ""}
                   </span>
                 </li>
               ))}
@@ -1129,6 +1259,22 @@ function ProfileView({
   const [staffRole, setStaffRole] = useState<AnimeRole>("studio");
   // The director card's score column; kept while moving between directors.
   const [cardSource, setCardSource] = useState<CardSource>("imdb");
+  // The studio card's score column: Bangumi on the Chinese page, MyAnimeList on the English one.
+  const [studioSource, setStudioSource] = useState<StudioSource>(lang === "zh" ? "bangumi" : "mal");
+  const ratedAnime = useMemo(
+    () =>
+      new Set(
+        (anime?.items ?? [])
+          .filter((item) => item.myRating != null || item.seasons.some((season) => season.myRating != null))
+          .flatMap((item) =>
+            item.seasons.flatMap((season) => [
+              ...(season.anilistId ? [`a${season.anilistId}`] : []),
+              ...(season.bangumiId ? [`b${season.bangumiId}`] : []),
+            ]),
+          ),
+      ),
+    [anime],
+  );
   const ratedSet = useMemo(() => new Set(ratedIds), [ratedIds]);
   const [scoreTip, setScoreTip] = useState<ScoreTip | null>(null);
   const scoreTimer = useRef<number | null>(null);
@@ -1743,12 +1889,29 @@ function ProfileView({
                       )}
                       <div className="title">
                         <div className="t">
-                          {person.role === "director" ? (
+                          {/* Film directors open the TMDB director card; anime staff IDs are
+                              AniList's, so anime directors don't. Studios open the studio card. */}
+                          {person.role === "director" && media === "movie" ? (
                             <DirectorName
                               name={person.name}
                               label={personName(person, lang)}
                               personId={person.id}
                               photo={person.photo}
+                              pinnedKey={pinnedKey}
+                              onEnter={showDirector}
+                              onLeave={hideDirector}
+                              onPin={pinDirector}
+                            />
+                          ) : person.role === "studio" ? (
+                            <DirectorName
+                              name={person.name}
+                              label={personName(person, lang)}
+                              personId={null}
+                              photo={person.photo}
+                              studio={{
+                                anilistId: person.id > 0 ? person.id : null,
+                                bangumiId: person.bangumiId ?? (person.id < 0 ? -person.id : null),
+                              }}
                               pinnedKey={pinnedKey}
                               onEnter={showDirector}
                               onLeave={hideDirector}
@@ -1953,17 +2116,28 @@ function ProfileView({
           onClose={closeLightbox}
         />
       )}
-      {directorTip && (
-        <DirectorCard
-          key={directorTip.key}
-          tip={directorTip}
-          pinned={pinnedKey === directorTip.key}
-          ratedIds={ratedSet}
-          source={cardSource}
-          onSource={setCardSource}
-          onClose={closeDirector}
-        />
-      )}
+      {directorTip &&
+        (directorTip.studio ? (
+          <StudioCard
+            key={directorTip.key}
+            tip={{ ...directorTip, studio: directorTip.studio }}
+            pinned={pinnedKey === directorTip.key}
+            ratedAnime={ratedAnime}
+            source={studioSource}
+            onSource={setStudioSource}
+            onClose={closeDirector}
+          />
+        ) : (
+          <DirectorCard
+            key={directorTip.key}
+            tip={directorTip}
+            pinned={pinnedKey === directorTip.key}
+            ratedIds={ratedSet}
+            source={cardSource}
+            onSource={setCardSource}
+            onClose={closeDirector}
+          />
+        ))}
       {scoreTip && <ScoreCard key={scoreTip.key} tip={scoreTip} source={listSource} />}
     </div>
   );

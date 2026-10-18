@@ -108,6 +108,8 @@ const showSection = z.object({
       role: z.enum(["creator", "cast", ...ANIME_ROLES]),
       nameEn: z.string().nullable().optional().default(null),
       photo: z.string().nullable(),
+      // Anime staff: the Bangumi person (a studio's company entry) for the studio card.
+      bangumiId: z.number().nullable().optional().default(null),
       average: z.number(),
       count: z.number(),
       films: z.array(film),
@@ -219,6 +221,24 @@ export const personCardSchema = z.object({
     .nullable(),
 });
 export type PersonCard = z.infer<typeof personCardSchema>;
+
+// The studio card (动画制作), as admin assembles it from Bangumi, AniList and MyAnimeList.
+export const studioCardSchema = z.object({
+  name: z.string(),
+  logo: z.string().nullable(),
+  description: z.string().nullable(),
+  works: z.array(
+    z.object({
+      anilistId: z.number().nullable(),
+      bangumiId: z.number().nullable(),
+      title: z.string(),
+      year: z.number().nullable(),
+      bangumiScore: z.number().nullable(),
+      malScore: z.number().nullable(),
+    }),
+  ),
+});
+export type StudioCard = z.infer<typeof studioCardSchema>;
 export type MovieSnapshot = NonNullable<MovieResponse["snapshot"]>;
 export type ProfileFilm = MovieSnapshot["films"][number];
 export type ShowSection = NonNullable<MovieSnapshot["shows"]>;

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import "server-only";
-import { movieResponseSchema, personCardSchema } from "./movie-types";
+import { movieResponseSchema, personCardSchema, studioCardSchema } from "./movie-types";
 
 // code names the message in the dictionary (movies.errors).
 export type MoviesErrorCode =
@@ -128,6 +128,23 @@ export async function connectTrakt(
     timeout: 30000,
   });
   return movieResponseSchema.parse(data).subscription;
+}
+
+// The studio card: AniList studio ID and/or Bangumi company ID. Null when neither is known.
+export async function getStudioCard(
+  query: { anilistId: number | null; bangumiId: number | null },
+  lang: "zh" | "en",
+) {
+  const params = new URLSearchParams({ lang });
+  if (query.anilistId) params.set("anilistId", String(query.anilistId));
+  if (query.bangumiId) params.set("bangumiId", String(query.bangumiId));
+  try {
+    // A first look fetches the works' Bangumi and MyAnimeList scores.
+    return studioCardSchema.parse(await call(`/studios/lookup?${params}`, { timeout: 45000 }));
+  } catch (error) {
+    if (error instanceof MoviesUnavailable && error.code === "noProfile") return null;
+    throw error;
+  }
 }
 
 // The director card from admin, in the given language; null when TMDB has no such person.
