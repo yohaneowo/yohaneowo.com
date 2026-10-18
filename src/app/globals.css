@@ -142,6 +142,17 @@ html[data-theme-reveal="shrink"]::view-transition-old(root) {
   z-index: 1;
 }
 
+/* Under the snapshots, the old theme's background (literal values: by now the variables are the
+   new theme's). If a browser shows a frame before the old snapshot is ready, the page stays the
+   old color instead of flashing the black canvas. */
+html[data-theme-reveal="expand"]::view-transition {
+  background: oklch(1 0 0);
+}
+
+html[data-theme-reveal="shrink"]::view-transition {
+  background: oklch(0.145 0 0);
+}
+
 /* To dark: the new snapshot starts as a zero circle at the button. Without this it shows in full
    for the frame before the script's animation starts (a flash of the whole dark page). */
 html[data-theme-reveal="expand"]::view-transition-new(root) {
