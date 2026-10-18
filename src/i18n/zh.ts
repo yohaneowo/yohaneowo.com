@@ -247,7 +247,6 @@ const zh = {
     radarEmpty: "雷达会跟着最近的片单一并更新。",
     radarFewGenres: "这个范围里的类型不到 3 种，画不成雷达。",
     radarShort: "这个范围里不足 20 部，雷达先别太当真。",
-    radarGenreNote: "最常看的 6 种类型，看得最多的画到最外圈。把鼠标移到点上看几部。",
     radarStyleNote: "把鼠标移到点上（手机点一下）看每一轴的分数和算法。",
     radarShowScope: "数量按全部记录，其余跟着范围和筛选。",
     radarMovieScope: "毒舌、探索、多样性跟着范围和筛选，深度和数量按全部记录。",

@@ -260,7 +260,6 @@ const en: Dictionary = {
     radarEmpty: "The radar updates together with your recent list.",
     radarFewGenres: "Fewer than 3 genres in this range: not enough for a radar.",
     radarShort: "Fewer than 20 titles in this range; don't read too much into the radar.",
-    radarGenreNote: "Your 6 most-watched genres; the largest reaches the edge. Hover a point for the count.",
     radarStyleNote: "Hover a point (tap on phones) for each axis's score and how it's measured. ",
     radarShowScope: "Volume uses your whole history; the rest follows the range and filters.",
     radarMovieScope:

@@ -1682,13 +1682,14 @@ export function MovieProfile({
                   )}
                 </>
               )}
-              <p className="note">
-                {shortSample
-                  ? t.profile.radarShort
-                  : radarMode === "genre"
-                    ? t.profile.radarGenreNote
+              {/* The genre rings carry their own key; only the style radar needs a note. */}
+              {(shortSample || radarMode !== "genre") && (
+                <p className="note">
+                  {shortSample
+                    ? t.profile.radarShort
                     : `${t.profile.radarStyleNote}${isShow ? t.profile.radarShowScope : t.profile.radarMovieScope}`}
-              </p>
+                </p>
+              )}
             </section>
 
             <section className="card">
