@@ -218,6 +218,7 @@ async function MyStatistics({ searchParams }: { searchParams: SearchParams }) {
       animePercentile={platform?.animePercentile ?? null}
       animeUsers={platform?.animeUsers ?? 0}
       scoreSource={await getScoreSource(session.user.id)}
+      shareId={session.user.id}
     />
   );
 }

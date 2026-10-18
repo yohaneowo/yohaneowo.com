@@ -186,6 +186,17 @@
   border-color: var(--gold);
 }
 
+.profile .refresh.share {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile .refresh.share svg {
+  width: 14px;
+  height: 14px;
+}
+
 .profile .refresh:disabled {
   cursor: default;
   opacity: 0.65;

@@ -315,6 +315,13 @@ const en: Dictionary = {
       anime: (count) => `${count} anime`,
       mean: (mean) => `Average ${mean}`,
     },
+    share: {
+      label: "Share",
+      copied: "Link copied",
+      failed: "Couldn't copy automatically. Copy this link:",
+      hint: "Copy the public link to my statistics (others see mine, not theirs)",
+      title: (name: string) => `${name}'s movie statistics`,
+    },
     viewing: {
       title: (name) => `${name}'s statistics`,
       banner: (name) => `You're viewing ${name}'s statistics.`,

@@ -299,6 +299,13 @@ const zh = {
       anime: (count: number) => `动漫 ${count} 部`,
       mean: (mean: string) => `均分 ${mean}`,
     },
+    share: {
+      label: "分享",
+      copied: "已复制连结",
+      failed: "没办法自动复制，请手动复制这个连结：",
+      hint: "复制我的公开观影统计连结（别人打开看到的是我的统计）",
+      title: (name: string) => `${name} 的观影统计`,
+    },
     viewing: {
       title: (name: string) => `${name} 的观影统计`,
       banner: (name: string) => `正在看 ${name} 的观影统计。`,

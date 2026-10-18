@@ -41,6 +41,7 @@ import { BondsCard, type BondsProp } from "./bonds-card";
 import type { StyleProfile } from "./compare";
 import { CYCLE_ICON, CycleButton, type CycleOption } from "./cycle-button";
 import { GenreSunburst } from "./genre-sunburst";
+import { ShareButton } from "./share-button";
 import {
   ANIMATION_GENRES,
   AXES,
@@ -1452,6 +1453,7 @@ function ProfileView({
   animePercentile = null,
   animeUsers = 0,
   viewing = null,
+  shareId = null,
 }: {
   name: string;
   avatar?: string | null;
@@ -1497,6 +1499,8 @@ function ProfileView({
     saveSource: boolean;
     viewerId: string | null;
   } | null;
+  // The own page: the account ID behind the public link the share button copies.
+  shareId?: string | null;
 }) {
   const { t, lang } = useLocale();
   const { pending, message, refresh } = useStatisticsRefresh({ poll, checkOnly: waiting });
@@ -1914,6 +1918,7 @@ function ProfileView({
               </p>
             )}
           </div>
+          {!viewing && shareId && <ShareButton userId={shareId} name={name} />}
           {!viewing && (
             <button type="button" className="refresh" disabled={pending} onClick={refresh}>
               {pending
