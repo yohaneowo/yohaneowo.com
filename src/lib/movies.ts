@@ -86,8 +86,6 @@ export const bondSchema = z.object({
   shows: bondOverlapSchema,
   animeSeasons: bondOverlapSchema,
   total: z.object({ common: z.number(), mine: z.number(), share: z.number() }),
-  // 口味相似度 over the titles both rated; null with fewer than 5 of them. Older admin: absent.
-  taste: z.object({ pairs: z.number(), similarity: z.number().nullable() }).optional(),
 });
 export type Bond = z.infer<typeof bondSchema>;
 

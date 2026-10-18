@@ -1665,10 +1665,6 @@
   color: var(--fg-3);
 }
 
-.profile .bond-taste {
-  color: var(--gold);
-}
-
 .profile .bond-main .track {
   height: 4px;
 }

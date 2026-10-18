@@ -93,12 +93,6 @@ export function BondsCard({
                     </span>
                     <span className="bond-detail">
                       {b.breakdown(row.movies.common, row.shows.common, row.animeSeasons.common)}
-                      {row.taste?.similarity != null && (
-                        <span className="bond-taste" title={b.tasteHint(row.taste.pairs)}>
-                          {" · "}
-                          {b.taste(Math.round(row.taste.similarity * 100))}
-                        </span>
-                      )}
                     </span>
                     <span className="track">
                       <i style={{ width: `${percent}%` }} />
