@@ -1690,6 +1690,70 @@
   color: var(--fg-2);
 }
 
+.profile .common-taste {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile .common-head,
+.profile .common-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 64px;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.profile .common-head {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.profile .common-head span {
+  overflow: hidden;
+  text-align: right;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.profile .common-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile .common-row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.profile .common-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.profile .common-title small {
+  color: var(--fg-3);
+}
+
+.profile .common-score {
+  text-align: right;
+  font-weight: 600;
+}
+
+.profile .common-score.mine.higher {
+  color: var(--gold);
+}
+
+.profile .common-score.mine.lower {
+  color: var(--fg-3);
+}
+
 .profile .bonds-empty {
   display: flex;
   flex-direction: column;

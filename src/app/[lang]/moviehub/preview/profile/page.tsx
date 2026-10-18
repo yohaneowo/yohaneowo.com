@@ -30,11 +30,17 @@ async function Preview({ searchParams }: { searchParams: SearchParams }) {
   const { subscription, snapshot, platform } = movieResponseSchema.parse(raw.data ?? raw);
   if (!subscription || !snapshot) notFound();
   const view = Boolean((await searchParams).view);
+  // The made-up visitor: the same titles oldest-first, every rating nudged by up to ±2.
+  const nudge = <T extends { id: number; myRating: number | null }>(items: T[]) =>
+    [...items].reverse().map((item) => ({
+      ...item,
+      myRating: item.myRating == null ? null : Math.min(10, Math.max(1, item.myRating + ((item.id % 5) - 2))),
+    }));
   const reversed = {
     ...snapshot,
-    films: [...snapshot.films].reverse(),
-    shows: snapshot.shows && { ...snapshot.shows, items: [...snapshot.shows.items].reverse() },
-    anime: snapshot.anime && { ...snapshot.anime, items: [...snapshot.anime.items].reverse() },
+    films: nudge(snapshot.films),
+    shows: snapshot.shows && { ...snapshot.shows, items: nudge(snapshot.shows.items) },
+    anime: snapshot.anime && { ...snapshot.anime, items: nudge(snapshot.anime.items) },
   };
   return (
     <MovieProfile
