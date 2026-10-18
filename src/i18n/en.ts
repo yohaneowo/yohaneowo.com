@@ -359,6 +359,7 @@ const en: Dictionary = {
     noWorks: "TMDB lists no films directed.",
     creditNoDescription: "No English description on AniList.",
     mainRole: "Lead",
+    mainCharacter: "Main character",
     studioNoWorks: "No works found for this studio.",
     studioScoresPending: "Scores are still coming in.",
     studioWorksLoading: "Listing the works…",

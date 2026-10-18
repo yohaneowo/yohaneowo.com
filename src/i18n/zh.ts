@@ -341,6 +341,7 @@ const zh = {
     noWorks: "TMDB 没有收录导演作品。",
     creditNoDescription: "Bangumi 没有收录简介。",
     mainRole: "主角",
+    mainCharacter: "主要角色",
     studioNoWorks: "没有找到这家公司的作品。",
     studioScoresPending: "还在补中文名和评分，会陆续出现。",
     studioWorksLoading: "正在列出作品…",

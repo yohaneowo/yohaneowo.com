@@ -250,8 +250,17 @@ export const creditWorksSchema = z.object({
       year: z.number().nullable(),
       bangumiScore: z.number().nullable(),
       malScore: z.number().nullable(),
-      // Voice actors: the characters played in that anime, and whether one is a lead.
-      characters: z.array(z.string()).optional().default([]),
+      // Voice actors: the characters played in that anime (picture, main character or not), and
+      // whether one is a lead. Plain names are from admin versions before the pictures.
+      characters: z
+        .array(
+          z.union([
+            z.string().transform((name) => ({ name, image: null, main: false })),
+            z.object({ name: z.string(), image: z.string().nullable(), main: z.boolean() }),
+          ]),
+        )
+        .optional()
+        .default([]),
       main: z.boolean().optional().default(false),
     }),
   ),

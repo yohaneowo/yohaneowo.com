@@ -630,7 +630,69 @@
   white-space: nowrap;
 }
 
-.profile .studio-year .main-role {
+.profile .studio-year .character {
+  cursor: default;
+  border-radius: 2px;
+  outline: none;
+}
+
+.profile .studio-year .character:hover,
+.profile .studio-year .character:focus-visible,
+.profile .studio-year .character.on {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* A character's picture, floating over the card next to the name. */
+.profile .character-card {
+  position: absolute;
+  z-index: 3;
+  width: 120px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  box-shadow: 0 12px 30px var(--shadow);
+  pointer-events: none;
+}
+
+.profile .character-card-photo {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--fg-2);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.profile .character-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile .character-card-name {
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile .character-card .main-role {
+  display: inline-block;
+  margin-top: 3px;
+}
+
+.profile .studio-year .main-role,
+.profile .character-card .main-role {
   margin-right: 5px;
   padding: 0 4px;
   border-radius: 3px;
@@ -656,6 +718,22 @@
 
   .profile .studio-card .person-card-photo.portrait {
     height: 112px;
+  }
+
+  /* No room on the right: the list takes the width and a voice actor's characters go below the
+     title. */
+  .profile .studio-works {
+    --studio-list: 100%;
+  }
+
+  .profile .studio-year li {
+    grid-template-columns: minmax(0, 1fr) 36px var(--studio-mark);
+  }
+
+  .profile .studio-year .characters {
+    grid-column: 1 / -1;
+    padding: 0 0 2px 10px;
+    font-size: 11px;
   }
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -11,7 +12,7 @@ import {
   type RefObject,
 } from "react";
 import Image from "next/image";
-import { MotionConfig, motion } from "motion/react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -735,6 +736,15 @@ const WORK_SPRING = { type: "spring", stiffness: 420, damping: 32, mass: 0.6 } a
 
 const workKey = (work: CreditWork) => `${work.anilistId ?? ""}-${work.bangumiId ?? ""}`;
 
+// The floating character card: its width (the picture is 2:3) and its height for placing it.
+const CHARACTER_CARD = { width: 120, height: 232 };
+type CharacterTip = CreditWork["characters"][number] & {
+  key: string;
+  left: number;
+  top: number;
+  below: boolean;
+};
+
 // One part of a credit card, asked again every POLL_MS while `more` says more is coming.
 // `annotate` sees the previous answer next to the new one (what changed is worked out there, not
 // during render).
@@ -844,6 +854,26 @@ function CreditCard({
   );
   const cardRef = useRef<HTMLDivElement>(null);
   usePlaceBelow(cardRef, tip.anchorTop, tip.anchorBottom, `${Boolean(info)}${works?.works.length ?? 0}`);
+  // A voice actor's character under the pointer (or tapped): its picture floats next to the name,
+  // placed within the card, below the name or above it near the card's bottom.
+  const [character, setCharacter] = useState<CharacterTip | null>(null);
+  const showCharacter = (target: HTMLElement, key: string, who: CreditWork["characters"][number]) => {
+    // The card is found from the name itself (the hover handlers run outside render).
+    const card = target.closest(".studio-card")?.getBoundingClientRect();
+    if (!card) return;
+    const rect = target.getBoundingClientRect();
+    const left = Math.max(8, Math.min(rect.left - card.left, card.width - CHARACTER_CARD.width - 8));
+    const below = rect.bottom - card.top + 6;
+    const fits = below + CHARACTER_CARD.height < card.height;
+    setCharacter({
+      key,
+      ...who,
+      left,
+      top: fits ? below : Math.max(8, rect.top - card.top - CHARACTER_CARD.height - 6),
+      below: fits,
+    });
+  };
+  const hideCharacter = () => setCharacter(null);
   const scoreOf = (work: CreditWork) => (source === "bangumi" ? work.bangumiScore : work.malScore);
   const flashed = new Set(works?.flashed ?? []);
   const rated = (work: CreditWork) =>
@@ -961,9 +991,31 @@ function CreditCard({
                           {rated(work) ? "✓" : ""}
                         </span>
                         {work.characters.length > 0 && (
-                          <span className="characters" title={work.characters.join("、")}>
+                          <span className="characters">
                             {work.main && <b className="main-role">{t.profile.mainRole}</b>}
-                            {work.characters.join("、")}
+                            {work.characters.map((who, index) => {
+                              const characterKey = `${key}:${who.name}`;
+                              return (
+                                <Fragment key={who.name}>
+                                  {index > 0 && "、"}
+                                  <span
+                                    className={character?.key === characterKey ? "character on" : "character"}
+                                    tabIndex={0}
+                                    onMouseEnter={(event) =>
+                                      showCharacter(event.currentTarget, characterKey, who)
+                                    }
+                                    onFocus={(event) => showCharacter(event.currentTarget, characterKey, who)}
+                                    onMouseLeave={hideCharacter}
+                                    onBlur={hideCharacter}
+                                    // A tap focuses and clicks at once: the click only opens; tapping elsewhere
+                                    // (blur) closes.
+                                    onClick={(event) => showCharacter(event.currentTarget, characterKey, who)}
+                                  >
+                                    {who.name}
+                                  </span>
+                                </Fragment>
+                              );
+                            })}
                           </span>
                         )}
                       </motion.li>
@@ -979,6 +1031,37 @@ function CreditCard({
             </div>
           )}
         </div>
+        <AnimatePresence>
+          {character && (
+            <motion.div
+              key={character.key}
+              className="character-card"
+              style={{ left: character.left, top: character.top }}
+              initial={{ opacity: 0, scale: 0.94, y: character.below ? -4 : 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
+              transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.6 }}
+              role="status"
+            >
+              <div className="character-card-photo">
+                {character.image ? (
+                  <Image
+                    src={character.image}
+                    alt=""
+                    width={CHARACTER_CARD.width}
+                    height={CHARACTER_CARD.width * 1.5}
+                    unoptimized
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  character.name.slice(0, 1)
+                )}
+              </div>
+              <div className="character-card-name">{character.name}</div>
+              {character.main && <b className="main-role">{t.profile.mainCharacter}</b>}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </MotionConfig>
   );
