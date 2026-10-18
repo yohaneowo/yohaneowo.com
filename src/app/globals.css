@@ -128,3 +128,34 @@
     @apply font-sans;
   }
 }
+
+/* Circular-reveal theme switch (mode-toggle.tsx). The circle is a clip-path animated from the
+   script, so the default cross-fade is off; going back to light the old (dark) snapshot shrinks
+   into the button, so it sits above the new one. */
+html[data-theme-reveal]::view-transition-old(root),
+html[data-theme-reveal]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-theme-reveal="shrink"]::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* The incoming sun or moon turns into place with a small overshoot (0.6s, from #219). */
+html[data-theme-turn] .theme-toggle svg {
+  animation: theme-icon-turn 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes theme-icon-turn {
+  from {
+    transform: rotate(-90deg) scale(0.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme-turn] .theme-toggle svg {
+    animation: none;
+  }
+}

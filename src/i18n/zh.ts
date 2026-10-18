@@ -33,6 +33,7 @@ const zh = {
     // The switch shows the other language, in that language.
     switchLanguage: "English",
     switchLanguageLabel: "Switch to English",
+    toggleTheme: "切换深浅色模式",
   },
   login: {
     title: "登录",

@@ -35,6 +35,7 @@ const en: Dictionary = {
     authUnreachable: "Can't reach the sign-in service. Check your connection and try again.",
     switchLanguage: "中文",
     switchLanguageLabel: "切换到中文",
+    toggleTheme: "Toggle dark mode",
   },
   login: {
     title: "Sign in",
