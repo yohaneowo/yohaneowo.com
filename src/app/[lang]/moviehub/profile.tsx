@@ -1652,6 +1652,7 @@ export function MovieProfile({
               ) : radarMode === "genre" && sample.length > 0 ? (
                 <GenreSunburst
                   films={sample}
+                  media={media}
                   genreLabel={genreLabel}
                   otherLabel={t.profile.sunburst.other}
                   source={listSource}

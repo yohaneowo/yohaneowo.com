@@ -236,6 +236,8 @@ const en: Dictionary = {
       bands: { "9": "9+", "8": "8", "7": "7", "6": "6", low: "<6", unrated: "?" },
       bandsLong: { "9": "9 and up", "8": "8s", "7": "7s", "6": "6s", low: "Below 6", unrated: "Unrated" },
       tooltip: (count: number, percent: number) => `${count} titles · ${percent}%`,
+      tooltipWeighted: (weight: number, percent: number, count: number) =>
+        `weight ${weight} · ${percent}% · ${count} titles`,
       average: (value: string) => `avg ${value}`,
       count: (count: number) => `${count} titles`,
       more: (count: number) => `${count} more`,

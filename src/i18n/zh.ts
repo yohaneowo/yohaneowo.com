@@ -223,6 +223,8 @@ const zh = {
         unrated: "未评分",
       },
       tooltip: (count: number, percent: number) => `${count} 部 · ${percent}%`,
+      tooltipWeighted: (weight: number, percent: number, count: number) =>
+        `权重 ${weight} · ${percent}% · 含 ${count} 部`,
       average: (value: string) => `平均 ${value}`,
       count: (count: number) => `${count} 部`,
       more: (count: number) => `还有 ${count} 部`,

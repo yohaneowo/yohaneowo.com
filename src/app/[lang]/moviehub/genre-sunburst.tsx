@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EChart } from "@/components/charts/echart";
 import { useLocale } from "@/i18n/locale-provider";
 import type { ListSource } from "@/lib/movie-types";
-import { genreColor, genresOf, publicScore, type ScoredFilm } from "./stats";
+import { genreWeights, type GenreMedia } from "./genre-weights";
+import { genreColor, publicScore, type ScoredFilm } from "./stats";
 
 // Two independent rings over the same films (the Stratz 趋势 layout): one ring is each film's
 // main genre (its own hue), the other the viewer's rating bands (one neutral ramp, brighter = higher).
@@ -27,6 +28,7 @@ const BANDS: { key: BandKey; test: (r: number | null) => boolean; t: number }[] 
 type Slice = {
   name: string;
   long: string;
+  // Genre slices: the summed weight (films × their share of that genre); rating slices: films.
   value: number;
   films: ScoredFilm[];
   // Top genres first, 其他 last (the genre ring only).
@@ -104,6 +106,7 @@ function readPalette(el: HTMLElement, dark: boolean): Palette {
 
 export function GenreSunburst({
   films,
+  media,
   genreLabel,
   otherLabel,
   source,
@@ -111,6 +114,8 @@ export function GenreSunburst({
   muted = false,
 }: {
   films: ScoredFilm[];
+  // Which base rates to weight genres with.
+  media: GenreMedia;
   genreLabel: (genre: string) => string;
   otherLabel: string;
   source: ListSource;
@@ -145,20 +150,48 @@ export function GenreSunburst({
         c: { color, opacity: 0.6, fontSize: 10, lineHeight: 12, fontFamily: palette.display },
       },
     });
-    // A film with three genres sits in three slices; films with none go to 其他.
-    const byGenre = new Map<string | null, ScoredFilm[]>();
+    // Each film is split over its genres by information (genre-weights.ts); a slice's size is the
+    // summed weight, its films those carrying any of it, heaviest first. Slivers under 2% fold into
+    // 其他, as do films with no genre.
+    const weightByGenre = new Map<string | null, number>();
+    const filmsByGenre = new Map<string | null, [ScoredFilm, number][]>();
     for (const film of films) {
-      const keys = genresOf(film);
-      for (const key of keys.length ? keys : [null]) byGenre.set(key, [...(byGenre.get(key) ?? []), film]);
+      const weights = genreWeights(media, film);
+      if (weights.size === 0) weights.set("", 1);
+      for (const [genre, weight] of weights) {
+        const key = genre || null;
+        weightByGenre.set(key, (weightByGenre.get(key) ?? 0) + weight);
+        filmsByGenre.set(key, [...(filmsByGenre.get(key) ?? []), [film, weight]]);
+      }
     }
-    const genres: Slice[] = [...byGenre.entries()]
-      .map(([genre, items]) => {
+    const other: [ScoredFilm, number][] = [...(filmsByGenre.get(null) ?? [])];
+    let otherWeight = weightByGenre.get(null) ?? 0;
+    for (const [genre, weight] of [...weightByGenre.entries()]) {
+      if (genre !== null && weight < films.length * 0.02) {
+        otherWeight += weight;
+        other.push(...(filmsByGenre.get(genre) ?? []));
+        weightByGenre.delete(genre);
+      }
+    }
+    const rows: [string | null, number, [ScoredFilm, number][]][] = [...weightByGenre.entries()]
+      .filter(([genre]) => genre !== null)
+      .map(([genre, weight]) => [genre, weight, filmsByGenre.get(genre) ?? []]);
+    if (otherWeight > 0) rows.push([null, otherWeight, other]);
+    const genres: Slice[] = rows
+      .map(([genre, weight, pairs]) => {
         const name = genre ? genreLabel(genre) : otherLabel;
+        const items = [
+          ...new Map(
+            pairs
+              .sort((a, b) => b[1] - a[1])
+              .map(([film, w]) => [`${film.id}-${film.watchedAt}`, [film, w] as const]),
+          ).values(),
+        ];
         return {
           name,
           long: name,
-          value: items.length,
-          films: items,
+          value: Math.round(weight * 10) / 10,
+          films: items.map(([film]) => film),
           other: genre == null,
           // Dark theme: the hue over the panel at 0.78 keeps it vivid against the slate; light
           // theme: the hue is lightened and labelled in dark ink.
@@ -169,7 +202,7 @@ export function GenreSunburst({
               genre ? (palette.dark ? 0.78 : 0.7) : 0.4,
             ),
           },
-          label: label(name, items.length, palette.dark ? "#f6f1e6" : "#1f1a10", false),
+          label: label(name, Math.round(weight), palette.dark ? "#f6f1e6" : "#1f1a10", false),
         };
       })
       .sort((a, b) => Number(a.other) - Number(b.other) || b.value - a.value);
@@ -194,7 +227,7 @@ export function GenreSunburst({
       })
       .sort((a, b) => b.value - a.value);
     return { genres, bands };
-  }, [films, genreLabel, otherLabel, palette, s]);
+  }, [films, media, genreLabel, otherLabel, palette, s]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!palette) return {};
@@ -229,7 +262,8 @@ export function GenreSunburst({
           const avg = rated.length
             ? rated.reduce((sum, film) => sum + (film.myRating ?? 0), 0) / rated.length
             : null;
-          const head = `<div style="margin-bottom:4px"><b>${d.long}</b> <span style="${sub}">${s.tooltip(d.films.length, Math.round(p.percent))}${avg != null ? ` · ${s.average(avg.toFixed(1))}` : ""}</span></div>`;
+          const isGenre = d.other !== undefined;
+          const head = `<div style="margin-bottom:4px"><b>${d.long}</b> <span style="${sub}">${isGenre ? s.tooltipWeighted(d.value, Math.round(p.percent), d.films.length) : s.tooltip(d.films.length, Math.round(p.percent))}${avg != null ? ` · ${s.average(avg.toFixed(1))}` : ""}</span></div>`;
           const rows = d.films
             .slice(0, TOOLTIP_FILMS)
             .map(
@@ -251,7 +285,7 @@ export function GenreSunburst({
 
   const events = useMemo(
     () => ({
-      mouseover: (params: { data?: Slice }) => params.data && setCentre(params.data.films.length),
+      mouseover: (params: { data?: Slice }) => params.data && setCentre(Math.round(params.data.value)),
       mouseout: () => setCentre(null),
     }),
     [],
@@ -268,14 +302,14 @@ export function GenreSunburst({
       return score == null ? [] : [(film.myRating ?? 0) - score];
     });
     const diff = pairs.length ? pairs.reduce((sum, d) => sum + d, 0) / pairs.length : null;
-    const count = new Map<string, number>();
+    const weight = new Map<string, number>();
     for (const film of films)
-      for (const genre of genresOf(film)) count.set(genre, (count.get(genre) ?? 0) + 1);
-    const top = [...count.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+      for (const [genre, w] of genreWeights(media, film)) weight.set(genre, (weight.get(genre) ?? 0) + w);
+    const top = [...weight.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
     const nine = rated.filter((film) => (film.myRating ?? 0) >= 9).length;
     const best = [...rated].sort((a, b) => (b.myRating ?? 0) - (a.myRating ?? 0))[0] ?? null;
     return { avg, diff, top, nine, best };
-  }, [films, source]);
+  }, [films, source, media]);
 
   const bestTitle = strip.best
     ? lang === "en" && strip.best.titleEn
@@ -313,7 +347,7 @@ export function GenreSunburst({
           <div className="k">{s.statTopGenre}</div>
           <div className="v" style={{ color: strip.top ? genreColor(strip.top[0]) : undefined }}>
             {strip.top ? genreLabel(strip.top[0]) : "–"}
-            {strip.top && <small className="muted num">{s.count(strip.top[1])}</small>}
+            {strip.top && <small className="muted num">{s.count(Math.round(strip.top[1]))}</small>}
           </div>
         </div>
         <div className="stat">
