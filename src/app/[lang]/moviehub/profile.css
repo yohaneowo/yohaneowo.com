@@ -514,6 +514,11 @@
   height: 120px;
 }
 
+/* People on the credit card: a portrait photo. */
+.profile .studio-card .person-card-photo.portrait {
+  height: 160px;
+}
+
 .profile .studio-card p {
   max-height: 150px;
   white-space: pre-line;
@@ -615,6 +620,26 @@
   text-align: center;
 }
 
+/* Voice actors: the characters, in the free column right of the list block. */
+.profile .studio-year .characters {
+  min-width: 0;
+  padding-left: 8px;
+  overflow: hidden;
+  color: var(--fg-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile .studio-year .main-role {
+  margin-right: 5px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--gold);
+  color: var(--ink-on-gold);
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .profile .studio-pending {
   margin-top: 6px;
 }
@@ -627,6 +652,10 @@
   .profile .studio-card .person-card-photo {
     width: 84px;
     height: 84px;
+  }
+
+  .profile .studio-card .person-card-photo.portrait {
+    height: 112px;
   }
 }
 

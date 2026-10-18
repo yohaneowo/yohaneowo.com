@@ -1,6 +1,12 @@
 import { z } from "zod";
 import "server-only";
-import { movieResponseSchema, personCardSchema, studioInfoSchema, studioWorksSchema } from "./movie-types";
+import {
+  creditInfoSchema,
+  creditWorksSchema,
+  movieResponseSchema,
+  personCardSchema,
+  type CreditKind,
+} from "./movie-types";
 
 // code names the message in the dictionary (movies.errors).
 export type MoviesErrorCode =
@@ -130,19 +136,27 @@ export async function connectTrakt(
   return movieResponseSchema.parse(data).subscription;
 }
 
-// The studio card, by AniList studio ID and/or Bangumi company ID: its head, or its works as known
-// right now (admin never waits on its sources for these). Null when neither source knows it.
-export async function getStudioPart(
-  part: "info" | "works",
-  query: { anilistId: number | null; bangumiId: number | null },
-  lang: "zh" | "en",
-) {
-  const params = new URLSearchParams({ lang });
+// An anime credit card: a studio or staff member by AniList and/or Bangumi ID, a voice actor by
+// TMDB ID and name. Its head, or its works as known right now (admin never waits on its sources
+// for these). Null when nothing is known.
+export type CreditQuery = {
+  kind: CreditKind;
+  anilistId: number | null;
+  bangumiId: number | null;
+  tmdbId: number | null;
+  name: string | null;
+};
+
+export async function getCreditPart(part: "info" | "works", query: CreditQuery, lang: "zh" | "en") {
+  const params = new URLSearchParams({ kind: query.kind, lang });
   if (query.anilistId) params.set("anilistId", String(query.anilistId));
   if (query.bangumiId) params.set("bangumiId", String(query.bangumiId));
+  if (query.tmdbId) params.set("tmdbId", String(query.tmdbId));
+  if (query.name) params.set("name", query.name);
   try {
-    const data = await call(`/studios/${part}?${params}`, { timeout: 20000 });
-    return part === "info" ? studioInfoSchema.parse(data) : studioWorksSchema.parse(data);
+    // A voice actor's first look also finds them on AniList and Bangumi.
+    const data = await call(`/credits/${part}?${params}`, { timeout: 30000 });
+    return part === "info" ? creditInfoSchema.parse(data) : creditWorksSchema.parse(data);
   } catch (error) {
     if (error instanceof MoviesUnavailable && error.code === "noProfile") return null;
     throw error;

@@ -222,15 +222,26 @@ export const personCardSchema = z.object({
 });
 export type PersonCard = z.infer<typeof personCardSchema>;
 
-// The studio card (动画制作), in two parts from admin: the head (Bangumi's company entry) and the
-// works as known so far. `building` / `scoresPending` mean more is coming: the card polls again.
-export const studioInfoSchema = z.object({
+// The anime credit cards (动画制作, 监督, 原作, 音乐, 总作画监督, 声优), in two parts from admin:
+// the head and the works as known so far. `building` / `scoresPending` mean more is coming: the
+// card polls again. The description is Bangumi's BBCode or AniList's Markdown, as `format` says.
+export const CREDIT_KINDS = [
+  "studio",
+  "director",
+  "original",
+  "music",
+  "chiefAnimationDirector",
+  "cast",
+] as const;
+export type CreditKind = (typeof CREDIT_KINDS)[number];
+export const creditInfoSchema = z.object({
   name: z.string(),
-  logo: z.string().nullable(),
+  image: z.string().nullable(),
   description: z.string().nullable(),
+  format: z.enum(["bbcode", "markdown"]),
 });
-export type StudioInfo = z.infer<typeof studioInfoSchema>;
-export const studioWorksSchema = z.object({
+export type CreditInfo = z.infer<typeof creditInfoSchema>;
+export const creditWorksSchema = z.object({
   works: z.array(
     z.object({
       anilistId: z.number().nullable(),
@@ -239,12 +250,15 @@ export const studioWorksSchema = z.object({
       year: z.number().nullable(),
       bangumiScore: z.number().nullable(),
       malScore: z.number().nullable(),
+      // Voice actors: the characters played in that anime, and whether one is a lead.
+      characters: z.array(z.string()).optional().default([]),
+      main: z.boolean().optional().default(false),
     }),
   ),
   building: z.boolean(),
   scoresPending: z.boolean(),
 });
-export type StudioWorks = z.infer<typeof studioWorksSchema>;
+export type CreditWorks = z.infer<typeof creditWorksSchema>;
 export type MovieSnapshot = NonNullable<MovieResponse["snapshot"]>;
 export type ProfileFilm = MovieSnapshot["films"][number];
 export type ShowSection = NonNullable<MovieSnapshot["shows"]>;

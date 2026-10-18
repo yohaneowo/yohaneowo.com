@@ -104,3 +104,50 @@ function render(node: Node | string, key: number, inLink = false): ReactNode {
 export function BangumiText({ text }: { text: string }) {
   return <>{render(parse(text), 0)}</>;
 }
+
+// AniList writes descriptions in its own Markdown: [text](url), __bold__ / **bold**, _italic_ /
+// *italic*, ~!spoiler!~, ~~~centred~~~, <br> and stray HTML. Turned into React nodes the same way:
+// links only for http(s), HTML tags dropped, unknown syntax left as text.
+const ANILIST_TOKEN =
+  /\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)|__([^_\n][\s\S]*?)__|\*\*([^*\n][\s\S]*?)\*\*|~!([\s\S]+?)!~|(?<![\w*])\*([^*\n]+)\*(?![\w*])|(?<![\w_])_([^_\n]+)_(?![\w_])/g;
+
+function anilistNodes(text: string, keyBase: number, inLink = false): ReactNode[] {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(ANILIST_TOKEN)) {
+    const start = match.index ?? 0;
+    if (start > last) {
+      const plainText = text.slice(last, start);
+      out.push(...(inLink ? [plainText] : autolink(plainText, keyBase + out.length * 100)));
+    }
+    last = start + match[0].length;
+    const key = keyBase + out.length;
+    const [, label, href, bold1, bold2, spoiler, italic1, italic2] = match;
+    if (label && href) out.push(inLink ? label : link(href, anilistNodes(label, key * 10, true), key));
+    else if (bold1 || bold2)
+      out.push(<strong key={key}>{anilistNodes(bold1 ?? bold2, key * 10, inLink)}</strong>);
+    else if (spoiler)
+      out.push(
+        <span key={key} className="bbcode-mask">
+          {anilistNodes(spoiler, key * 10, inLink)}
+        </span>,
+      );
+    else out.push(<em key={key}>{anilistNodes(italic1 ?? italic2, key * 10, inLink)}</em>);
+  }
+  if (last < text.length) {
+    const rest = text.slice(last);
+    out.push(...(inLink ? [rest] : autolink(rest, keyBase + out.length * 100)));
+  }
+  return out;
+}
+
+export function AniListText({ text }: { text: string }) {
+  const cleaned = text
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/~~~/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'");
+  return <>{anilistNodes(cleaned, 1)}</>;
+}
