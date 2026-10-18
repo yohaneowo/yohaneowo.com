@@ -280,6 +280,9 @@ const zh = {
       viewingHint: (name: string) =>
         `这是 ${name} 的羁绊：数字是对方和 ${name} 都看过的部数（动漫按季算），百分比是占 ${name} 看过的比例。`,
       you: "你",
+      taste: (percent: number) => `口味相似 ${percent}%`,
+      tasteHint: (pairs: number) =>
+        `按 ${pairs} 部两人都评过分的作品：平均分差 0 分为 100%，差 4 分以上为 0%。`,
     },
     og: {
       description: (name: string) => `${name} 的观影统计：风格雷达、评分与类型。`,

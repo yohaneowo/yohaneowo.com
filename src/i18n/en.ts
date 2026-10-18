@@ -295,6 +295,9 @@ const en: Dictionary = {
       viewingHint: (name) =>
         `These are ${name}'s bonds: counts are what both they and ${name} have watched (anime by season); the percentage is of what ${name} has watched.`,
       you: "you",
+      taste: (percent) => `${percent}% taste match`,
+      tasteHint: (pairs) =>
+        `From ${pairs} titles both rated: an average gap of 0 points is 100%, 4 points or more is 0%.`,
     },
     og: {
       description: (name) => `${name}'s movie statistics: style radar, ratings and genres.`,
