@@ -20,10 +20,12 @@ const BACKGROUND = { light: "oklch(1 0 0)", dark: "oklch(0.145 0 0)" };
 // d: no view transition: a circle of the new background grows over the page, then the theme flips
 // e: view transition with the browser's default cross-fade (no circle)
 // f: like a, with the header's and sub-navigation's backdrop blur turned off during the switch
-type Variant = "a" | "b" | "c" | "d" | "e" | "f";
+// g: like a, without the old theme's color under the snapshots
+type Variant = "a" | "b" | "c" | "d" | "e" | "f" | "g";
+const VARIANTS: Variant[] = ["a", "b", "c", "d", "e", "f", "g"];
 function variant(): Variant {
   const value = new URLSearchParams(window.location.search).get("reveal");
-  return value === "b" || value === "c" || value === "d" || value === "e" || value === "f" ? value : "a";
+  return VARIANTS.find((v) => v === value) ?? "a";
 }
 
 function applyClass(theme: "light" | "dark") {
@@ -90,6 +92,7 @@ export function ModeToggle() {
       return;
     }
     if (mode === "f") root.dataset.themeNoBlur = "";
+    if (mode === "g") root.dataset.themeNoBackdrop = "";
 
     const expand = next === "dark";
     root.dataset.themeReveal = expand ? "expand" : "shrink";
@@ -122,6 +125,7 @@ export function ModeToggle() {
       delete root.dataset.themeReveal;
       delete root.dataset.themeTurn;
       delete root.dataset.themeNoBlur;
+      delete root.dataset.themeNoBackdrop;
       root.style.removeProperty("--theme-reveal-at");
     });
   }

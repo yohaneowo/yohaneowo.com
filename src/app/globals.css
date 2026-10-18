@@ -182,3 +182,8 @@ html[data-theme-no-blur] .backdrop-blur {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* TEMPORARY (?reveal=g in mode-toggle.tsx): nothing under the snapshots. */
+html[data-theme-reveal][data-theme-no-backdrop]::view-transition {
+  background: none;
+}
