@@ -418,9 +418,16 @@ function clearImageUrl(image: string) {
 }
 
 // A poster or a person's photo, opened large over the page (falls back to the small file).
-type Lightbox = { key: string; image: string; alt: string; label: string };
+// logo: a studio's logo, shown whole on a white card instead of as a photo.
+type Lightbox = { key: string; image: string; alt: string; label: string; logo?: boolean };
 
-function ImageOverlay({ image, alt, label, onClose }: Omit<Lightbox, "key"> & { onClose: () => void }) {
+function ImageOverlay({
+  image,
+  alt,
+  label,
+  logo = false,
+  onClose,
+}: Omit<Lightbox, "key"> & { onClose: () => void }) {
   const { t } = useLocale();
   const closeRef = useRef<HTMLButtonElement>(null);
   const [src, setSrc] = useState(() => clearImageUrl(image));
@@ -452,7 +459,9 @@ function ImageOverlay({ image, alt, label, onClose }: Omit<Lightbox, "key"> & { 
           width={780}
           height={1170}
           unoptimized
-          className="lightbox-poster"
+          // Bangumi's image host may turn away other sites' referers.
+          referrerPolicy="no-referrer"
+          className={logo ? "lightbox-poster logo" : "lightbox-poster"}
           onError={() => setSrc(image)}
         />
         <button
@@ -1706,7 +1715,7 @@ function ProfileView({
                       {person.photo ? (
                         <button
                           type="button"
-                          className="poster"
+                          className={person.role === "studio" ? "poster logo" : "poster"}
                           aria-label={t.profile.photo(personName(person, lang))}
                           onClick={() =>
                             setLightbox({
@@ -1714,10 +1723,18 @@ function ProfileView({
                               image: person.photo!,
                               alt: personName(person, lang),
                               label: t.profile.photoOf(personName(person, lang)),
+                              logo: person.role === "studio",
                             })
                           }
                         >
-                          <Image src={person.photo} alt="" width={34} height={48} unoptimized />
+                          <Image
+                            src={person.photo}
+                            alt=""
+                            width={34}
+                            height={48}
+                            unoptimized
+                            referrerPolicy="no-referrer"
+                          />
                         </button>
                       ) : (
                         <div className="poster" aria-hidden="true">
@@ -1932,6 +1949,7 @@ function ProfileView({
           image={lightbox.image}
           alt={lightbox.alt}
           label={lightbox.label}
+          logo={lightbox.logo}
           onClose={closeLightbox}
         />
       )}

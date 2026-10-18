@@ -779,6 +779,12 @@
   box-shadow: 0 24px 80px var(--shadow-strong);
 }
 
+.profile .lightbox-poster.logo {
+  min-width: min(80vw, 360px);
+  padding: 28px;
+  background: #ffffff;
+}
+
 .profile .lightbox-close {
   position: absolute;
   top: -6px;
@@ -798,6 +804,17 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Studio logos are wide marks on white: shown whole, not cropped like a photo. */
+.profile .poster.logo,
+.profile .poster.logo img {
+  background: #ffffff;
+}
+
+.profile .poster.logo img {
+  padding: 2px;
+  object-fit: contain;
 }
 
 @media (hover: hover) and (pointer: fine) {
