@@ -18,10 +18,12 @@ const BACKGROUND = { light: "oklch(1 0 0)", dark: "oklch(0.145 0 0)" };
 // b: view transition, the callback only flips the <html> class; React catches up afterwards
 // c: view transition, the callback waits 50ms before applying the theme
 // d: no view transition: a circle of the new background grows over the page, then the theme flips
-type Variant = "a" | "b" | "c" | "d";
+// e: view transition with the browser's default cross-fade (no circle)
+// f: like a, with the header's and sub-navigation's backdrop blur turned off during the switch
+type Variant = "a" | "b" | "c" | "d" | "e" | "f";
 function variant(): Variant {
   const value = new URLSearchParams(window.location.search).get("reveal");
-  return value === "b" || value === "c" || value === "d" ? value : "a";
+  return value === "b" || value === "c" || value === "d" || value === "e" || value === "f" ? value : "a";
 }
 
 function applyClass(theme: "light" | "dark") {
@@ -83,6 +85,12 @@ export function ModeToggle() {
       return;
     }
 
+    if (mode === "e") {
+      document.startViewTransition(() => flushSync(() => setTheme(next)));
+      return;
+    }
+    if (mode === "f") root.dataset.themeNoBlur = "";
+
     const expand = next === "dark";
     root.dataset.themeReveal = expand ? "expand" : "shrink";
     // Where the circle starts; globals.css clips the new snapshot to it from its very first frame,
@@ -113,6 +121,7 @@ export function ModeToggle() {
     transition.finished.finally(() => {
       delete root.dataset.themeReveal;
       delete root.dataset.themeTurn;
+      delete root.dataset.themeNoBlur;
       root.style.removeProperty("--theme-reveal-at");
     });
   }

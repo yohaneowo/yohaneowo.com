@@ -176,3 +176,9 @@ html[data-theme-turn] .theme-toggle svg {
     animation: none;
   }
 }
+
+/* TEMPORARY (?reveal=f in mode-toggle.tsx): no backdrop blur while the theme switches. */
+html[data-theme-no-blur] .backdrop-blur {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
