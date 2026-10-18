@@ -35,6 +35,9 @@ export function ModeToggle() {
     const root = document.documentElement;
     const expand = next === "dark";
     root.dataset.themeReveal = expand ? "expand" : "shrink";
+    // Where the circle starts; globals.css clips the new snapshot to it from its very first frame,
+    // since the script's animation only starts a frame later (after `ready`).
+    root.style.setProperty("--theme-reveal-at", `${x}px ${y}px`);
     const transition = document.startViewTransition(() => {
       // next-themes applies the class in an effect; flushSync runs it before the new snapshot.
       flushSync(() => setTheme(next));
@@ -58,6 +61,7 @@ export function ModeToggle() {
     transition.finished.finally(() => {
       delete root.dataset.themeReveal;
       delete root.dataset.themeTurn;
+      root.style.removeProperty("--theme-reveal-at");
     });
   }
 

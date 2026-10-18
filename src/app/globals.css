@@ -142,6 +142,12 @@ html[data-theme-reveal="shrink"]::view-transition-old(root) {
   z-index: 1;
 }
 
+/* To dark: the new snapshot starts as a zero circle at the button. Without this it shows in full
+   for the frame before the script's animation starts (a flash of the whole dark page). */
+html[data-theme-reveal="expand"]::view-transition-new(root) {
+  clip-path: circle(0px at var(--theme-reveal-at));
+}
+
 /* The incoming sun or moon turns into place with a small overshoot (0.6s, from #219). */
 html[data-theme-turn] .theme-toggle svg {
   animation: theme-icon-turn 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
