@@ -27,3 +27,21 @@ export function clock(seconds: number) {
   const s = Math.abs(seconds);
   return `${sign}${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
+
+// Rough map areas in absolute terms (Radiant bottom-left, Dire top-right): the bases in the
+// corners, the side lanes along the edges, mid lane on one diagonal and the river on the other,
+// the jungle in between. Good enough to say where deaths cluster, not exact borders.
+export type MapZone =
+  "radiantBase" | "direBase" | "top" | "bot" | "mid" | "river" | "radiantJungle" | "direJungle";
+
+export function mapZone(x: number, y: number): MapZone {
+  const u = (x - CELL_MIN) / CELL_SPAN;
+  const v = (y - CELL_MIN) / CELL_SPAN;
+  if (u < 0.2 && v < 0.2) return "radiantBase";
+  if (u > 0.8 && v > 0.8) return "direBase";
+  if (u < 0.13 || v > 0.87) return "top";
+  if (v < 0.13 || u > 0.87) return "bot";
+  if (Math.abs(u - v) < 0.06) return "mid";
+  if (Math.abs(u + v - 1) < 0.07) return "river";
+  return u + v < 1 ? "radiantJungle" : "direJungle";
+}

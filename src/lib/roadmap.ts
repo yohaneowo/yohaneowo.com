@@ -233,8 +233,8 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
-        "死亡热力图：最近 20 / 50 / 100 / 全部天梯，按英雄、阶段、胜负筛选",
-        "Death heat map over the last 20 / 50 / 100 / all ranked matches, by hero, phase and result",
+        "死亡热力图：最近 20 / 50 / 100 / 全部天梯，按英雄、阶段、胜负筛选，附死在哪一区与重点卡片",
+        "Death heat map over the last 20 / 50 / 100 / all ranked matches, by hero, phase and result, with map areas and highlights",
         true,
       ),
       step(

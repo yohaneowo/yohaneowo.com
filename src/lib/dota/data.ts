@@ -152,6 +152,16 @@ export async function getPlayerMatches(accountId: number, page: number) {
   );
 }
 
+// Which side the player was on in each ranked match (true is Radiant), all of them in one call.
+export async function getRankedSides(accountId: number): Promise<Record<number, boolean>> {
+  "use cache";
+  cacheLife("hours");
+  const rows = await getJson<{ match_id: number; player_slot: number }[]>(
+    `${OPENDOTA}/players/${accountId}/matches?lobby_type=7&project=player_slot`,
+  );
+  return Object.fromEntries(rows.map((row) => [row.match_id, isRadiant(row.player_slot)]));
+}
+
 export async function getPlayerHeroes(accountId: number) {
   "use cache";
   cacheLife("hours");

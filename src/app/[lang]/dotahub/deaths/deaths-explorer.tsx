@@ -1,12 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
+import type { Locale } from "@/i18n/config";
 import { useLocale } from "@/i18n/locale-provider";
-import type { StoredMatch } from "@/lib/dota/admin";
+import type { DeathEvent, StoredMatch } from "@/lib/dota/admin";
 import type { HeroInfo } from "@/lib/dota/data";
+import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { HeatMap } from "../death-map";
 import { HeroPicker } from "./hero-picker";
+import { insights, zoneShares } from "./insights";
 
 type Phase = "all" | "laning" | "mid" | "late";
 type Result = "all" | "win" | "loss";
@@ -51,17 +55,56 @@ function Chips<V extends string>({
   );
 }
 
-// The heat map of the stored ranked matches, filtered by hero, phase and result, with a few
-// highlights below.
+function Card({ title, value, hint }: { title: string; value: React.ReactNode; hint?: string }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-xl border p-3">
+      <span className="text-xs text-muted-foreground">{title}</span>
+      <div className="text-lg font-semibold tabular-nums">{value}</div>
+      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+    </div>
+  );
+}
+
+// A few heroes as icon, name and a number, for the killer and own-hero cards.
+function Heroes({
+  list,
+  heroes,
+  lang,
+}: {
+  list: { id: number; text: string }[];
+  heroes: Record<number, HeroInfo>;
+  lang: Locale;
+}) {
+  return (
+    <div className="flex flex-col gap-1 text-sm font-normal">
+      {list.map(({ id, text }) => (
+        <span key={id} className="flex items-center gap-1.5">
+          {heroes[id] && (
+            <Image src={heroes[id].icon} alt="" width={20} height={20} unoptimized className="size-5" />
+          )}
+          <span className="truncate">{heroes[id]?.[lang]}</span>
+          <span className="ml-auto shrink-0 text-muted-foreground tabular-nums">{text}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// The heat map of the stored ranked matches, filtered by hero, phase and result, with where on
+// the map the deaths fall beside it and highlight cards below.
 export function DeathsExplorer({
   matches,
   heroes,
+  sides,
 }: {
   matches: StoredMatch[];
   heroes: Record<number, HeroInfo>;
+  // Radiant (true) or Dire per match id, from OpenDota; missing ones show absolute map areas.
+  sides: Record<number, boolean>;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.deaths;
+  const c = t.cards;
   const [hero, setHero] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>("all");
   const [result, setResult] = useState<Result>("loss");
@@ -81,37 +124,16 @@ export function DeathsExplorer({
     return counts;
   }, [usable, result]);
 
-  const parsed = usable.filter(
-    (m) => (hero === 0 || m.heroId === hero) && (result === "all" || (result === "win") === m.won),
-  );
+  const byHero = usable.filter((m) => hero === 0 || m.heroId === hero);
+  const parsed = byHero.filter((m) => result === "all" || (result === "win") === m.won);
   const unusable = matches.filter((m) => m.parsed && m.deaths && !m.deathEvents.length).length;
-  const events = parsed.flatMap((m) =>
-    m.deathEvents.filter(
-      (e) => phase === "all" || (e.t >= PHASE_RANGE[phase][0] && e.t < PHASE_RANGE[phase][1]),
-    ),
-  );
-
-  // Highlights over the shown matches (all phases, so the shares mean something).
-  const all = parsed.flatMap((m) => m.deathEvents);
-  const highlights: string[] = [];
-  if (parsed.length) {
-    highlights.push(t.perMatch((all.length / parsed.length).toFixed(1)));
-    const byPhase = (Object.keys(PHASE_RANGE) as Exclude<Phase, "all">[]).map(
-      (p) => [p, all.filter((e) => e.t >= PHASE_RANGE[p][0] && e.t < PHASE_RANGE[p][1]).length] as const,
-    );
-    const top = [...byPhase].sort((a, b) => b[1] - a[1])[0];
-    if (top && all.length)
-      highlights.push(t.phaseShare(t.phases[top[0]], Math.round((top[1] / all.length) * 100)));
-    const killers = new Map<number, number>();
-    for (const e of all) if (e.by) killers.set(e.by, (killers.get(e.by) ?? 0) + 1);
-    const killer = [...killers.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (killer && heroes[killer[0]]) highlights.push(t.topKiller(heroes[killer[0]][lang], killer[1]));
-    const buckets = new Map<number, number>();
-    for (const e of all)
-      if (e.t >= 0) buckets.set(Math.floor(e.t / 300) * 5, (buckets.get(Math.floor(e.t / 300) * 5) ?? 0) + 1);
-    const bucket = [...buckets.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (bucket) highlights.push(t.deadliest(bucket[0]));
-  }
+  const inPhase = (e: DeathEvent) =>
+    phase === "all" || (e.t >= PHASE_RANGE[phase][0] && e.t < PHASE_RANGE[phase][1]);
+  const events = parsed.flatMap((m) => m.deathEvents.filter(inPhase));
+  const zones = zoneShares(parsed, sides, inPhase);
+  // The cards cover whole matches (all phases), so their shares mean something.
+  const facts = parsed.length ? insights(parsed, byHero, heroes) : null;
+  const one = (n: number) => n.toFixed(1);
 
   return (
     <div className="flex flex-col gap-4">
@@ -142,18 +164,119 @@ export function DeathsExplorer({
           {unusable > 0 && <p className="text-xs text-muted-foreground">{t.noPositions(unusable)}</p>}
         </div>
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">{t.insights}</h2>
-          {highlights.length ? (
-            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
-              {highlights.map((h) => (
-                <li key={h}>{h}</li>
+          <h2 className="font-medium">{t.where}</h2>
+          {zones.length ? (
+            <ul className="flex flex-col gap-2 text-sm">
+              {zones.map(({ zone, n, share }) => (
+                <li key={zone} className="flex flex-col gap-1">
+                  <span className="flex justify-between gap-2">
+                    {t.zones[zone]}
+                    <span className="text-muted-foreground tabular-nums">
+                      {Math.round(share * 100)}% · {n}
+                    </span>
+                  </span>
+                  <span className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className="block h-full rounded-full bg-red-500/80"
+                      style={{ width: `${share * 100}%` }}
+                    />
+                  </span>
+                </li>
               ))}
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground">{t.empty}</p>
           )}
+          <p className="text-xs text-muted-foreground">{t.whereHint}</p>
         </section>
       </div>
+      <section className="flex flex-col gap-2">
+        <h2 className="font-medium">{t.insights}</h2>
+        {facts ? (
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+            {facts.perMatch != null && (
+              <Card title={c.perMatch} value={c.times(one(facts.perMatch))} hint={c.zero(facts.zero)} />
+            )}
+            {facts.firstDeath != null && (
+              <Card
+                title={c.firstDeath}
+                value={clock(Math.round(facts.firstDeath))}
+                hint={c.firstDeathHint}
+              />
+            )}
+            <Card title={c.chains} value={c.times(String(facts.chains))} hint={c.chainsHint} />
+            {facts.deadliest != null && (
+              <Card
+                title={c.deadliest}
+                value={c.minutes(facts.deadliest)}
+                hint={
+                  facts.phase
+                    ? c.phaseShare(t.phases[facts.phase.phase], Math.round(facts.phase.share * 100))
+                    : undefined
+                }
+              />
+            )}
+            {facts.killers.length > 0 && (
+              <Card
+                title={c.killers}
+                value={
+                  <Heroes
+                    heroes={heroes}
+                    lang={lang}
+                    list={facts.killers.map((k) => ({ id: k.id, text: String(k.n) }))}
+                  />
+                }
+                hint={c.structures(facts.structures)}
+              />
+            )}
+            {hero === 0 && facts.yourHeroes.length > 0 && (
+              <Card
+                title={c.yourHeroes}
+                value={
+                  <Heroes
+                    heroes={heroes}
+                    lang={lang}
+                    list={facts.yourHeroes.map((h) => ({ id: h.id, text: c.perMatchShort(one(h.avg)) }))}
+                  />
+                }
+              />
+            )}
+            {facts.winLoss && (
+              <Card
+                title={c.winLoss}
+                value={c.winLossValue(one(facts.winLoss.win), one(facts.winLoss.loss))}
+                hint={c.ignoresResult}
+              />
+            )}
+            {facts.many && (
+              <Card
+                title={c.many}
+                value={c.manyValue(Math.round(facts.many.winRate * 100))}
+                hint={c.manyHint(facts.many.n)}
+              />
+            )}
+            {facts.trend && (
+              <Card
+                title={c.trend}
+                value={
+                  <span
+                    className={
+                      facts.trend.recent <= facts.trend.before
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400"
+                    }
+                  >
+                    {c.trendValue(one(facts.trend.recent), one(facts.trend.before))}
+                  </span>
+                }
+                hint={c.trendHint}
+              />
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t.empty}</p>
+        )}
+      </section>
     </div>
   );
 }

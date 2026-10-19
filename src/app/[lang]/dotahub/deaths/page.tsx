@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getStoredDeaths } from "@/lib/dota/admin";
-import { DotaUnavailable, getHeroes } from "@/lib/dota/data";
+import { DotaUnavailable, getHeroes, getRankedSides } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
 import { dotaViewer, syncDotaLink } from "../account";
 import { Notice } from "../parts";
@@ -34,9 +34,14 @@ async function Deaths({ searchParams }: { searchParams: SearchParams }) {
   const value = Array.isArray(raw) ? raw[0] : raw;
   const n = value === "all" ? 0 : RANGES.includes(Number(value)) ? Number(value) : 50;
   const status = await syncDotaLink(viewer);
-  let data, heroes;
+  let data, heroes, sides: Record<number, boolean>;
   try {
-    [data, heroes] = await Promise.all([getStoredDeaths(viewer.userId, n), getHeroes()]);
+    [data, heroes, sides] = await Promise.all([
+      getStoredDeaths(viewer.userId, n),
+      getHeroes(),
+      // Without OpenDota the map areas are named absolutely (Radiant / Dire) instead.
+      getRankedSides(viewer.accountId).catch(() => ({})),
+    ]);
   } catch (error) {
     if (error instanceof DotaUnavailable) return <Notice>{t.unavailable}</Notice>;
     return <Notice>{t.deaths.unavailable}</Notice>;
@@ -62,7 +67,14 @@ async function Deaths({ searchParams }: { searchParams: SearchParams }) {
       {status?.linked && !status.historyDone && (
         <p className="text-xs text-muted-foreground">{t.deaths.history(status.historyRead)}</p>
       )}
-      <DeathsExplorer matches={data.matches} heroes={heroes} />
+      <DeathsExplorer
+        matches={data.matches}
+        heroes={heroes}
+        // Only the shown matches' sides go to the client.
+        sides={Object.fromEntries(
+          data.matches.filter((m) => m.matchId in sides).map((m) => [m.matchId, sides[m.matchId]]),
+        )}
+      />
     </div>
   );
 }
