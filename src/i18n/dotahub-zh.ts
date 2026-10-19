@@ -42,6 +42,9 @@ const dotahubZh = {
     openDota: "OpenDota",
   },
   match: {
+    stratzParse: "请 STRATZ 重新解析",
+    stratzParseRequested: "已经请 STRATZ 重新解析，通常几分钟到半小时，之后重新整理这页。",
+    stratzParseThrottled: "这场 10 分钟内已经请 STRATZ 解析过了，稍后再看。",
     title: (id: number) => `比赛 ${id}`,
     win: "胜",
     lose: "负",

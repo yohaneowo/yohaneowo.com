@@ -18,7 +18,7 @@ import {
 import { getStratzMatch } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { dotaViewer } from "../../account";
-import { RequestParse } from "../../buttons";
+import { RequestParse, RequestStratzParse } from "../../buttons";
 import { duration, HeroImage, ItemImage, modeName, Notice } from "../../parts";
 import { AdvantageChart } from "./advantage-chart";
 import { type DeathsOf, MatchDeaths } from "./match-deaths";
@@ -299,7 +299,10 @@ async function Detail({ params }: { params: Params }) {
         {deaths.length ? (
           <MatchDeaths players={deaths} heroes={heroes} initial={String(Math.max(0, mine))} />
         ) : (
-          <p className="text-sm text-muted-foreground">{t.deaths.noStratz}</p>
+          <div className="flex flex-col gap-3 rounded-lg border px-4 py-4">
+            <p className="text-sm text-muted-foreground">{t.deaths.noStratz}</p>
+            <RequestStratzParse matchId={id} />
+          </div>
         )}
       </section>
 

@@ -51,6 +51,10 @@ const dotahubEn: typeof dotahubZh = {
     openDota: "OpenDota",
   },
   match: {
+    stratzParse: "Ask STRATZ to parse it again",
+    stratzParseRequested:
+      "STRATZ will parse it again, usually within minutes to half an hour; reload this page then.",
+    stratzParseThrottled: "STRATZ was asked to parse this match in the last 10 minutes; check back later.",
     title: (id: number) => `Match ${id}`,
     win: "W",
     lose: "L",

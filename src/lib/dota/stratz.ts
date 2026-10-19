@@ -206,3 +206,43 @@ export async function getStratzRankedDeaths(accountId: number): Promise<StoredMa
   }
   return matches.sort((a, b) => b.startTime - a.startTime);
 }
+
+// Asks STRATZ to fetch and parse a match again (the 重新提交解析 button on its site). Anyone can press
+// it on a public page, so each match is sent at most once every REPARSE_EVERY_MS from this server.
+const REPARSE_EVERY_MS = 10 * 60 * 1000;
+const reparsed = ((globalThis as { __stratzReparsed?: Map<number, number> }).__stratzReparsed ??= new Map());
+
+export async function requestStratzParse(matchId: number): Promise<"sent" | "throttled" | "failed"> {
+  const token = process.env.STRATZ_API_TOKEN;
+  if (!token) return "failed";
+  const id = Math.trunc(matchId);
+  const last = reparsed.get(id);
+  if (last && Date.now() - last < REPARSE_EVERY_MS) return "throttled";
+  reparsed.set(id, Date.now());
+  const started = Date.now();
+  try {
+    const response = await fetch("https://api.stratz.com/graphql", {
+      method: "POST",
+      // STRATZ asks API clients to send this exact user agent.
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "STRATZ_API",
+      },
+      body: JSON.stringify({ query: `mutation { retryMatchDownload(matchId: ${id}) }` }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    recordCall("stratz", started, {
+      ok: response.ok,
+      error: response.ok ? null : `HTTP ${response.status}`,
+      headers: response.headers,
+    });
+    const body = (await response.json()) as { data?: { retryMatchDownload?: boolean } };
+    if (body.data?.retryMatchDownload) return "sent";
+  } catch (error) {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+  }
+  // Let it be tried again right away when the request itself failed.
+  reparsed.delete(id);
+  return "failed";
+}

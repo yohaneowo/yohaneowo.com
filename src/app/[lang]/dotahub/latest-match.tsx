@@ -5,6 +5,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { getItems, getMatch, type HeroInfo, type PlayerMatch, won } from "@/lib/dota/data";
 import { getStratzMatch } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
+import { RequestStratzParse } from "./buttons";
 import { DeathMap } from "./death-map";
 import { duration, HeroImage, ItemImage, modeName, ResultBadge } from "./parts";
 
@@ -91,7 +92,10 @@ export async function LatestMatch({
         {stratz?.parsed && me ? (
           <DeathMap events={me.deathEvents} heroes={heroes} />
         ) : (
-          <p className="text-sm text-muted-foreground">{t.latest.parsing}</p>
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">{t.latest.parsing}</p>
+            <RequestStratzParse matchId={match.match_id} />
+          </div>
         )}
       </CardContent>
     </Card>
