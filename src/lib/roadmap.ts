@@ -194,7 +194,7 @@ export const ROADMAP: RoadmapItem[] = [
   // ── 开发中 / 测试中 ──────────────────────────────────────────────────────────────────────────
   {
     id: "roadmap",
-    status: "testing",
+    status: "shipped",
     area: "site",
     title: { zh: "开发计划与投票", en: "Roadmap and voting" },
     summary: {
@@ -215,12 +215,23 @@ export const ROADMAP: RoadmapItem[] = [
       step("路线图改成功能区仪表板", "The roadmap as one card per area", true),
     ],
     links: [{ label: { zh: "建议箱", en: "Idea box" }, href: "/roadmap/ideas" }],
+    notes: [
+      {
+        zh: "路线图：每个功能区一张卡，完成度、现在、接下来、已上线",
+        en: "Roadmap: one card per area with progress, now, next and shipped",
+      },
+      {
+        zh: "更新纪录从 bot 第一天开始，公开的建议箱可以按赞",
+        en: "A changelog from the bot's first day, and a public idea box with likes",
+      },
+    ],
     added: "2026-10-19",
     started: "2026-10-19",
+    shipped: "2026-10-19",
   },
   {
     id: "home",
-    status: "testing",
+    status: "shipped",
     area: "site",
     title: { zh: "新首页", en: "A new home page" },
     summary: {
@@ -244,15 +255,25 @@ export const ROADMAP: RoadmapItem[] = [
         "The dashboard: statistics, today's picks, the roadmap",
         true,
       ),
-      step("头像与自我介绍", "A photo and an introduction"),
     ],
     links: [{ label: { zh: "首页", en: "Home" }, href: "/" }],
+    notes: [
+      {
+        zh: "登录前：功能卡片附即时行情、最近更新、Discord bot 邀请连结",
+        en: "Signed out: feature cards with live market data, the latest updates, the bot invite",
+      },
+      {
+        zh: "登录后：观影数字、今天的推荐、行情、开发计划",
+        en: "Signed in: your statistics, today's picks, the market and the roadmap",
+      },
+    ],
     added: "2026-10-19",
     started: "2026-10-19",
+    shipped: "2026-10-19",
   },
   {
     id: "rename-hubs",
-    status: "testing",
+    status: "shipped",
     area: "site",
     title: {
       zh: "CoinHub 改名 TradeHub、UIDHub 改名 UidHub",
@@ -264,10 +285,11 @@ export const ROADMAP: RoadmapItem[] = [
     },
     added: "2026-10-19",
     started: "2026-10-19",
+    shipped: "2026-10-19",
   },
   {
     id: "picks-page",
-    status: "testing",
+    status: "shipped",
     area: "moviehub",
     title: { zh: "网站上的推荐纪录", en: "Picks on the website" },
     summary: {
@@ -285,12 +307,19 @@ export const ROADMAP: RoadmapItem[] = [
       step("还没做的页面标「规划中」", "Pages not built yet tagged Planned", true),
     ],
     links: [{ label: { zh: "推荐页", en: "Picks page" }, href: "/moviehub/picks" }],
+    notes: [
+      {
+        zh: "观影统计有了自己的导航，还没做的页面标「规划中」",
+        en: "Movie statistics gets its own navigation; pages not built yet are tagged Planned",
+      },
+    ],
     added: "2026-10-19",
     started: "2026-10-19",
+    shipped: "2026-10-19",
   },
   {
     id: "share-stats",
-    status: "testing",
+    status: "shipped",
     area: "moviehub",
     title: { zh: "分享自己的观影统计", en: "Share your statistics" },
     summary: {
@@ -304,10 +333,11 @@ export const ROADMAP: RoadmapItem[] = [
     links: [{ label: { zh: "我的统计", en: "My stats" }, href: "/moviehub" }],
     added: "2026-10-19",
     started: "2026-10-19",
+    shipped: "2026-10-19",
   },
   {
     id: "theme-reveal",
-    status: "testing",
+    status: "shipped",
     area: "site",
     title: { zh: "深浅色切换动画", en: "Theme switch animation" },
     summary: {
@@ -320,6 +350,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
     added: "2026-10-19",
     started: "2026-10-19",
+    shipped: "2026-10-19",
   },
 
   // ── 暂缓 / 不做 ──────────────────────────────────────────────────────────────────────────────
