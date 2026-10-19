@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { HeaderShell } from "@/components/header-shell";
 import { LanguageSwitch } from "@/components/language-switch";
 import { ModeToggle } from "@/components/mode-toggle";
-import { PageWidth } from "@/components/page-width";
 import { NAV_ITEMS } from "@/components/site-nav";
 import { UserMenu } from "@/components/user-menu";
 import { localePath } from "@/i18n/config";
@@ -14,7 +13,8 @@ export async function SiteHeader() {
   const t = await getDictionary();
   return (
     <HeaderShell>
-      <PageWidth className="flex h-14 items-center gap-4 px-4 sm:gap-6">
+      {/* As wide as the widest feature pages (DotaHub), the same on every page. */}
+      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4 sm:gap-6 xl:max-w-7xl">
         <Link href={localePath(lang, "/")} className="shrink-0 font-semibold">
           yohaneowo
         </Link>
@@ -40,7 +40,7 @@ export async function SiteHeader() {
             <UserMenu />
           </Suspense>
         </div>
-      </PageWidth>
+      </div>
     </HeaderShell>
   );
 }
