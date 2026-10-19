@@ -116,10 +116,6 @@ export function DeathsExplorer({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{t.hero}</span>
-          <HeroPicker value={hero} onChange={setHero} heroes={heroes} counts={counts} />
-        </div>
         <Chips
           label={t.phase}
           value={phase}
@@ -132,6 +128,10 @@ export function DeathsExplorer({
           onChange={setResult}
           options={(["all", "win", "loss"] as Result[]).map((r) => [r, t.results[r]])}
         />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{t.hero}</span>
+          <HeroPicker value={hero} onChange={setHero} heroes={heroes} counts={counts} />
+        </div>
       </div>
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_260px]">
         <div className="flex flex-col gap-2">
