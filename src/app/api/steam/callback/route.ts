@@ -2,7 +2,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { localePath } from "@/i18n/config";
 import { getSession } from "@/lib/auth";
+import { getDiscordAccount } from "@/lib/discord-account";
+import { linkDota } from "@/lib/dota/admin";
 import {
+  dotaAccountId,
   linkSteamAccount,
   publicOrigin,
   readSteamState,
@@ -31,5 +34,13 @@ export async function GET(request: Request) {
   } catch (error) {
     return back(state.lang, error instanceof SteamTaken ? "taken" : "failed");
   }
+  // admin starts checking this account's ranked matches (death maps and DMs). A miss here is made
+  // up when DotaHub is next opened (syncDotaLink).
+  const discord = await getDiscordAccount(session.user.id).catch(() => null);
+  await linkDota(session.user.id, {
+    steamId,
+    accountId: dotaAccountId(steamId),
+    discordId: discord?.accountId ?? null,
+  }).catch(() => null);
   return back(state.lang, "linked");
 }

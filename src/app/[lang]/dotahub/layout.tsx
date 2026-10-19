@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { ListIcon, SwordsIcon, UsersIcon } from "lucide-react";
+import { FlameIcon, ListIcon, SwordsIcon, UsersIcon } from "lucide-react";
 import { SubNav, SubNavPlaceholder, type SubNavItem } from "@/components/sub-nav";
 import { getDictionary } from "@/i18n/server";
 
@@ -9,6 +9,7 @@ export default async function DotaHubLayout({ children }: { children: React.Reac
   const items: SubNavItem[] = [
     { href: "/dotahub", label: t.nav.overview, icon: <SwordsIcon aria-hidden /> },
     { href: "/dotahub/matches", label: t.nav.matches, icon: <ListIcon aria-hidden /> },
+    { href: "/dotahub/deaths", label: t.nav.deaths, icon: <FlameIcon aria-hidden /> },
     { href: "/dotahub/peers", label: t.nav.peers, icon: <UsersIcon aria-hidden /> },
   ];
   return (

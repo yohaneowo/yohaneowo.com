@@ -8,7 +8,9 @@ import { getDiscordAccount, hasOtherLogin } from "@/lib/discord-account";
 import { getAnimeSettings } from "@/lib/movies";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { dotaViewer, syncDotaLink } from "../dotahub/account";
 import { AnimeSettings } from "./anime-settings";
+import { DotaSettings } from "./dota-settings";
 import { DiscordLink } from "./discord-link";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,6 +30,9 @@ async function SettingsContent({ searchParams }: { searchParams: Promise<{ error
   const { error } = await searchParams;
   // undefined: admin unreachable; null: no movie profile yet.
   const anime = await getAnimeSettings(session.user.id).catch(() => undefined);
+  const viewer = await dotaViewer();
+  // undefined: no Steam linked; null: admin unreachable.
+  const dota = viewer.state === "linked" ? await syncDotaLink(viewer) : undefined;
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
@@ -58,6 +63,20 @@ async function SettingsContent({ searchParams }: { searchParams: Promise<{ error
           ) : (
             <p className="text-sm text-muted-foreground">
               {anime === null ? t.settings.anime.noProfile : t.settings.anime.unavailable}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.dotahub.settings.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dota?.linked ? (
+            <DotaSettings notify={dota.notify} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {dota === undefined ? t.dotahub.settings.needSteam : t.dotahub.unavailable}
             </p>
           )}
         </CardContent>

@@ -216,8 +216,8 @@ export const ROADMAP: RoadmapItem[] = [
     steps: [
       step("用 Steam 登录连结帐号", "Sign in with Steam to link the account", true),
       step(
-        "总览：段位、胜率、最近 20 场、常用英雄、位置",
-        "Overview: rank, win rate, last 20 matches, heroes, roles",
+        "总览：段位、胜率、最近一场（IMP 与死亡地图）、常用英雄、位置",
+        "Overview: rank, win rate, the latest match (IMP and death map), heroes, roles",
         true,
       ),
       step(
@@ -226,7 +226,23 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step("常一起玩的队友", "The people you play with", true),
-      step("比赛的 IMP 表现分数与对线结果（STRATZ）", "Match IMP scores and lane outcomes (STRATZ)"),
+      step("比赛的 IMP 表现分数（STRATZ）", "Match IMP scores (STRATZ)", true),
+      step(
+        "死亡地图：每场死在哪里、第几次，十个玩家都能看",
+        "Death maps: where and in what order each player died in a match",
+        true,
+      ),
+      step(
+        "死亡热力图：最近 20 / 50 / 100 / 全部天梯，按英雄、阶段、胜负筛选",
+        "Death heat map over the last 20 / 50 / 100 / all ranked matches, by hero, phase and result",
+        true,
+      ),
+      step(
+        "每场天梯打完，Discord 私讯这场的死亡地图（可在帐号设定关掉）",
+        "A Discord DM with the death map after each ranked match (can be turned off in settings)",
+        true,
+      ),
+      step("对线结果（STRATZ）", "Lane outcomes (STRATZ)"),
       step("别人的公开页、跟 Discord 好友比较", "Other players' pages and comparing with Discord friends"),
       step("Discord bot 指令（例如最近一场）", "Discord bot commands (e.g. the last match)"),
     ],

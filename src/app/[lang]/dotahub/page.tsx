@@ -18,9 +18,9 @@ import {
   getWinLoss,
 } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
-import { dotaViewer } from "./account";
+import { dotaViewer, syncDotaLink } from "./account";
 import { DisconnectSteam } from "./buttons";
-import { MatchTable } from "./match-table";
+import { LatestMatch } from "./latest-match";
 import { HeroImage, Medal, medalName, Notice } from "./parts";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -159,7 +159,7 @@ async function Overview({
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section className="flex min-w-0 flex-col gap-3">
           <div className="flex items-baseline justify-between">
-            <h2 className="font-medium">{t.overview.recent}</h2>
+            <h2 className="font-medium">{t.latest.title}</h2>
             <Link
               href={localePath(lang, "/dotahub/matches")}
               className="text-xs text-muted-foreground hover:underline"
@@ -167,7 +167,11 @@ async function Overview({
               {t.overview.allMatches}
             </Link>
           </div>
-          <MatchTable matches={recent} heroes={heroes} t={t} lang={lang} />
+          {recent[0] && (
+            <Suspense fallback={<div className="h-80 animate-pulse rounded-xl bg-muted/40" />}>
+              <LatestMatch match={recent[0]} accountId={accountId} heroes={heroes} t={t} lang={lang} />
+            </Suspense>
+          )}
         </section>
         <aside className="flex flex-col gap-6">
           <section className="flex flex-col gap-3">
@@ -235,6 +239,8 @@ async function Body({ searchParams }: { searchParams: SearchParams }) {
   const result = Array.isArray(raw) ? raw[0] : raw;
   const notice = result && result in t.notices ? t.notices[result as keyof T["notices"]] : null;
   const viewer = await dotaViewer();
+  // Make sure admin checks this account (death maps, DMs), e.g. one linked before admin did.
+  if (viewer.state === "linked") await syncDotaLink(viewer);
   return (
     <>
       {notice && (

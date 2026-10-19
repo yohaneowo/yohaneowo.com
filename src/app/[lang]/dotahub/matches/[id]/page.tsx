@@ -16,11 +16,13 @@ import {
   type Match,
   type MatchPlayer,
 } from "@/lib/dota/data";
+import { getStratzMatch } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { dotaViewer } from "../../account";
 import { RequestParse } from "../../buttons";
 import { duration, HeroImage, ItemImage, modeName, Notice } from "../../parts";
 import { AdvantageChart } from "./advantage-chart";
+import { type DeathsOf, MatchDeaths } from "./match-deaths";
 
 type Params = Promise<{ id: string }>;
 type T = Dictionary["dotahub"];
@@ -196,12 +198,32 @@ async function Detail({ params }: { params: Params }) {
   if (!Number.isSafeInteger(id) || id <= 0) return <Notice>{t.match.notFound}</Notice>;
   let data;
   try {
-    data = await Promise.all([getMatch(id), getHeroes(), getItems(), dotaViewer()]);
+    data = await Promise.all([
+      getMatch(id),
+      getHeroes(),
+      getItems(),
+      dotaViewer(),
+      getStratzMatch(id).catch(() => null),
+    ]);
   } catch (error) {
     if (!(error instanceof DotaUnavailable)) throw error;
     return <Notice>{error.message.startsWith("404") ? t.match.notFound : t.unavailable}</Notice>;
   }
-  const [match, heroes, items, viewer] = data;
+  const [match, heroes, items, viewer, stratz] = data;
+  // STRATZ's deaths per player, named from OpenDota's scoreboard (same hero, same side).
+  const deaths: DeathsOf[] = (stratz?.parsed ? stratz.players : []).map((p, i) => {
+    const line = match.players.find((m) => m.hero_id === p.heroId);
+    return {
+      key: `${i}`,
+      heroId: p.heroId,
+      name: line?.personaname || (p.steamAccountId ? String(p.steamAccountId) : t.match.anonymous),
+      radiant: p.isRadiant,
+      events: p.deathEvents,
+    };
+  });
+  const mine =
+    stratz?.players.findIndex((p) => viewer.state === "linked" && p.steamAccountId === viewer.accountId) ??
+    -1;
   const me = viewer.state === "linked" ? viewer.accountId : null;
   const radiant = match.players.filter((p) => isRadiant(p.player_slot));
   const dire = match.players.filter((p) => !isRadiant(p.player_slot));
@@ -272,6 +294,15 @@ async function Detail({ params }: { params: Params }) {
             {t.match.notParsed}
             <RequestParse matchId={id} />
           </div>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-medium">{t.matchDeaths.title}</h2>
+        {deaths.length ? (
+          <MatchDeaths players={deaths} heroes={heroes} initial={String(Math.max(0, mine))} />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t.deaths.noStratz}</p>
         )}
       </section>
 
