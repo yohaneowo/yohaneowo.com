@@ -10,7 +10,7 @@ import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { HeatMap } from "../death-map";
 import { HeroPicker } from "./hero-picker";
-import { insights, zoneShares } from "./insights";
+import { insights, type Zone, zoneOf, zoneShares } from "./insights";
 
 type Phase = "all" | "laning" | "mid" | "late";
 type Result = "all" | "win" | "loss";
@@ -108,6 +108,8 @@ export function DeathsExplorer({
   const [hero, setHero] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>("all");
   const [result, setResult] = useState<Result>("loss");
+  const [hoveredZone, setHoveredZone] = useState<Zone | null>(null);
+  const [pinnedZone, setPinnedZone] = useState<Zone | null>(null);
 
   // STRATZ marks many older matches parsed without any death positions: those can't be drawn, so
   // they are left out (a match with no deaths is kept, it simply adds nothing to the map).
@@ -129,8 +131,12 @@ export function DeathsExplorer({
   const unusable = matches.filter((m) => m.parsed && m.deaths && !m.deathEvents.length).length;
   const inPhase = (e: DeathEvent) =>
     phase === "all" || (e.t >= PHASE_RANGE[phase][0] && e.t < PHASE_RANGE[phase][1]);
-  const events = parsed.flatMap((m) => m.deathEvents.filter(inPhase));
   const zones = zoneShares(parsed, sides, inPhase);
+  // Hovering a map area (or tapping it, which sticks) draws only that area's deaths.
+  const shownZone = [hoveredZone, pinnedZone].find((z) => z && zones.some((s) => s.zone === z)) ?? null;
+  const events = parsed.flatMap((m) =>
+    m.deathEvents.filter((e) => inPhase(e) && (!shownZone || zoneOf(e, sides[m.matchId]) === shownZone)),
+  );
   // The cards cover whole matches (all phases), so their shares mean something.
   const facts = parsed.length ? insights(parsed, byHero, heroes) : null;
   const one = (n: number) => n.toFixed(1);
@@ -160,27 +166,42 @@ export function DeathsExplorer({
           <HeatMap events={events} className="max-w-[640px]" />
           <p className="text-xs text-muted-foreground tabular-nums">
             {t.summary(events.length, parsed.length)}
+            {shownZone && ` · ${t.onlyZone(t.zones[shownZone])}`}
           </p>
           {unusable > 0 && <p className="text-xs text-muted-foreground">{t.noPositions(unusable)}</p>}
         </div>
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">{t.where}</h2>
           {zones.length ? (
-            <ul className="flex flex-col gap-2 text-sm">
+            <ul className="flex flex-col gap-0.5 text-sm" onMouseLeave={() => setHoveredZone(null)}>
               {zones.map(({ zone, n, share }) => (
-                <li key={zone} className="flex flex-col gap-1">
-                  <span className="flex justify-between gap-2">
-                    {t.zones[zone]}
-                    <span className="text-muted-foreground tabular-nums">
-                      {Math.round(share * 100)}% · {n}
+                <li key={zone}>
+                  <button
+                    type="button"
+                    aria-pressed={pinnedZone === zone}
+                    onMouseEnter={() => setHoveredZone(zone)}
+                    onFocus={() => setHoveredZone(zone)}
+                    onBlur={() => setHoveredZone(null)}
+                    onClick={() => setPinnedZone((current) => (current === zone ? null : zone))}
+                    className={cn(
+                      "flex w-full flex-col gap-1 rounded-md px-1.5 py-1 text-left transition-[background-color,opacity]",
+                      shownZone === zone ? "bg-muted" : "hover:bg-muted/60",
+                      shownZone && shownZone !== zone && "opacity-50",
+                    )}
+                  >
+                    <span className="flex w-full justify-between gap-2">
+                      {t.zones[zone]}
+                      <span className="text-muted-foreground tabular-nums">
+                        {Math.round(share * 100)}% · {n}
+                      </span>
                     </span>
-                  </span>
-                  <span className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <span
-                      className="block h-full rounded-full bg-red-500/80"
-                      style={{ width: `${share * 100}%` }}
-                    />
-                  </span>
+                    <span className="h-1.5 w-full overflow-hidden rounded-full bg-muted-foreground/15">
+                      <span
+                        className="block h-full rounded-full bg-red-500/80"
+                        style={{ width: `${share * 100}%` }}
+                      />
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>

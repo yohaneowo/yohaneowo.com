@@ -131,7 +131,8 @@ const dotahubZh = {
     summary: (deaths: number, matches: number) => `${matches} 场、${deaths} 次死亡`,
     insights: "重点",
     where: "死在哪里",
-    whereHint: "按地图大致分区，跟着阶段筛选。",
+    whereHint: "按地图大致分区，跟着阶段筛选。滑鼠移到一区，地图只显示那一区；点一下固定，再点取消。",
+    onlyZone: (zone: string) => `只显示${zone}`,
     zones: {
       top: "上路",
       mid: "中路",

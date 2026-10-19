@@ -147,7 +147,9 @@ const dotahubEn: typeof dotahubZh = {
     summary: (deaths: number, matches: number) => `${matches} matches, ${deaths} deaths`,
     insights: "Highlights",
     where: "Where you die",
-    whereHint: "Rough map areas, following the phase filter.",
+    whereHint:
+      "Rough map areas, following the phase filter. Hover one to show only its deaths on the map; click to keep it, click again to clear.",
+    onlyZone: (zone: string) => `only ${zone.toLowerCase()}`,
     zones: {
       top: "Top lane",
       mid: "Mid lane",
