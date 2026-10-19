@@ -6,7 +6,6 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
 import {
-  DotaUnavailable,
   getHeroes,
   getItems,
   getMatch,
@@ -205,11 +204,11 @@ async function Detail({ params }: { params: Params }) {
       dotaViewer(),
       getStratzMatch(id).catch(() => null),
     ]);
-  } catch (error) {
-    if (!(error instanceof DotaUnavailable)) throw error;
-    return <Notice>{error.message.startsWith("404") ? t.match.notFound : t.unavailable}</Notice>;
+  } catch {
+    return <Notice>{t.unavailable}</Notice>;
   }
   const [match, heroes, items, viewer, stratz] = data;
+  if (!match) return <Notice>{t.match.notFound}</Notice>;
   // STRATZ's deaths per player, named from OpenDota's scoreboard (same hero, same side).
   const deaths: DeathsOf[] = (stratz?.parsed ? stratz.players : []).map((p, i) => {
     const line = match.players.find((m) => m.hero_id === p.heroId);

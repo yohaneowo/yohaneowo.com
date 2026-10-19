@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
-import { DotaUnavailable, getPeers } from "@/lib/dota/data";
+import { getPeers } from "@/lib/dota/data";
 import { dotaViewer } from "../account";
 import { ago, Notice } from "../parts";
 
@@ -28,8 +28,7 @@ async function Peers() {
   let peers;
   try {
     peers = await getPeers(viewer.accountId);
-  } catch (error) {
-    if (!(error instanceof DotaUnavailable)) throw error;
+  } catch {
     return <Notice>{t.unavailable}</Notice>;
   }
   const shown = peers

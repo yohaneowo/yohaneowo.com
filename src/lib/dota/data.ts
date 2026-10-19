@@ -11,10 +11,25 @@ const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react
 
 export class DotaUnavailable extends Error {}
 
-async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-  if (!response.ok) throw new DotaUnavailable(`${response.status} ${new URL(url).host}`);
-  return (await response.json()) as T;
+// Every failure (an error status, a timeout, no connection, a broken body) is DotaUnavailable, so
+// the pages can show a notice instead of failing: OpenDota sometimes stalls on single endpoints.
+// Errors thrown inside a "use cache" function reach the caller as plain Errors, so pages treat any
+// error from these calls as "unavailable" rather than checking the class.
+async function getJson<T>(url: string, options: { notFound?: "null" } = {}): Promise<T> {
+  const host = new URL(url).host;
+  let response;
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(12_000) });
+  } catch (error) {
+    throw new DotaUnavailable(`${error instanceof Error ? error.name : "fetch failed"} ${host}`);
+  }
+  if (response.status === 404 && options.notFound === "null") return null as T;
+  if (!response.ok) throw new DotaUnavailable(`${response.status} ${host}`);
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new DotaUnavailable(`bad response ${host}`);
+  }
 }
 
 // ── Heroes and items ─────────────────────────────────────────────────────────────────────────
@@ -232,7 +247,12 @@ export type Match = {
 
 export async function getMatch(matchId: number) {
   "use cache";
-  const match = await getJson<Match>(`${OPENDOTA}/matches/${matchId}`);
+  // Null when OpenDota doesn't know the match id.
+  const match = await getJson<Match | null>(`${OPENDOTA}/matches/${matchId}`, { notFound: "null" });
+  if (!match) {
+    cacheLife("minutes");
+    return null;
+  }
   // A parsed match no longer changes; an unparsed one may be parsed soon after a request.
   if (match.version) cacheLife("days");
   else cacheLife("minutes");

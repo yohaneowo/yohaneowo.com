@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
-import { DotaUnavailable, getHeroes, getPlayerMatches, MATCHES_PER_PAGE } from "@/lib/dota/data";
+import { getHeroes, getPlayerMatches, MATCHES_PER_PAGE } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
 import { dotaViewer } from "../account";
 import { MatchTable } from "../match-table";
@@ -36,8 +36,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   let matches, heroes;
   try {
     [matches, heroes] = await Promise.all([getPlayerMatches(viewer.accountId, page), getHeroes()]);
-  } catch (error) {
-    if (!(error instanceof DotaUnavailable)) throw error;
+  } catch {
     return <Notice>{t.unavailable}</Notice>;
   }
   const pageHref = (n: number) => localePath(lang, `/dotahub/matches?page=${n + 1}`);

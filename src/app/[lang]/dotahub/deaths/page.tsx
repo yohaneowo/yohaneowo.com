@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getStoredDeaths } from "@/lib/dota/admin";
-import { DotaUnavailable, getHeroes, getRankedSides } from "@/lib/dota/data";
+import { getHeroes, getRankedSides } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
 import { dotaViewer, syncDotaLink } from "../account";
 import { Notice } from "../parts";
@@ -42,8 +42,7 @@ async function Deaths({ searchParams }: { searchParams: SearchParams }) {
       // Without OpenDota the map areas are named absolutely (Radiant / Dire) instead.
       getRankedSides(viewer.accountId).catch(() => ({})),
     ]);
-  } catch (error) {
-    if (error instanceof DotaUnavailable) return <Notice>{t.unavailable}</Notice>;
+  } catch {
     return <Notice>{t.deaths.unavailable}</Notice>;
   }
   if (!data) return <Notice>{t.deaths.unavailable}</Notice>;

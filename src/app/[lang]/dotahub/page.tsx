@@ -9,7 +9,6 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
 import {
-  DotaUnavailable,
   getHeroes,
   getLaneRoles,
   getPlayer,
@@ -71,18 +70,18 @@ async function Overview({
   try {
     data = await Promise.all([
       getPlayer(accountId),
-      getWinLoss(accountId),
+      // Only the win rate needs it: without it the rest of the overview still shows.
+      getWinLoss(accountId).catch(() => null),
       getRecentMatches(accountId),
       getPlayerHeroes(accountId),
       getLaneRoles(accountId),
       getHeroes(),
     ]);
-  } catch (error) {
-    if (!(error instanceof DotaUnavailable)) throw error;
+  } catch {
     return <Notice>{t.unavailable}</Notice>;
   }
   const [player, wl, recent, heroStats, lanes, heroes] = data;
-  const games = wl.win + wl.lose;
+  const games = wl ? wl.win + wl.lose : null;
   if (!player.profile || games === 0)
     return (
       <div className="flex flex-col gap-3">
@@ -92,7 +91,6 @@ async function Overview({
         </div>
       </div>
     );
-  const rate = games ? (wl.win / games) * 100 : 0;
   const topHeroes = [...heroStats].sort((a, b) => b.games - a.games).slice(0, 10);
   const laneTotal = Object.entries(lanes)
     .filter(([role]) => role !== "0")
@@ -146,13 +144,17 @@ async function Overview({
               )}
             </div>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground">{t.overview.winRate}</div>
-            <div className="text-2xl font-semibold tabular-nums">{rate.toFixed(1)}%</div>
-            <div className="text-xs text-muted-foreground tabular-nums">
-              {t.overview.record(wl.win, wl.lose)}
+          {wl && games ? (
+            <div>
+              <div className="text-xs text-muted-foreground">{t.overview.winRate}</div>
+              <div className="text-2xl font-semibold tabular-nums">
+                {((wl.win / games) * 100).toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground tabular-nums">
+                {t.overview.record(wl.win, wl.lose)}
+              </div>
             </div>
-          </div>
+          ) : null}
         </CardContent>
       </Card>
 
