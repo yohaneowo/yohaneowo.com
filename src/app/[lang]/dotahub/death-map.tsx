@@ -69,6 +69,11 @@ export function DeathMap({
                   {i + 1}
                 </span>
                 <span className="w-12 text-muted-foreground tabular-nums">{clock(e.t)}</span>
+                {e.fb && (
+                  <span className="shrink-0 rounded bg-red-500/15 px-1 text-[10px] text-red-600 dark:text-red-400">
+                    {t.firstBlood}
+                  </span>
+                )}
                 {killer ? (
                   <span className="flex min-w-0 items-center gap-1.5">
                     <Image src={killer.icon} alt="" width={20} height={20} unoptimized className="size-5" />

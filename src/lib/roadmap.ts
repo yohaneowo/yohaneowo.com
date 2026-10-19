@@ -277,6 +277,45 @@ export const ROADMAP: RoadmapItem[] = [
     shipped: "2026-10-20",
   },
   {
+    id: "dotahub-insights",
+    status: "testing",
+    area: "dotahub",
+    title: { zh: "DotaHub：热力图加强与总览加快", en: "DotaHub: a richer heat map, a faster overview" },
+    summary: {
+      zh: "死亡热力图多了胜率、平均每场掉落金钱与死亡等待、被拿一血；总览改成分区载入，OpenDota 慢的时候先给旧资料。",
+      en: "The heat map gains win rate, gold lost and time dead per match, and first-blood deaths; the overview loads in parts and shows cached data while OpenDota is slow.",
+    },
+    why: {
+      zh: "OpenDota 的统计接口常常要等半分钟，热力图也还能看出更多东西。",
+      en: "OpenDota's statistics often take half a minute, and the heat map had more to tell.",
+    },
+    steps: [
+      step(
+        "胜率放在标题旁，跟着场数与英雄",
+        "Win rate next to the title, following the range and hero",
+        true,
+      ),
+      step(
+        "平均每场掉落金钱、死亡等待，最多一次附击杀图示",
+        "Gold lost and time dead per match, the worst one with a kill line",
+        true,
+      ),
+      step("被拿一血的比例与比赛里的一血标记", "How often you were first blood, marked in matches", true),
+      step(
+        "总览分区载入，显示资料多久前更新、背景更新中",
+        "The overview loads in parts and shows how old its data is and when it updates",
+        true,
+      ),
+      step(
+        "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
+        "How you died (burst, walked into wards, unused heals…)",
+      ),
+    ],
+    links: [{ label: { zh: "死亡热力图", en: "Death heat map" }, href: "/dotahub/deaths" }],
+    added: "2026-10-20",
+    started: "2026-10-20",
+  },
+  {
     id: "dotahub-next",
     status: "considering",
     area: "dotahub",

@@ -357,6 +357,15 @@ export function DeathsExplorer({
                   }
                 />
               )}
+              <Card
+                title={c.firstBlood}
+                value={`${Math.round(facts.firstBlood.share * 100)}%`}
+                hint={
+                  facts.firstBlood.at != null
+                    ? c.firstBloodHint(facts.firstBlood.n, clock(Math.round(facts.firstBlood.at)))
+                    : c.firstBloodNone
+                }
+              />
               {facts.firstDeath != null && (
                 <Card
                   title={c.firstDeath}

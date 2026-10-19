@@ -130,7 +130,15 @@ export function insights(matches: StoredMatch[], byHero: StoredMatch[], heroes: 
         }
       : null;
 
+  // First blood: the matches where one of the player's deaths was the match's first kill.
+  const firstBloods = matches.flatMap((m) => m.deathEvents.filter((e) => e.fb));
+
   return {
+    firstBlood: {
+      n: firstBloods.length,
+      share: firstBloods.length / matches.length,
+      at: avg(firstBloods.map((e) => e.t)),
+    },
     perMatch: avg(matches.map(deathsOf)),
     zero: matches.filter((m) => !m.deathEvents.length).length,
     firstDeath: avg(firstDeaths),

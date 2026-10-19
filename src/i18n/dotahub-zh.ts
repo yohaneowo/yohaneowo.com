@@ -109,6 +109,7 @@ const dotahubZh = {
   lanes: { 1: "优势路", 2: "中路", 3: "劣势路", 4: "打野" } as Record<number, string>,
   medals: ["", "先锋", "卫士", "中军", "统帅", "传奇", "万古流芳", "超凡入圣", "冠绝一世"],
   deaths: {
+    firstBlood: "一血",
     title: "死亡热力图",
     description: "你在天梯比赛里死在地图哪里：越多次的地方颜色越深。资料来自 STRATZ，只算天梯。",
     mapAlt: "Dota 2 地图",
@@ -150,6 +151,9 @@ const dotahubZh = {
       direBase: "夜魇高地",
     },
     cards: {
+      firstBlood: "被拿一血",
+      firstBloodHint: (n: number, at: string) => `${n} 场，平均 ${at}`,
+      firstBloodNone: "这些比赛都没被拿一血",
       winRate: "胜率",
       winRateHint: (w: number, l: number) => `${w} 胜 ${l} 负`,
       winRateNote: "按选的场数和英雄算，不看胜负筛选",

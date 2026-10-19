@@ -118,6 +118,7 @@ const dotahubEn: typeof dotahubZh = {
   lanes: { 1: "Safe lane", 2: "Mid", 3: "Off lane", 4: "Jungle" } as Record<number, string>,
   medals: ["", "Herald", "Guardian", "Crusader", "Archon", "Legend", "Ancient", "Divine", "Immortal"],
   deaths: {
+    firstBlood: "First blood",
     title: "Death heat map",
     description:
       "Where on the map you die in ranked matches; the more deaths, the darker. Data from STRATZ, ranked only.",
@@ -167,6 +168,9 @@ const dotahubEn: typeof dotahubZh = {
       direBase: "Dire base",
     },
     cards: {
+      firstBlood: "Died for first blood",
+      firstBloodHint: (n: number, at: string) => `${n} matches, on average at ${at}`,
+      firstBloodNone: "Never the first blood in these matches",
       winRate: "Win rate",
       winRateHint: (w: number, l: number) => `${w} won, ${l} lost`,
       winRateNote: "For the chosen range and hero; ignores the result filter",

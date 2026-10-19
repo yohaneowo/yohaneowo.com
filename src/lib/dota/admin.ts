@@ -54,6 +54,8 @@ export const deathEventSchema = z.object({
   by: z.number(),
   gold: z.number(),
   dead: z.number(),
+  // This death was the match's first blood (missing on matches read before it was recorded).
+  fb: z.boolean().optional(),
 });
 export type DeathEvent = z.infer<typeof deathEventSchema>;
 

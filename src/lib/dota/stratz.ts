@@ -19,6 +19,7 @@ type Raw = {
   data?: {
     match?: {
       parsedDateTime: number | null;
+      firstBloodTime: number | null;
       players: {
         steamAccountId: number | null;
         heroId: number;
@@ -55,7 +56,7 @@ export async function getStratzMatch(matchId: number): Promise<StratzMatch | nul
       "User-Agent": "STRATZ_API",
     },
     body: JSON.stringify({
-      query: `{ match(id: ${Math.trunc(matchId)}) { parsedDateTime players { steamAccountId heroId isRadiant imp stats { deathEvents { time positionX positionY attacker goldLost timeDead } } } } }`,
+      query: `{ match(id: ${Math.trunc(matchId)}) { parsedDateTime firstBloodTime players { steamAccountId heroId isRadiant imp stats { deathEvents { time positionX positionY attacker goldLost timeDead } } } } }`,
     }),
     signal: AbortSignal.timeout(20_000),
   }).catch((error) => {
@@ -94,6 +95,7 @@ export async function getStratzMatch(matchId: number): Promise<StratzMatch | nul
         by: e.attacker ?? 0,
         gold: e.goldLost ?? 0,
         dead: e.timeDead ?? 0,
+        fb: match.firstBloodTime != null && e.time === match.firstBloodTime,
       })),
     })),
   };
@@ -108,6 +110,7 @@ type RawRanked = {
             startDateTime: number | null;
             durationSeconds: number | null;
             parsedDateTime: number | null;
+            firstBloodTime: number | null;
             players:
               | {
                   heroId: number;
@@ -158,7 +161,7 @@ export async function getStratzRankedDeaths(accountId: number): Promise<StoredMa
       "User-Agent": "STRATZ_API",
     },
     body: JSON.stringify({
-      query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime players(steamAccountId: ${id}) { heroId isVictory kills deaths assists imp stats { deathEvents { time positionX positionY attacker goldLost timeDead } } } } } }`,
+      query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime firstBloodTime players(steamAccountId: ${id}) { heroId isVictory kills deaths assists imp stats { deathEvents { time positionX positionY attacker goldLost timeDead } } } } } }`,
     }),
     signal: AbortSignal.timeout(30_000),
   }).catch((error) => {
@@ -197,6 +200,7 @@ export async function getStratzRankedDeaths(accountId: number): Promise<StoredMa
           by: e.attacker ?? 0,
           gold: e.goldLost ?? 0,
           dead: e.timeDead ?? 0,
+          fb: m.firstBloodTime != null && e.time === m.firstBloodTime,
         })),
     });
   }
