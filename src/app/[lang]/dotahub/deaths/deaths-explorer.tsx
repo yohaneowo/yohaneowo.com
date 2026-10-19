@@ -11,7 +11,7 @@ import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { HeatMap } from "../death-map";
 import { HeroPicker } from "./hero-picker";
-import { insights, type Zone, zoneOf, zoneShares } from "./insights";
+import { costs, insights, type Zone, zoneOf, zoneShares } from "./insights";
 
 type Phase = "all" | "laning" | "mid" | "late";
 type Result = "all" | "win" | "loss";
@@ -61,7 +61,7 @@ function Card({ title, value, hint }: { title: string; value: React.ReactNode; h
     <div className="flex flex-col gap-1 rounded-xl border p-3">
       <span className="text-xs text-muted-foreground">{title}</span>
       <div className="text-lg font-semibold tabular-nums">{value}</div>
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      {hint && <span className="text-xs whitespace-pre-line text-muted-foreground">{hint}</span>}
     </div>
   );
 }
@@ -141,6 +141,14 @@ export function DeathsExplorer({
   );
   // The cards cover whole matches (all phases), so their shares mean something.
   const facts = parsed.length ? insights(parsed, byHero, heroes) : null;
+  // Gold and waiting follow the phase (but not the area hovered on the map).
+  const cost = costs(
+    parsed.flatMap((m) => m.deathEvents.filter(inPhase)),
+    parsed.length,
+  );
+  const wins = byHero.filter((m) => m.won).length;
+  const phaseNote = phase === "all" ? null : c.inPhase(t.phases[phase]);
+  const killerName = (by: number) => heroes[by]?.[lang] ?? t.unknownKiller;
   const one = (n: number) => n.toFixed(1);
 
   return (
@@ -248,8 +256,45 @@ export function DeathsExplorer({
           <h2 className="font-medium">{t.insights}</h2>
           {facts ? (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-2">
+              {byHero.length > 0 && (
+                <Card
+                  title={c.winRate}
+                  value={`${Math.round((wins / byHero.length) * 100)}%`}
+                  hint={c.winRateHint(wins, byHero.length - wins)}
+                />
+              )}
               {facts.perMatch != null && (
                 <Card title={c.perMatch} value={c.times(one(facts.perMatch))} hint={c.zero(facts.zero)} />
+              )}
+              {cost && (
+                <Card
+                  title={c.gold}
+                  value={c.goldValue(cost.gold.total.toLocaleString("en-US"))}
+                  hint={[
+                    phaseNote,
+                    c.goldAvg(Math.round(cost.gold.perMatch), Math.round(cost.gold.perDeath)),
+                    c.worstGold(
+                      cost.gold.worst.gold,
+                      clock(cost.gold.worst.t),
+                      killerName(cost.gold.worst.by),
+                    ),
+                  ]
+                    .filter(Boolean)
+                    .join("\n")}
+                />
+              )}
+              {cost && (
+                <Card
+                  title={c.waiting}
+                  value={c.duration(cost.dead.total)}
+                  hint={[
+                    phaseNote,
+                    c.waitAvg(c.duration(Math.round(cost.dead.perMatch)), Math.round(cost.dead.perDeath)),
+                    c.worstWait(cost.dead.worst.dead, clock(cost.dead.worst.t)),
+                  ]
+                    .filter(Boolean)
+                    .join("\n")}
+                />
               )}
               {facts.firstDeath != null && (
                 <Card

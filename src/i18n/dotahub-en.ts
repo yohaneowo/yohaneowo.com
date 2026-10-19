@@ -35,6 +35,7 @@ const dotahubEn: typeof dotahubZh = {
     "OpenDota can't find your matches. Make sure Expose Public Match Data is on in Dota 2's settings, and open your profile on OpenDota once.",
   unavailable: "Can't reach OpenDota right now. Please try again later.",
   overview: {
+    sectionUnavailable: "OpenDota can't load this part right now; try again later.",
     winRate: "Win rate",
     record: (win: number, lose: number) =>
       `${win.toLocaleString("en-US")} W ${lose.toLocaleString("en-US")} L`,
@@ -166,6 +167,22 @@ const dotahubEn: typeof dotahubZh = {
       direBase: "Dire base",
     },
     cards: {
+      winRate: "Win rate",
+      winRateHint: (w: number, l: number) => `${w} won, ${l} lost; ignores the result filter`,
+      inPhase: (phase: string) => `${phase} only`,
+      gold: "Gold lost",
+      goldValue: (n: string) => `${n} gold`,
+      goldAvg: (perMatch: number, perDeath: number) => `${perMatch} per match, ${perDeath} per death`,
+      worstGold: (gold: number, at: string, by: string) => `Most at once: ${gold} (${at}, ${by})`,
+      waiting: "Waiting to respawn",
+      duration: (s: number) =>
+        s >= 3600
+          ? `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`
+          : s >= 60
+            ? `${Math.floor(s / 60)} min ${s % 60} s`
+            : `${s} s`,
+      waitAvg: (perMatch: string, perDeath: number) => `${perMatch} per match, ${perDeath} s per death`,
+      worstWait: (s: number, at: string) => `Longest: ${s} s (${at})`,
       perMatch: "Deaths per match",
       times: (v: string) => v,
       zero: (n: number) => `${n} without a death`,
@@ -227,6 +244,15 @@ const dotahubEn: typeof dotahubZh = {
     deathsDescription:
       "Where this player dies in ranked matches: the more deaths, the darker. From STRATZ, ranked only.",
     peersDescription: "The people this player plays with most (at least 3 games on the same team).",
+  },
+  fresh: {
+    justNow: "just now",
+    minutes: (n: number) => `${n} min ago`,
+    hours: (n: number) => `${n} h ago`,
+    days: (n: number) => `${n} days ago`,
+    updated: (age: string) => `Updated ${age}`,
+    updating: (age: string) => `Updating… (showing data from ${age})`,
+    stale: (age: string) => `Data from ${age}; OpenDota isn't answering`,
   },
   health: {
     label: "Data source status",

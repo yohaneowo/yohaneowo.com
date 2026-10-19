@@ -26,6 +26,7 @@ const dotahubZh = {
     "OpenDota 找不到你的比赛。请确认 Dota 2 设定里开启了「公开比赛资料」，并在 OpenDota 打开过一次你的个人页。",
   unavailable: "暂时连不上 OpenDota，请稍后再试。",
   overview: {
+    sectionUnavailable: "OpenDota 暂时读不到这部分，稍后再看。",
     winRate: "胜率",
     record: (win: number, lose: number) =>
       `${win.toLocaleString("en-US")} 胜 ${lose.toLocaleString("en-US")} 负`,
@@ -149,6 +150,22 @@ const dotahubZh = {
       direBase: "夜魇高地",
     },
     cards: {
+      winRate: "胜率",
+      winRateHint: (w: number, l: number) => `${w} 胜 ${l} 负，不看胜负筛选`,
+      inPhase: (phase: string) => `只算${phase}`,
+      gold: "掉落金钱",
+      goldValue: (n: string) => `${n} 金`,
+      goldAvg: (perMatch: number, perDeath: number) => `平均每场 ${perMatch} 金、每次 ${perDeath} 金`,
+      worstGold: (gold: number, at: string, by: string) => `最多一次掉 ${gold} 金（${at}，${by}）`,
+      waiting: "死亡等待",
+      duration: (s: number) =>
+        s >= 3600
+          ? `${Math.floor(s / 3600)} 小时 ${Math.floor((s % 3600) / 60)} 分`
+          : s >= 60
+            ? `${Math.floor(s / 60)} 分 ${s % 60} 秒`
+            : `${s} 秒`,
+      waitAvg: (perMatch: string, perDeath: number) => `平均每场 ${perMatch}、每次 ${perDeath} 秒`,
+      worstWait: (s: number, at: string) => `最久一次等了 ${s} 秒（${at}）`,
       perMatch: "平均每场死",
       times: (v: string) => `${v} 次`,
       zero: (n: number) => `${n} 场没死`,
@@ -207,6 +224,15 @@ const dotahubZh = {
     stratzRecent: "这位玩家没有在本站连结 Steam，所以直接向 STRATZ 查最近 100 场天梯（几小时更新一次）。",
     deathsDescription: "这位玩家在天梯比赛里死在地图哪里：越多次的地方颜色越深。资料来自 STRATZ，只算天梯。",
     peersDescription: "这位玩家最常一起玩的人（同一队至少 3 场）。",
+  },
+  fresh: {
+    justNow: "刚刚",
+    minutes: (n: number) => `${n} 分钟前`,
+    hours: (n: number) => `${n} 小时前`,
+    days: (n: number) => `${n} 天前`,
+    updated: (age: string) => `${age}更新`,
+    updating: (age: string) => `更新中…（目前是${age}的资料）`,
+    stale: (age: string) => `${age}的资料，OpenDota 暂时没回应`,
   },
   health: {
     label: "资料来源状态",

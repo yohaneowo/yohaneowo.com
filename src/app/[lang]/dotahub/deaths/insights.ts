@@ -53,6 +53,20 @@ const MANY_DEATHS = 8;
 const MIN_HERO_MATCHES = 3;
 const TREND_RECENT = 20;
 
+// What the deaths cost: gold lost and time spent waiting to respawn, in total, per match and per
+// death, and the single worst one. events follow the phase filter; matches is how many they're from.
+export function costs(events: DeathEvent[], matches: number) {
+  if (!events.length || !matches) return null;
+  const gold = events.reduce((sum, e) => sum + e.gold, 0);
+  const dead = events.reduce((sum, e) => sum + e.dead, 0);
+  const pick = (key: "gold" | "dead") =>
+    events.reduce((best, e) => (e[key] > best[key] ? e : best), events[0]);
+  return {
+    gold: { total: gold, perMatch: gold / matches, perDeath: gold / events.length, worst: pick("gold") },
+    dead: { total: dead, perMatch: dead / matches, perDeath: dead / events.length, worst: pick("dead") },
+  };
+}
+
 // The highlights under the map. matches: the shown ones (hero and result filters); byHero: the
 // same hero filter on both results, for the win/loss comparisons.
 export function insights(matches: StoredMatch[], byHero: StoredMatch[], heroes: Record<number, HeroInfo>) {

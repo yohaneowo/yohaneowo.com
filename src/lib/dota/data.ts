@@ -151,29 +151,42 @@ export type Peer = {
 };
 export type LaneRoles = Record<string, { games: number; win: number }>;
 
+// How a player's OpenDota data is cached. Once `revalidate` seconds old an entry is still served
+// at once while a fresh copy is fetched in the background, for up to `expire` (a week): pages open
+// right away even when OpenDota takes half a minute, and only the very first view waits.
+export const QUICK = { stale: 60, revalidate: 15 * 60, expire: 7 * 24 * 3600 };
+export const SLOW = { stale: 60, revalidate: 6 * 3600, expire: 7 * 24 * 3600 };
+
+// Cached data with when it was fetched, so a page can say how old it is (and that it's updating).
+export type Fresh<T> = { data: T; at: number };
+
+async function fresh<T>(load: Promise<T>): Promise<Fresh<T>> {
+  return { data: await load, at: Date.now() };
+}
+
 export async function getPlayer(accountId: number) {
   "use cache";
-  cacheLife("minutes");
-  return getJson<DotaPlayer>(`${OPENDOTA}/players/${accountId}`);
+  cacheLife(QUICK);
+  return fresh(getJson<DotaPlayer>(`${OPENDOTA}/players/${accountId}`));
 }
 
 export async function getWinLoss(accountId: number) {
   "use cache";
-  cacheLife("minutes");
-  return getJson<{ win: number; lose: number }>(`${OPENDOTA}/players/${accountId}/wl`);
+  cacheLife(QUICK);
+  return fresh(getJson<{ win: number; lose: number }>(`${OPENDOTA}/players/${accountId}/wl`));
 }
 
 export async function getRecentMatches(accountId: number) {
   "use cache";
-  cacheLife("minutes");
-  return getJson<PlayerMatch[]>(`${OPENDOTA}/players/${accountId}/recentMatches`);
+  cacheLife(QUICK);
+  return fresh(getJson<PlayerMatch[]>(`${OPENDOTA}/players/${accountId}/recentMatches`));
 }
 
 export const MATCHES_PER_PAGE = 50;
 
 export async function getPlayerMatches(accountId: number, page: number) {
   "use cache";
-  cacheLife("minutes");
+  cacheLife(QUICK);
   return getJson<PlayerMatch[]>(
     `${OPENDOTA}/players/${accountId}/matches?limit=${MATCHES_PER_PAGE}&offset=${page * MATCHES_PER_PAGE}`,
   );
@@ -182,7 +195,7 @@ export async function getPlayerMatches(accountId: number, page: number) {
 // Which side the player was on in each ranked match (true is Radiant), all of them in one call.
 export async function getRankedSides(accountId: number): Promise<Record<number, boolean>> {
   "use cache";
-  cacheLife("hours");
+  cacheLife(SLOW);
   const rows = await getJson<{ match_id: number; player_slot: number }[]>(
     `${OPENDOTA}/players/${accountId}/matches?lobby_type=7&project=player_slot`,
   );
@@ -191,21 +204,21 @@ export async function getRankedSides(accountId: number): Promise<Record<number, 
 
 export async function getPlayerHeroes(accountId: number) {
   "use cache";
-  cacheLife("hours");
-  return getJson<PlayerHero[]>(`${OPENDOTA}/players/${accountId}/heroes`);
+  cacheLife(SLOW);
+  return fresh(getJson<PlayerHero[]>(`${OPENDOTA}/players/${accountId}/heroes`));
 }
 
 export async function getPeers(accountId: number) {
   "use cache";
-  cacheLife("hours");
+  cacheLife(SLOW);
   return getJson<Peer[]>(`${OPENDOTA}/players/${accountId}/peers`);
 }
 
 export async function getLaneRoles(accountId: number) {
   "use cache";
-  cacheLife("hours");
+  cacheLife(SLOW);
   const counts = await getJson<{ lane_role: LaneRoles }>(`${OPENDOTA}/players/${accountId}/counts`);
-  return counts.lane_role;
+  return { data: counts.lane_role, at: Date.now() };
 }
 
 // ── Matches ──────────────────────────────────────────────────────────────────────────────────
