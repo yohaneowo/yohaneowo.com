@@ -22,14 +22,14 @@ async function Deaths({ params, searchParams }: { params: Params; searchParams: 
   const id = accountParam((await params).id);
   if (!id) return <Notice>{t.player.notFound}</Notice>;
   await redirectIfOwn(id, lang, "/dotahub/deaths");
-  // Deaths are only stored for players who linked Steam on this site.
+  // Players who linked Steam here have their whole history stored; anyone else's newest ranked
+  // matches are asked from STRATZ directly.
   const userId = await getSteamOwner(steamIdOf(id));
-  if (!userId) return <Notice>{t.player.noDeaths}</Notice>;
   return (
     <DeathsView
       t={t}
       lang={lang}
-      userId={userId}
+      source={userId ? { kind: "stored", userId } : { kind: "stratz" }}
       accountId={id}
       n={rangeParam((await searchParams).n)}
       path={`/dotahub/players/${id}/deaths`}
@@ -53,7 +53,13 @@ export default async function PlayerDeathsPage({
         <h1 className="text-2xl font-semibold">{t.deaths.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t.player.deathsDescription}</p>
       </div>
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+      <Suspense
+        fallback={
+          <div className="flex h-96 animate-pulse items-center justify-center rounded-xl bg-muted/40 text-sm text-muted-foreground">
+            {t.player.loadingDeaths}
+          </div>
+        }
+      >
         <Deaths params={params} searchParams={searchParams} />
       </Suspense>
     </div>

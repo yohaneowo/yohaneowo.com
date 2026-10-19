@@ -220,7 +220,10 @@ const dotahubEn: typeof dotahubZh = {
     noData: "OpenDota has no matches for this player; their match data may not be public.",
     notFound: "No such player.",
     mine: "Back to mine",
-    noDeaths: "This player hasn't linked Steam on this site, so there's no death heat map.",
+    noStratz: "STRATZ has no ranked matches for this player; their match data may not be public.",
+    loadingDeaths: "Asking STRATZ for this player's ranked matches; the first time takes about 15 seconds…",
+    stratzRecent:
+      "This player hasn't linked Steam here, so their newest 100 ranked matches come straight from STRATZ (refreshed every few hours).",
     deathsDescription:
       "Where this player dies in ranked matches: the more deaths, the darker. From STRATZ, ranked only.",
     peersDescription: "The people this player plays with most (at least 3 games on the same team).",

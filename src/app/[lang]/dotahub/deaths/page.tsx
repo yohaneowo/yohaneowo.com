@@ -29,7 +29,7 @@ async function Deaths({ searchParams }: { searchParams: SearchParams }) {
     <DeathsView
       t={t}
       lang={lang}
-      userId={viewer.userId}
+      source={{ kind: "stored", userId: viewer.userId }}
       accountId={viewer.accountId}
       n={rangeParam((await searchParams).n)}
       path="/dotahub/deaths"
