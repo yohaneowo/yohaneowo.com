@@ -70,6 +70,9 @@ export function Landing({ lang, t }: { lang: Locale; t: Dictionary }) {
               <MarketBody t={h} />
             </Suspense>
           </Tile>
+          <Tile title={t.nav.dotahub.title} href={localePath(lang, "/dotahub")} action={h.dashboard.open}>
+            <p className="text-sm text-muted-foreground">{t.nav.dotahub.description}</p>
+          </Tile>
           <Tile title={t.nav.uidhub.title}>
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm text-muted-foreground">{t.nav.uidhub.description}</p>

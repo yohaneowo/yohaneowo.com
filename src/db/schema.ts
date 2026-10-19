@@ -157,6 +157,17 @@ export const roadmapSuggestionLike = pgTable(
   ],
 );
 
+// DotaHub: the Steam account linked to a site account by signing in to Steam (lib/steam-link.ts).
+// One Steam account per site account and vice versa.
+export const steamAccount = pgTable("steam_account", {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  // SteamID64; Dota's account id is this minus 76561197960265728.
+  steamId: text().notNull().unique(),
+  linkedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
 // CoinHub workspace per site account: layout, charts, drawings, alerts and the paper account, as
 // the browser stores them (lib/coinhub/sync.ts). Last write wins.
 export const coinhubWorkspace = pgTable("coinhub_workspace", {

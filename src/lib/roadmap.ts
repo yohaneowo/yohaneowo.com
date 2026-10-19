@@ -12,7 +12,7 @@
 //   declined     不做:   looked at and decided against (with the reason)
 
 export type RoadmapStatus = "considering" | "building" | "testing" | "shipped" | "paused" | "declined";
-export type RoadmapArea = "moviehub" | "bot" | "admin" | "coinhub" | "uidhub" | "site";
+export type RoadmapArea = "moviehub" | "dotahub" | "bot" | "admin" | "coinhub" | "uidhub" | "site";
 type Text = { zh: string; en: string };
 
 export type RoadmapItem = {
@@ -46,7 +46,15 @@ export const ROADMAP_STATUSES: RoadmapStatus[] = [
   "paused",
   "declined",
 ];
-export const ROADMAP_AREAS: RoadmapArea[] = ["moviehub", "bot", "admin", "coinhub", "uidhub", "site"];
+export const ROADMAP_AREAS: RoadmapArea[] = [
+  "moviehub",
+  "dotahub",
+  "bot",
+  "admin",
+  "coinhub",
+  "uidhub",
+  "site",
+];
 // Voting is for what may still be built.
 export const VOTABLE: RoadmapStatus[] = ["considering", "building", "testing", "paused"];
 
@@ -192,6 +200,40 @@ export const ROADMAP: RoadmapItem[] = [
   },
 
   // ── 开发中 / 测试中 ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "dotahub",
+    status: "testing",
+    area: "dotahub",
+    title: { zh: "DotaHub：Dota 2 统计", en: "DotaHub: Dota 2 statistics" },
+    summary: {
+      zh: "用 Steam 登录连结帐号，看自己的段位、胜率、最近比赛、常用英雄、比赛详情与常一起玩的队友。",
+      en: "Sign in with Steam to see your rank, win rate, recent matches, most played heroes, match details and the people you play with.",
+    },
+    why: {
+      zh: "像 STRATZ、OpenDota 那样看自己的 Dota，但跟网站帐号和 Discord 放在一起，中文显示英雄和物品。",
+      en: "Your Dota the way STRATZ and OpenDota show it, next to your site account and Discord, with heroes and items in Chinese.",
+    },
+    steps: [
+      step("用 Steam 登录连结帐号", "Sign in with Steam to link the account", true),
+      step(
+        "总览：段位、胜率、最近 20 场、常用英雄、位置",
+        "Overview: rank, win rate, last 20 matches, heroes, roles",
+        true,
+      ),
+      step(
+        "比赛列表与比赛详情（计分板、出装、经济与经验曲线、选角）",
+        "Match list and details (scoreboard, items, gold and XP curves, draft)",
+        true,
+      ),
+      step("常一起玩的队友", "The people you play with", true),
+      step("比赛的 IMP 表现分数与对线结果（STRATZ）", "Match IMP scores and lane outcomes (STRATZ)"),
+      step("别人的公开页、跟 Discord 好友比较", "Other players' pages and comparing with Discord friends"),
+      step("Discord bot 指令（例如最近一场）", "Discord bot commands (e.g. the last match)"),
+    ],
+    links: [{ label: { zh: "DotaHub", en: "DotaHub" }, href: "/dotahub" }],
+    added: "2026-10-19",
+    started: "2026-10-19",
+  },
   {
     id: "roadmap",
     status: "shipped",

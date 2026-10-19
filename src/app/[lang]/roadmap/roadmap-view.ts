@@ -38,6 +38,7 @@ export function viewItem(item: RoadmapItem, lang: "zh" | "en"): ViewItem {
 // Each area's color (lines, nodes, dots; text stays in the text colors).
 export const AREA_COLOR: Record<RoadmapArea, string> = {
   moviehub: "#d4a72c",
+  dotahub: "#d2463a",
   bot: "#6b7cff",
   admin: "#38a3c9",
   coinhub: "#e8793a",

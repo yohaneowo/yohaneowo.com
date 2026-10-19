@@ -1,4 +1,5 @@
 import coinhubEn from "./coinhub-en";
+import dotahubEn from "./dotahub-en";
 import homeEn from "./home-en";
 import moviehubEn from "./moviehub-en";
 import roadmapEn from "./roadmap-en";
@@ -25,6 +26,11 @@ const en: Dictionary = {
     uidhub: {
       title: "UidHub",
       description: "Share your UIDs from mobile games on one page, so friends can add you without asking.",
+    },
+    dotahub: {
+      title: "DotaHub",
+      description:
+        "Connect Steam to see your Dota 2: rank, win rate, recent matches, most played heroes and match details.",
     },
     roadmap: {
       title: "Roadmap",
@@ -430,6 +436,7 @@ const en: Dictionary = {
       `${count} ${noun} watched, as many as or more than ${percent}% of the site's ${plural(users, "user")}. Uses your whole history.`,
   },
   coinhub: coinhubEn,
+  dotahub: dotahubEn,
   home: homeEn,
   moviehub: moviehubEn,
   roadmap: roadmapEn,

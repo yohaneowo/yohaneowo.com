@@ -27,6 +27,7 @@ const roadmapZh = {
   },
   areas: {
     moviehub: "观影统计",
+    dotahub: "DotaHub",
     bot: "Discord bot",
     admin: "管理后台",
     coinhub: "TradeHub",

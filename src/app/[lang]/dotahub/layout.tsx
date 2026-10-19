@@ -1,0 +1,23 @@
+import { Suspense } from "react";
+import { ListIcon, SwordsIcon, UsersIcon } from "lucide-react";
+import { SubNav, SubNavPlaceholder, type SubNavItem } from "@/components/sub-nav";
+import { getDictionary } from "@/i18n/server";
+
+// Every DotaHub page shares the sub-navigation, and the data sources at the bottom.
+export default async function DotaHubLayout({ children }: { children: React.ReactNode }) {
+  const t = (await getDictionary()).dotahub;
+  const items: SubNavItem[] = [
+    { href: "/dotahub", label: t.nav.overview, icon: <SwordsIcon aria-hidden /> },
+    { href: "/dotahub/matches", label: t.nav.matches, icon: <ListIcon aria-hidden /> },
+    { href: "/dotahub/peers", label: t.nav.peers, icon: <UsersIcon aria-hidden /> },
+  ];
+  return (
+    <>
+      <Suspense fallback={<SubNavPlaceholder />}>
+        <SubNav label={t.nav.label} items={items} />
+      </Suspense>
+      {children}
+      <p className="mt-10 text-xs text-muted-foreground">{t.sources}</p>
+    </>
+  );
+}

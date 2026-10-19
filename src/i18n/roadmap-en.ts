@@ -29,6 +29,7 @@ const roadmapEn: typeof roadmapZh = {
   },
   areas: {
     moviehub: "MovieHub",
+    dotahub: "DotaHub",
     bot: "Discord bot",
     admin: "Admin",
     coinhub: "TradeHub",

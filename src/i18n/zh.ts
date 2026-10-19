@@ -1,5 +1,6 @@
 // Chinese texts; the English dictionary must have the same shape (see Dictionary).
 import coinhubZh from "./coinhub-zh";
+import dotahubZh from "./dotahub-zh";
 import homeZh from "./home-zh";
 import moviehubZh from "./moviehub-zh";
 import roadmapZh from "./roadmap-zh";
@@ -22,6 +23,10 @@ const zh = {
     uidhub: {
       title: "UidHub",
       description: "公开自己在各个手游的 UID，想加好友时直接把链接给对方，不用开游戏查。",
+    },
+    dotahub: {
+      title: "DotaHub",
+      description: "连结 Steam 看自己的 Dota 2：段位、胜率、最近比赛、常用英雄与比赛详情。",
     },
     roadmap: {
       title: "开发计划",
@@ -411,6 +416,7 @@ const zh = {
       `看过 ${count} 部${noun}，不少于平台上 ${percent}% 的用户（共 ${users} 位）。按全部观影记录计算。`,
   },
   coinhub: coinhubZh,
+  dotahub: dotahubZh,
   home: homeZh,
   moviehub: moviehubZh,
   roadmap: roadmapZh,

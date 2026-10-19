@@ -50,6 +50,13 @@
       "when": 1792375016507,
       "tag": "0006_roadmap_ideas",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792385731713,
+      "tag": "0007_steam_account",
+      "breakpoints": true
     }
   ]
 }
