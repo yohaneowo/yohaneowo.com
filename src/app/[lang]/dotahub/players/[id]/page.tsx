@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getDictionary, getLocale } from "@/i18n/server";
-import { steamIdOf } from "@/lib/steam-link";
+import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import { redirectIfOwn } from "../../account";
 import { accountParam } from "../../match-list";
 import { Overview } from "../../overview";
@@ -22,7 +22,18 @@ async function Player({ params }: { params: Params }) {
   const id = accountParam((await params).id);
   if (!id) return <Notice>{t.player.notFound}</Notice>;
   await redirectIfOwn(id, lang, "/dotahub");
-  return <Overview t={t} lang={lang} accountId={id} steamId={steamIdOf(id)} own={false} />;
+  // Linked here: admin's stored history (IMP chart); anyone else: STRATZ asked directly.
+  const userId = await getSteamOwner(steamIdOf(id));
+  return (
+    <Overview
+      t={t}
+      lang={lang}
+      accountId={id}
+      steamId={steamIdOf(id)}
+      own={false}
+      source={userId ? { kind: "stored", userId } : { kind: "stratz" }}
+    />
+  );
 }
 
 // Someone's public DotaHub page (a teammate, a player in a match), from OpenDota's public data;

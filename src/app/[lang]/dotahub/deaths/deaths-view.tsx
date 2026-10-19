@@ -20,7 +20,7 @@ export function rangeParam(raw: string | string[] | undefined) {
 // ranked match, kept up to date), or STRATZ asked directly for anyone else (the newest 100).
 export type DeathsSource = { kind: "stored"; userId: string } | { kind: "stratz" };
 
-async function loadDeaths(source: DeathsSource, accountId: number, n: number) {
+export async function loadDeaths(source: DeathsSource, accountId: number, n: number) {
   if (source.kind === "stored") return getStoredDeaths(source.userId, n);
   const matches = await getStratzRankedDeaths(accountId);
   return { historyDone: true, matches: n ? matches.slice(0, n) : matches };

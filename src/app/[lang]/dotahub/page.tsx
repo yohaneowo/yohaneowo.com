@@ -60,7 +60,14 @@ async function Body({ searchParams }: { searchParams: SearchParams }) {
         </p>
       )}
       {viewer.state === "linked" ? (
-        <Overview t={t} lang={lang} accountId={viewer.accountId} steamId={viewer.steamId} own />
+        <Overview
+          t={t}
+          lang={lang}
+          accountId={viewer.accountId}
+          steamId={viewer.steamId}
+          own
+          source={{ kind: "stored", userId: viewer.userId }}
+        />
       ) : (
         <ConnectCard t={t} lang={lang} signedIn={viewer.state === "notLinked"} />
       )}

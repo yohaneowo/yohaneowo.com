@@ -16,7 +16,9 @@ import {
   SLOW,
 } from "@/lib/dota/data";
 import { DisconnectSteam } from "./buttons";
+import { type DeathsSource, loadDeaths } from "./deaths/deaths-view";
 import { Freshness } from "./freshness";
+import { ImpChart, type ImpMatch } from "./imp-chart";
 import { LatestMatch } from "./latest-match";
 import { HeroImage, Medal, medalName, Notice } from "./parts";
 
@@ -240,6 +242,56 @@ async function Lanes({ t, accountId }: Omit<Props, "lang">) {
   );
 }
 
+// STRATZ's IMP over the newest ranked matches, from the same place as the death heat map (admin's
+// stored history for players linked here, STRATZ asked directly for anyone else).
+async function Imp({ t, lang, accountId, source }: Props & { source: DeathsSource }) {
+  const [data, heroes] = await Promise.all([
+    loadDeaths(source, accountId, 100).catch(() => null),
+    getHeroes().catch(() => null),
+  ]);
+  const heading = <Heading title={t.imp.title} />;
+  if (!data || !heroes)
+    return (
+      <>
+        {heading}
+        <SectionError t={t} />
+      </>
+    );
+  const matches: ImpMatch[] = data.matches
+    .filter((m) => m.parsed && m.imp != null)
+    .slice(0, 100)
+    .map((m) => ({
+      matchId: m.matchId,
+      heroId: m.heroId,
+      won: m.won,
+      imp: m.imp!,
+      startTime: m.startTime,
+      kills: m.kills,
+      deaths: m.deaths,
+      assists: m.assists,
+    }));
+  return (
+    <>
+      {heading}
+      {matches.length ? (
+        <ImpChart
+          matches={matches}
+          // Only the names of the heroes in these matches go to the client.
+          heroes={Object.fromEntries(
+            [...new Set(matches.map((m) => m.heroId))].map((id) => [
+              id,
+              { zh: heroes[id]?.zh ?? String(id), en: heroes[id]?.en ?? String(id) },
+            ]),
+          )}
+          matchHref={localePath(lang, "/dotahub/matches")}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">{t.imp.empty}</p>
+      )}
+    </>
+  );
+}
+
 // own: the viewer's linked account (the Steam disconnect button, their match list); otherwise
 // someone's public page, /dotahub/players/<account id>. Each part loads on its own: OpenDota answers
 // some of these in a second and others in half a minute, so one slow part never holds up the page.
@@ -249,9 +301,11 @@ export function Overview({
   accountId,
   steamId,
   own,
+  source,
 }: Props & {
   steamId: string;
   own: boolean;
+  source: DeathsSource;
 }) {
   const props = { t, lang, accountId };
   return (
@@ -260,18 +314,32 @@ export function Overview({
         <Profile {...props} steamId={steamId} own={own} />
       </Suspense>
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="flex min-w-0 flex-col gap-3">
-          <Suspense
-            fallback={
-              <>
-                <Heading title={t.latest.title} />
-                <Skeleton className="h-80" />
-              </>
-            }
-          >
-            <Latest {...props} own={own} />
-          </Suspense>
-        </section>
+        <div className="flex min-w-0 flex-col gap-6">
+          <section className="flex min-w-0 flex-col gap-3">
+            <Suspense
+              fallback={
+                <>
+                  <Heading title={t.latest.title} />
+                  <Skeleton className="h-80" />
+                </>
+              }
+            >
+              <Latest {...props} own={own} />
+            </Suspense>
+          </section>
+          <section className="flex min-w-0 flex-col gap-3">
+            <Suspense
+              fallback={
+                <>
+                  <Heading title={t.imp.title} />
+                  <Skeleton className="h-80" />
+                </>
+              }
+            >
+              <Imp {...props} source={source} />
+            </Suspense>
+          </section>
+        </div>
         <aside className="flex flex-col gap-6">
           <section className="flex flex-col gap-3">
             <Suspense
