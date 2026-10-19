@@ -167,7 +167,7 @@ const dotahubZh = {
       manyValue: (rate: number) => `胜率 ${rate}%`,
       manyHint: (n: number) => `${n} 场，不看胜负筛选`,
       yourHeroes: "用哪个英雄死最多",
-      perMatchShort: (v: string) => `${v} 次/场`,
+      heroDeaths: (v: string, n: number) => `${v} 次/场 · ${n} 场`,
       trend: "趋势",
       trendValue: (recent: string, before: string) => `最近 ${recent} · 之前 ${before}`,
       trendHint: "最近 20 场和之前，平均每场死几次（红色是变多）",

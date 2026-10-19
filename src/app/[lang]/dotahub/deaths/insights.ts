@@ -93,10 +93,11 @@ export function insights(matches: StoredMatch[], byHero: StoredMatch[], heroes: 
 
   const perHero = new Map<number, number[]>();
   for (const m of matches) perHero.set(m.heroId, [...(perHero.get(m.heroId) ?? []), deathsOf(m)]);
+  // Always three when there are three heroes: the ones with enough matches to mean something come
+  // first, heroes played less fill the rest (the card shows how many matches each is from).
   const yourHeroes = [...perHero.entries()]
-    .filter(([, list]) => list.length >= MIN_HERO_MATCHES)
     .map(([id, list]) => ({ id, avg: avg(list)!, n: list.length }))
-    .sort((a, b) => b.avg - a.avg)
+    .sort((a, b) => Number(b.n >= MIN_HERO_MATCHES) - Number(a.n >= MIN_HERO_MATCHES) || b.avg - a.avg)
     .slice(0, 3);
 
   const newest = [...matches].sort((a, b) => b.startTime - a.startTime);

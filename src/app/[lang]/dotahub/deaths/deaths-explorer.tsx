@@ -125,6 +125,7 @@ export function DeathsExplorer({
         counts.set(m.heroId, (counts.get(m.heroId) ?? 0) + 1);
     return counts;
   }, [usable, result]);
+  const topHeroes = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
 
   const byHero = usable.filter((m) => hero === 0 || m.heroId === hero);
   const parsed = byHero.filter((m) => result === "all" || (result === "win") === m.won);
@@ -156,9 +157,31 @@ export function DeathsExplorer({
           onChange={setResult}
           options={(["all", "win", "loss"] as Result[]).map((r) => [r, t.results[r]])}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">{t.hero}</span>
           <HeroPicker value={hero} onChange={setHero} heroes={heroes} counts={counts} />
+          {/* Shortcuts: the three heroes played most in the range and result; again clears it. */}
+          {topHeroes.map(([id, n]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={hero === id}
+              onClick={() => setHero(hero === id ? 0 : id)}
+              title={`${heroes[id]?.[lang] ?? id} · ${n}`}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded-lg border px-2 text-xs transition-colors",
+                hero === id
+                  ? "border-foreground/50 bg-muted font-medium"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {heroes[id] && (
+                <Image src={heroes[id].icon} alt="" width={20} height={20} unoptimized className="size-5" />
+              )}
+              <span className="hidden sm:inline">{heroes[id]?.[lang]}</span>
+              <span className="tabular-nums">{n}</span>
+            </button>
+          ))}
         </div>
       </div>
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,560px)_220px_minmax(0,1fr)]">
@@ -256,7 +279,7 @@ export function DeathsExplorer({
                     <Heroes
                       heroes={heroes}
                       lang={lang}
-                      list={facts.yourHeroes.map((h) => ({ id: h.id, text: c.perMatchShort(one(h.avg)) }))}
+                      list={facts.yourHeroes.map((h) => ({ id: h.id, text: c.heroDeaths(one(h.avg), h.n) }))}
                     />
                   }
                 />

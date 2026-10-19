@@ -184,7 +184,7 @@ const dotahubEn: typeof dotahubZh = {
       manyValue: (rate: number) => `${rate}% won`,
       manyHint: (n: number) => `${n} matches, ignores the result filter`,
       yourHeroes: "Heroes you die most on",
-      perMatchShort: (v: string) => `${v} per match`,
+      heroDeaths: (v: string, n: number) => `${v}/match · ${n}`,
       trend: "Trend",
       trendValue: (recent: string, before: string) => `Last 20: ${recent} · Before: ${before}`,
       trendHint: "Deaths per match (red means more)",
