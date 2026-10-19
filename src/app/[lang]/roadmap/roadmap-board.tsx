@@ -12,12 +12,9 @@ import { AREA_COLOR, type ViewItem } from "./roadmap-view";
 
 type Sort = "votes" | "newest";
 
-// Shipped items shown per area; the rest are in the changelog.
-const RECENT = 2;
-
 // The roadmap as one card per area: how much of it has shipped (a ring), what is being worked on
 // now (in progress and testing, with their progress), what comes next (considering, by votes),
-// the latest shipped, and what's paused or not being done. Votes change optimistically and settle
+// everything shipped (one line each, newest first), and what's paused or not being done. Votes change optimistically and settle
 // on the server's count.
 export function RoadmapBoard({
   items,
@@ -133,6 +130,8 @@ export function RoadmapBoard({
   // One item in an area card: title, status, progress, its vote button, and details on demand.
   function row(item: ViewItem) {
     const isOpen = open.has(item.id);
+    // Shipped items take one line each (name and date), so every one of them fits.
+    const compact = item.status === "shipped";
     const done = item.steps.filter((s) => s.done).length;
     const hasDetails = Boolean(
       item.why || item.steps.length || item.notes.length || item.links.length || item.reason,
@@ -141,9 +140,12 @@ export function RoadmapBoard({
       <li
         key={item.id}
         id={`item-${item.id}`}
-        className="scroll-mt-32 rounded-lg px-2 py-2 transition-colors data-linked:bg-muted data-linked:ring-1 data-linked:ring-primary/50"
+        className={cn(
+          "scroll-mt-32 rounded-lg px-2 transition-colors data-linked:bg-muted data-linked:ring-1 data-linked:ring-primary/50",
+          compact ? "py-1" : "py-2",
+        )}
       >
-        <div className="flex items-start gap-2">
+        <div className={cn("flex gap-2", compact ? "items-baseline" : "items-start")}>
           <button
             type="button"
             aria-expanded={hasDetails ? isOpen : undefined}
@@ -163,11 +165,11 @@ export function RoadmapBoard({
                 />
               )}
             </span>
-            <span className="text-xs text-muted-foreground">
-              {item.status !== "considering" && t.statuses[item.status]}
-              {item.shipped && ` · ${item.shipped}`}
-              {item.status === "considering" && item.summary}
-            </span>
+            {!compact && (
+              <span className="text-xs text-muted-foreground">
+                {item.status === "considering" ? item.summary : t.statuses[item.status]}
+              </span>
+            )}
             {item.steps.length > 0 && item.status !== "shipped" && (
               <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="h-1 w-20 overflow-hidden rounded-full bg-muted">
@@ -183,7 +185,11 @@ export function RoadmapBoard({
               </span>
             )}
           </button>
-          {voteButton(item)}
+          {compact ? (
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{item.shipped}</span>
+          ) : (
+            voteButton(item)
+          )}
         </div>
         {isOpen && (
           <div className="pl-0">
@@ -241,16 +247,8 @@ export function RoadmapBoard({
           {next.length ? <ul className="flex flex-col">{next.map(row)}</ul> : <Empty>{t.nothingNext}</Empty>}
         </Group>
         {shippedAll.length > 0 && (
-          <Group title={t.recent} color={color}>
-            <ul className="flex flex-col">{shippedAll.slice(0, RECENT).map(row)}</ul>
-            {shippedAll.length > RECENT && (
-              <Link
-                href={href("/roadmap/changelog")}
-                className="px-2 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-              >
-                {t.moreShipped(shippedAll.length - RECENT)}
-              </Link>
-            )}
+          <Group title={t.statuses.shipped} color={color}>
+            <ul className="flex flex-col">{shippedAll.map(row)}</ul>
           </Group>
         )}
         {onHold.length > 0 && (

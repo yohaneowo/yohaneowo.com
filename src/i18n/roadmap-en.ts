@@ -40,7 +40,6 @@ const roadmapEn: typeof roadmapZh = {
   shippedOf: (shipped: number, total: number) => `${shipped}/${total} shipped`,
   nothingNow: "Nothing in progress right now.",
   nothingNext: "Nothing planned yet; suggestions are welcome in the idea box.",
-  moreShipped: (n: number) => `${n} more shipped`,
   filter: { label: "Area", all: "All" },
   sort: { label: "Order of Considering", votes: "Votes", newest: "Newest" },
   vote: "Vote",
@@ -61,7 +60,6 @@ const roadmapEn: typeof roadmapZh = {
     shipped: "Shipped",
   },
   empty: "Nothing here yet.",
-  recent: "Recently shipped",
   onHold: "Paused and not doing",
   changelog: {
     title: "Changelog",

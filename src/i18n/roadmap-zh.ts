@@ -38,7 +38,6 @@ const roadmapZh = {
   shippedOf: (shipped: number, total: number) => `${shipped}/${total} 已上线`,
   nothingNow: "目前没有在做的项目。",
   nothingNext: "暂时没有规划，欢迎到建议箱提建议。",
-  moreShipped: (n: number) => `还有 ${n} 项已上线`,
   filter: { label: "功能区", all: "全部" },
   sort: { label: "考虑中的排序", votes: "票数", newest: "最新" },
   vote: "投票",
@@ -59,7 +58,6 @@ const roadmapZh = {
     shipped: "上线",
   },
   empty: "目前没有。",
-  recent: "最近上线",
   onHold: "暂缓与不做",
   changelog: {
     title: "更新纪录",
