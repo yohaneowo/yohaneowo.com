@@ -201,7 +201,7 @@ const dotahubZh = {
     description: "这位玩家公开的 Dota 2 资料：段位、胜率、最近一场、常用英雄与位置。资料来自 OpenDota。",
     noData: "OpenDota 找不到这位玩家的比赛，可能没有公开比赛资料。",
     notFound: "找不到这位玩家。",
-    mine: "回到我的",
+    mine: "我的 DotaHub",
     noStratz: "STRATZ 查不到这位玩家的天梯比赛，可能没有公开比赛资料。",
     loadingDeaths: "正在向 STRATZ 查询这位玩家的天梯比赛，第一次大约要 15 秒……",
     stratzRecent: "这位玩家没有在本站连结 Steam，所以直接向 STRATZ 查最近 100 场天梯（几小时更新一次）。",

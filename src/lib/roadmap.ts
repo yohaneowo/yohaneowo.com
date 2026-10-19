@@ -202,7 +202,7 @@ export const ROADMAP: RoadmapItem[] = [
   // ── 开发中 / 测试中 ──────────────────────────────────────────────────────────────────────────
   {
     id: "dotahub",
-    status: "testing",
+    status: "shipped",
     area: "dotahub",
     title: { zh: "DotaHub：Dota 2 统计", en: "DotaHub: Dota 2 statistics" },
     summary: {
@@ -247,18 +247,54 @@ export const ROADMAP: RoadmapItem[] = [
         "OpenDota, STRATZ and Steam status and quota at the end of the navigation",
         true,
       ),
-      step("对线结果（STRATZ）", "Lane outcomes (STRATZ)"),
       step(
         "别人的公开页：队友和比赛里的玩家都能点进去看总览与比赛",
         "Other players' pages: open any teammate or player in a match for their overview and matches",
         true,
       ),
+    ],
+    links: [{ label: { zh: "DotaHub", en: "DotaHub" }, href: "/dotahub" }],
+    notes: [
+      {
+        zh: "用 Steam 登录连结帐号：总览、比赛列表与详情、常一起玩的队友，英雄和物品显示中文",
+        en: "Sign in with Steam: overview, match list and details, the people you play with, heroes and items in Chinese",
+      },
+      {
+        zh: "死亡地图与死亡热力图：每场死在哪里、第几次；热力图按英雄、阶段、胜负筛选，附分区与重点",
+        en: "Death maps and a death heat map: where and when you died, filtered by hero, phase and result, with map areas and highlights",
+      },
+      {
+        zh: "每场天梯打完，Discord 私讯这场的死亡地图",
+        en: "A Discord DM with the death map after each ranked match",
+      },
+      {
+        zh: "别人的公开页：队友和比赛里的玩家都能点进去，死亡热力图不用对方连结 Steam",
+        en: "Other players' pages for any teammate or player in a match, death heat map included",
+      },
+    ],
+    added: "2026-10-19",
+    started: "2026-10-19",
+    shipped: "2026-10-20",
+  },
+  {
+    id: "dotahub-next",
+    status: "considering",
+    area: "dotahub",
+    title: { zh: "DotaHub：对线、好友比较与 bot 指令", en: "DotaHub: lanes, friends and bot commands" },
+    summary: {
+      zh: "每场的对线结果、跟 Discord 好友比较段位与表现、在 Discord 用指令看最近一场。",
+      en: "Each match's lane outcome, comparing rank and play with Discord friends, and a bot command for the last match.",
+    },
+    why: {
+      zh: "DotaHub 第一版上线后还没做的部分。",
+      en: "What the first version of DotaHub left for later.",
+    },
+    steps: [
+      step("对线结果（STRATZ）", "Lane outcomes (STRATZ)"),
       step("跟 Discord 好友比较", "Comparing with Discord friends"),
       step("Discord bot 指令（例如最近一场）", "Discord bot commands (e.g. the last match)"),
     ],
-    links: [{ label: { zh: "DotaHub", en: "DotaHub" }, href: "/dotahub" }],
-    added: "2026-10-19",
-    started: "2026-10-19",
+    added: "2026-10-20",
   },
   {
     id: "roadmap",
