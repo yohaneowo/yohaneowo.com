@@ -195,11 +195,11 @@ export function DeathsExplorer({
         byHero.length > 0 &&
         createPortal(
           <div className="text-right" title={c.winRateNote}>
-            <div className="text-xs text-muted-foreground">{c.winRate}</div>
-            <div className="text-2xl font-semibold tabular-nums">
+            <div className="text-sm text-muted-foreground">{c.winRate}</div>
+            <div className="text-5xl leading-tight font-semibold tabular-nums">
               {Math.round((wins / byHero.length) * 100)}%
             </div>
-            <div className="text-xs text-muted-foreground tabular-nums">
+            <div className="text-sm text-muted-foreground tabular-nums">
               {c.winRateHint(wins, byHero.length - wins)}
             </div>
           </div>,
@@ -212,47 +212,50 @@ export function DeathsExplorer({
           onChange={setPhase}
           options={(["all", "laning", "mid", "late"] as Phase[]).map((p) => [p, t.phases[p]])}
         />
-        <Chips
-          label={t.result}
-          value={result}
-          onChange={setResult}
-          options={(["all", "win", "loss"] as Result[]).map((r) => [r, t.results[r]])}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">{t.hero}</span>
-          <HeroPicker value={hero} onChange={setHero} heroes={heroes} counts={counts} />
-          {/* Shortcuts: the three heroes played most in the range and result; again clears it. */}
-          {topHeroes.map(([id, n]) => (
+        {/* Heroes on the left; the result filter at the right end, above the highlight cards. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">{t.hero}</span>
+            <HeroPicker value={hero} onChange={setHero} heroes={heroes} counts={counts} />
+            {/* Shortcuts: the three heroes played most in the range and result; again clears it. */}
+            {topHeroes.map(([id, n]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={hero === id}
+                onClick={() => setHero(hero === id ? 0 : id)}
+                title={`${heroes[id]?.[lang] ?? id} · ${n}`}
+                className={cn(
+                  "flex h-8 items-center gap-1.5 rounded-lg border px-2 text-xs transition-colors",
+                  hero === id
+                    ? "border-foreground/50 bg-muted font-medium"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {heroes[id] && (
+                  <Image src={heroes[id].icon} alt="" width={20} height={20} unoptimized className="size-5" />
+                )}
+                <span className="hidden sm:inline">{heroes[id]?.[lang]}</span>
+                <span className="tabular-nums">{n}</span>
+              </button>
+            ))}
             <button
-              key={id}
               type="button"
-              aria-pressed={hero === id}
-              onClick={() => setHero(hero === id ? 0 : id)}
-              title={`${heroes[id]?.[lang] ?? id} · ${n}`}
-              className={cn(
-                "flex h-8 items-center gap-1.5 rounded-lg border px-2 text-xs transition-colors",
-                hero === id
-                  ? "border-foreground/50 bg-muted font-medium"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
+              onClick={() => setHero(0)}
+              disabled={hero === 0}
+              aria-label={t.resetHero}
+              title={t.resetHero}
+              className="flex size-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
             >
-              {heroes[id] && (
-                <Image src={heroes[id].icon} alt="" width={20} height={20} unoptimized className="size-5" />
-              )}
-              <span className="hidden sm:inline">{heroes[id]?.[lang]}</span>
-              <span className="tabular-nums">{n}</span>
+              <RotateCcwIcon className="size-3.5" aria-hidden />
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setHero(0)}
-            disabled={hero === 0}
-            aria-label={t.resetHero}
-            title={t.resetHero}
-            className="flex size-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-          >
-            <RotateCcwIcon className="size-3.5" aria-hidden />
-          </button>
+          </div>
+          <Chips
+            label={t.result}
+            value={result}
+            onChange={setResult}
+            options={(["all", "win", "loss"] as Result[]).map((r) => [r, t.results[r]])}
+          />
         </div>
       </div>
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,560px)_220px_minmax(0,1fr)]">

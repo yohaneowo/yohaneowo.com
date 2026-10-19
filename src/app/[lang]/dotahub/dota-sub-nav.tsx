@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FlameIcon, ListIcon, SwordsIcon, UsersIcon } from "lucide-react";
+import { ArrowLeftIcon, FlameIcon, ListIcon, SwordsIcon, UsersIcon } from "lucide-react";
 import { SubNav } from "@/components/sub-nav";
 import { useLocale } from "@/i18n/locale-provider";
 import { SourceHealthDots } from "./source-health";
@@ -30,8 +30,9 @@ export function DotaSubNav() {
           {other && (
             <Link
               href={href("/dotahub")}
-              className="rounded-md border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
+              <ArrowLeftIcon className="size-3.5" aria-hidden />
               {t.player.mine}
             </Link>
           )}

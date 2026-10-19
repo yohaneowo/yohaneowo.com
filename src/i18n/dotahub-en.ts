@@ -241,7 +241,7 @@ const dotahubEn: typeof dotahubZh = {
       "This player's public Dota 2 data: rank, win rate, latest match, heroes and roles. From OpenDota.",
     noData: "OpenDota has no matches for this player; their match data may not be public.",
     notFound: "No such player.",
-    mine: "My DotaHub",
+    mine: "Back to my DotaHub",
     noStratz: "STRATZ has no ranked matches for this player; their match data may not be public.",
     loadingDeaths: "Asking STRATZ for this player's ranked matches; the first time takes about 15 seconds…",
     stratzRecent:
