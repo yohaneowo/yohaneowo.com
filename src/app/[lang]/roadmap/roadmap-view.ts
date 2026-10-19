@@ -39,7 +39,7 @@ export function viewItem(item: RoadmapItem, lang: "zh" | "en"): ViewItem {
 export const AREA_COLOR: Record<RoadmapArea, string> = {
   moviehub: "#d4a72c",
   bot: "#6b7cff",
-  admin: "#8a94a6",
+  admin: "#38a3c9",
   coinhub: "#e8793a",
   uidhub: "#d65fa0",
   site: "#2fb388",

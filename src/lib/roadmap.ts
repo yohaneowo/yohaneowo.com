@@ -212,6 +212,7 @@ export const ROADMAP: RoadmapItem[] = [
       step("更新纪录，补齐从第一天开始的历史", "A changelog with the history from day one", true),
       step("公开的建议箱，可以按赞", "A public idea box with likes", true),
       step("六种状态与项目详情", "Six statuses and item details", true),
+      step("路线图改成功能区仪表板", "The roadmap as one card per area", true),
     ],
     links: [{ label: { zh: "建议箱", en: "Idea box" }, href: "/roadmap/ideas" }],
     added: "2026-10-19",
