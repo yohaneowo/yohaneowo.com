@@ -43,6 +43,13 @@
       "when": 1792371970860,
       "tag": "0005_roadmap",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792375016507,
+      "tag": "0006_roadmap_ideas",
+      "breakpoints": true
     }
   ]
 }

@@ -139,6 +139,24 @@ export const roadmapSuggestion = pgTable(
   (t) => [index("roadmap_suggestion_user_idx").on(t.userId)],
 );
 
+// 开发计划 idea box: one like per account per suggestion (the suggestions are public, anonymous).
+export const roadmapSuggestionLike = pgTable(
+  "roadmap_suggestion_like",
+  {
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    suggestionId: text()
+      .notNull()
+      .references(() => roadmapSuggestion.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.suggestionId] }),
+    index("roadmap_suggestion_like_suggestion_idx").on(t.suggestionId),
+  ],
+);
+
 // CoinHub workspace per site account: layout, charts, drawings, alerts and the paper account, as
 // the browser stores them (lib/coinhub/sync.ts). Last write wins.
 export const coinhubWorkspace = pgTable("coinhub_workspace", {

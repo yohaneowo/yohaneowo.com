@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
-import { addSuggestion, toggleVote, type SuggestionError } from "@/lib/roadmap-store";
+import { addSuggestion, toggleLike, toggleVote, type SuggestionError } from "@/lib/roadmap-store";
 
 export async function voteForItem(
   itemId: unknown,
@@ -11,7 +11,19 @@ export async function voteForItem(
   if (typeof itemId !== "string") return { error: "closed" };
   const result = await toggleVote(session.user.id, itemId);
   if (!result) return { error: "closed" };
-  revalidatePath("/[lang]/roadmap", "page");
+  revalidatePath("/[lang]/roadmap", "layout");
+  return result;
+}
+
+export async function likeIdea(
+  suggestionId: unknown,
+): Promise<{ liked: boolean; likes: number } | { error: "signIn" | "closed" }> {
+  const session = await getSession();
+  if (!session) return { error: "signIn" };
+  if (typeof suggestionId !== "string") return { error: "closed" };
+  const result = await toggleLike(session.user.id, suggestionId);
+  if (!result) return { error: "closed" };
+  revalidatePath("/[lang]/roadmap", "layout");
   return result;
 }
 
@@ -28,6 +40,6 @@ export async function suggestFeature(input: {
     title: text(input.title),
     detail: text(input.detail),
   });
-  if (!error) revalidatePath("/[lang]/roadmap", "page");
+  if (!error) revalidatePath("/[lang]/roadmap", "layout");
   return { error };
 }
