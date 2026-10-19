@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { DEATHS_TITLE_SLOT } from "./insights";
 import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { dotaViewer, syncDotaLink } from "../account";
@@ -43,9 +44,13 @@ export default async function DeathsPage({ searchParams }: { searchParams: Searc
   const t = (await getDictionary()).dotahub.deaths;
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{t.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
+        </div>
+        {/* The win rate for the chosen range and hero, put here by DeathsExplorer. */}
+        <div id={DEATHS_TITLE_SLOT} className="shrink-0" />
       </div>
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
         <Deaths searchParams={searchParams} />

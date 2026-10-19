@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { DEATHS_TITLE_SLOT } from "../../../deaths/insights";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import { redirectIfOwn } from "../../../account";
@@ -49,9 +50,13 @@ export default async function PlayerDeathsPage({
   const t = (await getDictionary()).dotahub;
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t.deaths.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t.player.deathsDescription}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{t.deaths.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t.player.deathsDescription}</p>
+        </div>
+        {/* The win rate for the chosen range and hero, put here by DeathsExplorer. */}
+        <div id={DEATHS_TITLE_SLOT} className="shrink-0" />
       </div>
       <Suspense
         fallback={

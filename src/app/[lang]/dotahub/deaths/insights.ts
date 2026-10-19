@@ -2,6 +2,10 @@ import type { DeathEvent, StoredMatch } from "@/lib/dota/admin";
 import type { HeroInfo } from "@/lib/dota/data";
 import { mapZone } from "@/lib/dota/map";
 
+// The id of the place at the end of the heat map page's title where DeathsExplorer puts the win
+// rate (here, not in the client component, so the server pages get the plain string).
+export const DEATHS_TITLE_SLOT = "deaths-title-slot";
+
 // Map areas from the player's point of view when their side is known, else in absolute terms.
 export type Zone =
   | "top"
@@ -55,15 +59,18 @@ const TREND_RECENT = 20;
 
 // What the deaths cost: gold lost and time spent waiting to respawn, in total, per match and per
 // death, and the single worst one. events follow the phase filter; matches is how many they're from.
-export function costs(events: DeathEvent[], matches: number) {
-  if (!events.length || !matches) return null;
+export function costs(matches: StoredMatch[], keep: (e: DeathEvent) => boolean) {
+  // Each death with the hero the player was on, for the worst one's kill line.
+  const events = matches.flatMap((m) => m.deathEvents.filter(keep).map((e) => ({ ...e, heroId: m.heroId })));
+  if (!events.length || !matches.length) return null;
   const gold = events.reduce((sum, e) => sum + e.gold, 0);
   const dead = events.reduce((sum, e) => sum + e.dead, 0);
   const pick = (key: "gold" | "dead") =>
     events.reduce((best, e) => (e[key] > best[key] ? e : best), events[0]);
+  const count = matches.length;
   return {
-    gold: { total: gold, perMatch: gold / matches, perDeath: gold / events.length, worst: pick("gold") },
-    dead: { total: dead, perMatch: dead / matches, perDeath: dead / events.length, worst: pick("dead") },
+    gold: { total: gold, perMatch: gold / count, perDeath: gold / events.length, worst: pick("gold") },
+    dead: { total: dead, perMatch: dead / count, perDeath: dead / events.length, worst: pick("dead") },
   };
 }
 

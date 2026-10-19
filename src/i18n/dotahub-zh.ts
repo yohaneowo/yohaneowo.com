@@ -151,21 +151,22 @@ const dotahubZh = {
     },
     cards: {
       winRate: "胜率",
-      winRateHint: (w: number, l: number) => `${w} 胜 ${l} 负，不看胜负筛选`,
+      winRateHint: (w: number, l: number) => `${w} 胜 ${l} 负`,
+      winRateNote: "按选的场数和英雄算，不看胜负筛选",
       inPhase: (phase: string) => `只算${phase}`,
-      gold: "掉落金钱",
+      gold: "平均每场掉落金钱",
       goldValue: (n: string) => `${n} 金`,
-      goldAvg: (perMatch: number, perDeath: number) => `平均每场 ${perMatch} 金、每次 ${perDeath} 金`,
-      worstGold: (gold: number, at: string, by: string) => `最多一次掉 ${gold} 金（${at}，${by}）`,
-      waiting: "死亡等待",
+      goldMore: (total: string, perDeath: number) => `共 ${total} 金，每次 ${perDeath} 金`,
+      worstGold: (gold: number, at: string) => `最多一次 ${gold} 金（${at}）`,
+      waiting: "平均每场死亡等待",
+      waitMore: (total: string, perDeath: number) => `共 ${total}，每次 ${perDeath} 秒`,
+      worstWait: (s: number, at: string) => `最久一次 ${s} 秒（${at}）`,
       duration: (s: number) =>
         s >= 3600
           ? `${Math.floor(s / 3600)} 小时 ${Math.floor((s % 3600) / 60)} 分`
           : s >= 60
             ? `${Math.floor(s / 60)} 分 ${s % 60} 秒`
             : `${s} 秒`,
-      waitAvg: (perMatch: string, perDeath: number) => `平均每场 ${perMatch}、每次 ${perDeath} 秒`,
-      worstWait: (s: number, at: string) => `最久一次等了 ${s} 秒（${at}）`,
       perMatch: "平均每场死",
       times: (v: string) => `${v} 次`,
       zero: (n: number) => `${n} 场没死`,

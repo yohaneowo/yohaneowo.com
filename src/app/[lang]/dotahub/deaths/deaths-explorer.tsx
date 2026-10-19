@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import { RotateCcwIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { RotateCcwIcon, SwordIcon } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import { useLocale } from "@/i18n/locale-provider";
 import type { DeathEvent, StoredMatch } from "@/lib/dota/admin";
@@ -11,7 +12,7 @@ import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { HeatMap } from "../death-map";
 import { HeroPicker } from "./hero-picker";
-import { costs, insights, type Zone, zoneOf, zoneShares } from "./insights";
+import { costs, DEATHS_TITLE_SLOT, insights, type Zone, zoneOf, zoneShares } from "./insights";
 
 type Phase = "all" | "laning" | "mid" | "late";
 type Result = "all" | "win" | "loss";
@@ -56,13 +57,48 @@ function Chips<V extends string>({
   );
 }
 
-function Card({ title, value, hint }: { title: string; value: React.ReactNode; hint?: string }) {
+function Card({ title, value, hint }: { title: string; value: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1 rounded-xl border p-3">
       <span className="text-xs text-muted-foreground">{title}</span>
       <div className="text-lg font-semibold tabular-nums">{value}</div>
-      {hint && <span className="text-xs whitespace-pre-line text-muted-foreground">{hint}</span>}
+      {hint && <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">{hint}</div>}
     </div>
+  );
+}
+
+// A kill line like Dota's kill feed: the killer's icon, a sword, the hero the player was on.
+function KillLine({
+  by,
+  victim,
+  heroes,
+  lang,
+  unknown,
+}: {
+  by: number;
+  victim: number;
+  heroes: Record<number, HeroInfo>;
+  lang: Locale;
+  unknown: string;
+}) {
+  const icon = (id: number) =>
+    heroes[id] ? (
+      <Image
+        src={heroes[id].icon}
+        alt={heroes[id][lang]}
+        title={heroes[id][lang]}
+        width={20}
+        height={20}
+        unoptimized
+        className="size-5"
+      />
+    ) : null;
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      {heroes[by] ? icon(by) : <span>{unknown}</span>}
+      <SwordIcon className="size-3.5 text-red-500" aria-label="→" />
+      {icon(victim)}
+    </span>
   );
 }
 
@@ -111,6 +147,12 @@ export function DeathsExplorer({
   const [result, setResult] = useState<Result>("loss");
   const [hoveredZone, setHoveredZone] = useState<Zone | null>(null);
   const [pinnedZone, setPinnedZone] = useState<Zone | null>(null);
+  // The win rate sits at the end of the page title (outside this component): found after mount.
+  const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const id = setTimeout(() => setTitleSlot(document.getElementById(DEATHS_TITLE_SLOT)), 0);
+    return () => clearTimeout(id);
+  }, []);
 
   // STRATZ marks many older matches parsed without any death positions: those can't be drawn, so
   // they are left out (a match with no deaths is kept, it simply adds nothing to the map).
@@ -142,17 +184,27 @@ export function DeathsExplorer({
   // The cards cover whole matches (all phases), so their shares mean something.
   const facts = parsed.length ? insights(parsed, byHero, heroes) : null;
   // Gold and waiting follow the phase (but not the area hovered on the map).
-  const cost = costs(
-    parsed.flatMap((m) => m.deathEvents.filter(inPhase)),
-    parsed.length,
-  );
+  const cost = costs(parsed, inPhase);
   const wins = byHero.filter((m) => m.won).length;
-  const phaseNote = phase === "all" ? null : c.inPhase(t.phases[phase]);
-  const killerName = (by: number) => heroes[by]?.[lang] ?? t.unknownKiller;
+  const phaseNote = phase === "all" ? null : <span>{c.inPhase(t.phases[phase])}</span>;
   const one = (n: number) => n.toFixed(1);
 
   return (
     <div className="flex flex-col gap-4">
+      {titleSlot &&
+        byHero.length > 0 &&
+        createPortal(
+          <div className="text-right" title={c.winRateNote}>
+            <div className="text-xs text-muted-foreground">{c.winRate}</div>
+            <div className="text-2xl font-semibold tabular-nums">
+              {Math.round((wins / byHero.length) * 100)}%
+            </div>
+            <div className="text-xs text-muted-foreground tabular-nums">
+              {c.winRateHint(wins, byHero.length - wins)}
+            </div>
+          </div>,
+          titleSlot,
+        )}
       <div className="flex flex-col gap-2">
         <Chips
           label={t.phase}
@@ -256,44 +308,53 @@ export function DeathsExplorer({
           <h2 className="font-medium">{t.insights}</h2>
           {facts ? (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-2">
-              {byHero.length > 0 && (
-                <Card
-                  title={c.winRate}
-                  value={`${Math.round((wins / byHero.length) * 100)}%`}
-                  hint={c.winRateHint(wins, byHero.length - wins)}
-                />
-              )}
               {facts.perMatch != null && (
                 <Card title={c.perMatch} value={c.times(one(facts.perMatch))} hint={c.zero(facts.zero)} />
               )}
               {cost && (
                 <Card
                   title={c.gold}
-                  value={c.goldValue(cost.gold.total.toLocaleString("en-US"))}
-                  hint={[
-                    phaseNote,
-                    c.goldAvg(Math.round(cost.gold.perMatch), Math.round(cost.gold.perDeath)),
-                    c.worstGold(
-                      cost.gold.worst.gold,
-                      clock(cost.gold.worst.t),
-                      killerName(cost.gold.worst.by),
-                    ),
-                  ]
-                    .filter(Boolean)
-                    .join("\n")}
+                  value={c.goldValue(Math.round(cost.gold.perMatch).toLocaleString("en-US"))}
+                  hint={
+                    <>
+                      {phaseNote}
+                      <span>
+                        {c.goldMore(cost.gold.total.toLocaleString("en-US"), Math.round(cost.gold.perDeath))}
+                      </span>
+                      <span className="flex flex-wrap items-center gap-x-1.5">
+                        {c.worstGold(cost.gold.worst.gold, clock(cost.gold.worst.t))}
+                        <KillLine
+                          by={cost.gold.worst.by}
+                          victim={cost.gold.worst.heroId}
+                          heroes={heroes}
+                          lang={lang}
+                          unknown={t.unknownKiller}
+                        />
+                      </span>
+                    </>
+                  }
                 />
               )}
               {cost && (
                 <Card
                   title={c.waiting}
-                  value={c.duration(cost.dead.total)}
-                  hint={[
-                    phaseNote,
-                    c.waitAvg(c.duration(Math.round(cost.dead.perMatch)), Math.round(cost.dead.perDeath)),
-                    c.worstWait(cost.dead.worst.dead, clock(cost.dead.worst.t)),
-                  ]
-                    .filter(Boolean)
-                    .join("\n")}
+                  value={c.duration(Math.round(cost.dead.perMatch))}
+                  hint={
+                    <>
+                      {phaseNote}
+                      <span>{c.waitMore(c.duration(cost.dead.total), Math.round(cost.dead.perDeath))}</span>
+                      <span className="flex flex-wrap items-center gap-x-1.5">
+                        {c.worstWait(cost.dead.worst.dead, clock(cost.dead.worst.t))}
+                        <KillLine
+                          by={cost.dead.worst.by}
+                          victim={cost.dead.worst.heroId}
+                          heroes={heroes}
+                          lang={lang}
+                          unknown={t.unknownKiller}
+                        />
+                      </span>
+                    </>
+                  }
                 />
               )}
               {facts.firstDeath != null && (

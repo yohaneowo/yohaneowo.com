@@ -168,21 +168,22 @@ const dotahubEn: typeof dotahubZh = {
     },
     cards: {
       winRate: "Win rate",
-      winRateHint: (w: number, l: number) => `${w} won, ${l} lost; ignores the result filter`,
+      winRateHint: (w: number, l: number) => `${w} won, ${l} lost`,
+      winRateNote: "For the chosen range and hero; ignores the result filter",
       inPhase: (phase: string) => `${phase} only`,
-      gold: "Gold lost",
+      gold: "Gold lost per match",
       goldValue: (n: string) => `${n} gold`,
-      goldAvg: (perMatch: number, perDeath: number) => `${perMatch} per match, ${perDeath} per death`,
-      worstGold: (gold: number, at: string, by: string) => `Most at once: ${gold} (${at}, ${by})`,
-      waiting: "Waiting to respawn",
+      goldMore: (total: string, perDeath: number) => `${total} in all, ${perDeath} per death`,
+      worstGold: (gold: number, at: string) => `Most at once: ${gold} (${at})`,
+      waiting: "Waiting to respawn per match",
+      waitMore: (total: string, perDeath: number) => `${total} in all, ${perDeath} s per death`,
+      worstWait: (s: number, at: string) => `Longest: ${s} s (${at})`,
       duration: (s: number) =>
         s >= 3600
           ? `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`
           : s >= 60
             ? `${Math.floor(s / 60)} min ${s % 60} s`
             : `${s} s`,
-      waitAvg: (perMatch: string, perDeath: number) => `${perMatch} per match, ${perDeath} s per death`,
-      worstWait: (s: number, at: string) => `Longest: ${s} s (${at})`,
       perMatch: "Deaths per match",
       times: (v: string) => v,
       zero: (n: number) => `${n} without a death`,
