@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { pageWidth, useWidePage } from "@/components/page-width";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -36,13 +37,17 @@ function isActive(path: string, item: SubNavItem, items: SubNavItem[]) {
 // (<html data-header-hidden>, set by HeaderShell).
 export function SubNav({ label, items }: { label: string; items: SubNavItem[] }) {
   const { href } = useLocale();
+  const wide = useWidePage();
   // The Chinese pages have no prefix in the address bar; the English ones start with /en.
   const path = (usePathname() ?? "").replace(/^\/(zh|en)(?=\/|$)/, "") || "/";
   return (
     <div className={FRAME}>
       <nav
         aria-label={label}
-        className="mx-auto flex h-11 max-w-5xl [scrollbar-width:none] items-center gap-1 overflow-x-auto px-4 text-sm whitespace-nowrap"
+        className={cn(
+          pageWidth(wide),
+          "flex h-11 [scrollbar-width:none] items-center gap-1 overflow-x-auto px-4 text-sm whitespace-nowrap",
+        )}
       >
         {items.map((item) => {
           const active = isActive(path, item, items);

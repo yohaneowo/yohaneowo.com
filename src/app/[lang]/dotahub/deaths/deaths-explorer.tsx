@@ -161,7 +161,7 @@ export function DeathsExplorer({
           <HeroPicker value={hero} onChange={setHero} heroes={heroes} counts={counts} />
         </div>
       </div>
-      <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,560px)_220px_minmax(0,1fr)]">
         <div className="flex flex-col gap-2">
           <HeatMap events={events} className="max-w-[640px]" />
           <p className="text-xs text-muted-foreground tabular-nums">
@@ -210,94 +210,94 @@ export function DeathsExplorer({
           )}
           <p className="text-xs text-muted-foreground">{t.whereHint}</p>
         </section>
+        <section className="flex flex-col gap-2 md:col-span-2 xl:col-span-1">
+          <h2 className="font-medium">{t.insights}</h2>
+          {facts ? (
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-2">
+              {facts.perMatch != null && (
+                <Card title={c.perMatch} value={c.times(one(facts.perMatch))} hint={c.zero(facts.zero)} />
+              )}
+              {facts.firstDeath != null && (
+                <Card
+                  title={c.firstDeath}
+                  value={clock(Math.round(facts.firstDeath))}
+                  hint={c.firstDeathHint}
+                />
+              )}
+              <Card title={c.chains} value={c.times(String(facts.chains))} hint={c.chainsHint} />
+              {facts.deadliest != null && (
+                <Card
+                  title={c.deadliest}
+                  value={c.minutes(facts.deadliest)}
+                  hint={
+                    facts.phase
+                      ? c.phaseShare(t.phases[facts.phase.phase], Math.round(facts.phase.share * 100))
+                      : undefined
+                  }
+                />
+              )}
+              {facts.killers.length > 0 && (
+                <Card
+                  title={c.killers}
+                  value={
+                    <Heroes
+                      heroes={heroes}
+                      lang={lang}
+                      list={facts.killers.map((k) => ({ id: k.id, text: String(k.n) }))}
+                    />
+                  }
+                  hint={c.structures(facts.structures)}
+                />
+              )}
+              {hero === 0 && facts.yourHeroes.length > 0 && (
+                <Card
+                  title={c.yourHeroes}
+                  value={
+                    <Heroes
+                      heroes={heroes}
+                      lang={lang}
+                      list={facts.yourHeroes.map((h) => ({ id: h.id, text: c.perMatchShort(one(h.avg)) }))}
+                    />
+                  }
+                />
+              )}
+              {facts.winLoss && (
+                <Card
+                  title={c.winLoss}
+                  value={c.winLossValue(one(facts.winLoss.win), one(facts.winLoss.loss))}
+                  hint={c.ignoresResult}
+                />
+              )}
+              {facts.many && (
+                <Card
+                  title={c.many}
+                  value={c.manyValue(Math.round(facts.many.winRate * 100))}
+                  hint={c.manyHint(facts.many.n)}
+                />
+              )}
+              {facts.trend && (
+                <Card
+                  title={c.trend}
+                  value={
+                    <span
+                      className={
+                        facts.trend.recent <= facts.trend.before
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-600 dark:text-red-400"
+                      }
+                    >
+                      {c.trendValue(one(facts.trend.recent), one(facts.trend.before))}
+                    </span>
+                  }
+                  hint={c.trendHint}
+                />
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t.empty}</p>
+          )}
+        </section>
       </div>
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">{t.insights}</h2>
-        {facts ? (
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
-            {facts.perMatch != null && (
-              <Card title={c.perMatch} value={c.times(one(facts.perMatch))} hint={c.zero(facts.zero)} />
-            )}
-            {facts.firstDeath != null && (
-              <Card
-                title={c.firstDeath}
-                value={clock(Math.round(facts.firstDeath))}
-                hint={c.firstDeathHint}
-              />
-            )}
-            <Card title={c.chains} value={c.times(String(facts.chains))} hint={c.chainsHint} />
-            {facts.deadliest != null && (
-              <Card
-                title={c.deadliest}
-                value={c.minutes(facts.deadliest)}
-                hint={
-                  facts.phase
-                    ? c.phaseShare(t.phases[facts.phase.phase], Math.round(facts.phase.share * 100))
-                    : undefined
-                }
-              />
-            )}
-            {facts.killers.length > 0 && (
-              <Card
-                title={c.killers}
-                value={
-                  <Heroes
-                    heroes={heroes}
-                    lang={lang}
-                    list={facts.killers.map((k) => ({ id: k.id, text: String(k.n) }))}
-                  />
-                }
-                hint={c.structures(facts.structures)}
-              />
-            )}
-            {hero === 0 && facts.yourHeroes.length > 0 && (
-              <Card
-                title={c.yourHeroes}
-                value={
-                  <Heroes
-                    heroes={heroes}
-                    lang={lang}
-                    list={facts.yourHeroes.map((h) => ({ id: h.id, text: c.perMatchShort(one(h.avg)) }))}
-                  />
-                }
-              />
-            )}
-            {facts.winLoss && (
-              <Card
-                title={c.winLoss}
-                value={c.winLossValue(one(facts.winLoss.win), one(facts.winLoss.loss))}
-                hint={c.ignoresResult}
-              />
-            )}
-            {facts.many && (
-              <Card
-                title={c.many}
-                value={c.manyValue(Math.round(facts.many.winRate * 100))}
-                hint={c.manyHint(facts.many.n)}
-              />
-            )}
-            {facts.trend && (
-              <Card
-                title={c.trend}
-                value={
-                  <span
-                    className={
-                      facts.trend.recent <= facts.trend.before
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-red-600 dark:text-red-400"
-                    }
-                  >
-                    {c.trendValue(one(facts.trend.recent), one(facts.trend.before))}
-                  </span>
-                }
-                hint={c.trendHint}
-              />
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t.empty}</p>
-        )}
-      </section>
     </div>
   );
 }

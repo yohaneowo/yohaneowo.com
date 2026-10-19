@@ -1,5 +1,7 @@
 "use client";
 import { usePathname } from "next/navigation";
+import { pageWidth, useWidePage } from "@/components/page-width";
+import { cn } from "@/lib/utils";
 
 // The page container. TradeHub fills the viewport, so it gets no width limit or padding. This is
 // decided from the route rather than with a `:has([data-fullbleed])` selector on <main>: the
@@ -8,14 +10,8 @@ import { usePathname } from "next/navigation";
 const FULL_BLEED = /^\/(zh|en)\/tradehub(\/|$)/;
 
 export function MainFrame({ children }: { children: React.ReactNode }) {
-  const fullBleed = FULL_BLEED.test(usePathname() ?? "");
-  return (
-    <main
-      className={
-        fullBleed ? "flex w-full flex-1 flex-col" : "mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8"
-      }
-    >
-      {children}
-    </main>
-  );
+  const path = usePathname() ?? "";
+  const wide = useWidePage();
+  if (FULL_BLEED.test(path)) return <main className="flex w-full flex-1 flex-col">{children}</main>;
+  return <main className={cn(pageWidth(wide), "flex flex-1 flex-col px-4 py-8")}>{children}</main>;
 }
