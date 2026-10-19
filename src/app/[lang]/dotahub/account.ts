@@ -1,4 +1,6 @@
 import "server-only";
+import { redirect } from "next/navigation";
+import { localePath, type Locale } from "@/i18n/config";
 import { getSession } from "@/lib/auth";
 import { getDiscordAccount } from "@/lib/discord-account";
 import { type DotaStatus, getDotaStatus, linkDota } from "@/lib/dota/admin";
@@ -40,4 +42,11 @@ export async function syncDotaLink(
   } catch {
     return null;
   }
+}
+
+// Someone's public page for the viewer's own account sends them to their own version of it
+// (path: "/dotahub", "/dotahub/matches", …).
+export async function redirectIfOwn(accountId: number, lang: Locale, path: string) {
+  const viewer = await dotaViewer();
+  if (viewer.state === "linked" && viewer.accountId === accountId) redirect(localePath(lang, path));
 }

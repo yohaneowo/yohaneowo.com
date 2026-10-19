@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { steamIdOf } from "@/lib/steam-link";
-import { dotaViewer } from "../../account";
+import { redirectIfOwn } from "../../account";
 import { accountParam } from "../../match-list";
 import { Overview } from "../../overview";
 import { Notice } from "../../parts";
@@ -23,9 +21,7 @@ async function Player({ params }: { params: Params }) {
   const t = (await getDictionary()).dotahub;
   const id = accountParam((await params).id);
   if (!id) return <Notice>{t.player.notFound}</Notice>;
-  // Their own public page is their overview.
-  const viewer = await dotaViewer();
-  if (viewer.state === "linked" && viewer.accountId === id) redirect(localePath(lang, "/dotahub"));
+  await redirectIfOwn(id, lang, "/dotahub");
   return <Overview t={t} lang={lang} accountId={id} steamId={steamIdOf(id)} own={false} />;
 }
 

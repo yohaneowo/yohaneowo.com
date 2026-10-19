@@ -47,7 +47,7 @@ export function SourceHealthDots() {
   }, []);
 
   return (
-    <div role="list" aria-label={t.label} className="ml-auto flex shrink-0 items-center gap-3 pl-4 text-xs">
+    <div role="list" aria-label={t.label} className="flex items-center gap-3 text-xs">
       {SOURCES.map(([source, name]) => {
         const h = health?.[source];
         const state = h?.state ?? "unknown";

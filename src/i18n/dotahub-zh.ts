@@ -201,7 +201,10 @@ const dotahubZh = {
     description: "这位玩家公开的 Dota 2 资料：段位、胜率、最近一场、常用英雄与位置。资料来自 OpenDota。",
     noData: "OpenDota 找不到这位玩家的比赛，可能没有公开比赛资料。",
     notFound: "找不到这位玩家。",
-    back: "← 回到玩家页",
+    mine: "回到我的",
+    noDeaths: "这位玩家没有在本站连结 Steam，所以没有死亡热力图。",
+    deathsDescription: "这位玩家在天梯比赛里死在地图哪里：越多次的地方颜色越深。资料来自 STRATZ，只算天梯。",
+    peersDescription: "这位玩家最常一起玩的人（同一队至少 3 场）。",
   },
   health: {
     label: "资料来源状态",

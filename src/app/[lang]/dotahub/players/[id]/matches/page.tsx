@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
-import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
+import { redirectIfOwn } from "../../../account";
 import { accountParam, MatchList, pageParam } from "../../../match-list";
 import { Notice } from "../../../parts";
 
@@ -20,22 +19,15 @@ async function Matches({ params, searchParams }: { params: Params; searchParams:
   const t = (await getDictionary()).dotahub;
   const id = accountParam((await params).id);
   if (!id) return <Notice>{t.player.notFound}</Notice>;
+  await redirectIfOwn(id, lang, "/dotahub/matches");
   return (
-    <div className="flex flex-col gap-4">
-      <Link
-        href={localePath(lang, `/dotahub/players/${id}`)}
-        className="self-start text-sm text-muted-foreground hover:underline"
-      >
-        {t.player.back}
-      </Link>
-      <MatchList
-        t={t}
-        lang={lang}
-        accountId={id}
-        page={pageParam((await searchParams).page)}
-        path={`/dotahub/players/${id}/matches`}
-      />
-    </div>
+    <MatchList
+      t={t}
+      lang={lang}
+      accountId={id}
+      page={pageParam((await searchParams).page)}
+      path={`/dotahub/players/${id}/matches`}
+    />
   );
 }
 

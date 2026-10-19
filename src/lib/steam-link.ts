@@ -101,6 +101,16 @@ export async function getSteamAccount(userId: string) {
   return row ?? null;
 }
 
+// The site account that linked this Steam account, if any.
+export async function getSteamOwner(steamId: string) {
+  const [row] = await db
+    .select({ userId: steamAccount.userId })
+    .from(steamAccount)
+    .where(eq(steamAccount.steamId, steamId))
+    .limit(1);
+  return row?.userId ?? null;
+}
+
 export class SteamTaken extends Error {}
 
 // Links (or relinks) the Steam account; one Steam account belongs to one site account.
