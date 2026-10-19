@@ -121,6 +121,7 @@ const dotahubZh = {
     hero: "英雄",
     allHeroes: "所有英雄",
     pickHero: "选英雄",
+    resetHero: "重置为所有英雄",
     attrs: ["力量", "敏捷", "智力", "全能"],
     notPlayed: "这段范围内没玩过",
     noPositions: (n: number) => `另有 ${n} 场 STRATZ 没有死亡位置（多是较旧的比赛），不算在内。`,

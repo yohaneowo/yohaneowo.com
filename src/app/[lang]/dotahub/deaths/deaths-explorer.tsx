@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { RotateCcwIcon } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import { useLocale } from "@/i18n/locale-provider";
 import type { DeathEvent, StoredMatch } from "@/lib/dota/admin";
@@ -182,6 +183,16 @@ export function DeathsExplorer({
               <span className="tabular-nums">{n}</span>
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setHero(0)}
+            disabled={hero === 0}
+            aria-label={t.resetHero}
+            title={t.resetHero}
+            className="flex size-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            <RotateCcwIcon className="size-3.5" aria-hidden />
+          </button>
         </div>
       </div>
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,560px)_220px_minmax(0,1fr)]">

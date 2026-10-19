@@ -131,6 +131,7 @@ const dotahubEn: typeof dotahubZh = {
     hero: "Hero",
     allHeroes: "All heroes",
     pickHero: "Pick a hero",
+    resetHero: "Back to all heroes",
     attrs: ["Strength", "Agility", "Intelligence", "Universal"],
     notPlayed: "Not played in this range",
     noPositions: (n: number) =>
