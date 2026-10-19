@@ -196,6 +196,13 @@ const dotahubZh = {
     needSteam: "在 DotaHub 连结 Steam 后才能设定。",
     saveFailed: "没有存成功，请再试一次。",
   },
+  player: {
+    title: "玩家",
+    description: "这位玩家公开的 Dota 2 资料：段位、胜率、最近一场、常用英雄与位置。资料来自 OpenDota。",
+    noData: "OpenDota 找不到这位玩家的比赛，可能没有公开比赛资料。",
+    notFound: "找不到这位玩家。",
+    back: "← 回到玩家页",
+  },
   health: {
     label: "资料来源状态",
     states: { ok: "正常", slow: "变慢或最近失败过", down: "连不上", unknown: "还不知道" },

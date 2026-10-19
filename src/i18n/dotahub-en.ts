@@ -213,6 +213,14 @@ const dotahubEn: typeof dotahubZh = {
     needSteam: "Connect Steam in DotaHub to change this.",
     saveFailed: "Couldn't save. Please try again.",
   },
+  player: {
+    title: "Player",
+    description:
+      "This player's public Dota 2 data: rank, win rate, latest match, heroes and roles. From OpenDota.",
+    noData: "OpenDota has no matches for this player; their match data may not be public.",
+    notFound: "No such player.",
+    back: "← Back to the player",
+  },
   health: {
     label: "Data source status",
     states: { ok: "OK", slow: "Slow or failed lately", down: "Unreachable", unknown: "Not checked yet" },

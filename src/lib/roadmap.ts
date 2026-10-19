@@ -248,7 +248,12 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step("对线结果（STRATZ）", "Lane outcomes (STRATZ)"),
-      step("别人的公开页、跟 Discord 好友比较", "Other players' pages and comparing with Discord friends"),
+      step(
+        "别人的公开页：队友和比赛里的玩家都能点进去看总览与比赛",
+        "Other players' pages: open any teammate or player in a match for their overview and matches",
+        true,
+      ),
+      step("跟 Discord 好友比较", "Comparing with Discord friends"),
       step("Discord bot 指令（例如最近一场）", "Discord bot commands (e.g. the last match)"),
     ],
     links: [{ label: { zh: "DotaHub", en: "DotaHub" }, href: "/dotahub" }],

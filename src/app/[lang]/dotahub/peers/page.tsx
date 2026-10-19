@@ -53,10 +53,8 @@ async function Peers() {
             return (
               <tr key={p.account_id} className="border-b last:border-0">
                 <td className="px-3 py-1.5">
-                  <a
-                    href={`https://www.opendota.com/players/${p.account_id}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <Link
+                    href={localePath(lang, `/dotahub/players/${p.account_id}`)}
                     className="flex items-center gap-2 hover:underline"
                   >
                     {p.avatarfull ? (
@@ -72,7 +70,7 @@ async function Peers() {
                       <span className="size-7 rounded-full bg-muted" />
                     )}
                     <span className="truncate">{p.personaname || p.account_id}</span>
-                  </a>
+                  </Link>
                 </td>
                 <td className="px-3 py-1.5 text-right tabular-nums">{p.with_games}</td>
                 <td className="px-3 py-1.5 text-right tabular-nums">{rate.toFixed(0)}%</td>

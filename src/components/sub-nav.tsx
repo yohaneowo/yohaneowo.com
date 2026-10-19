@@ -39,11 +39,14 @@ export function SubNav({
   label,
   items,
   end,
+  width,
 }: {
   label: string;
   items: SubNavItem[];
   // Shown at the far right of the bar (DotaHub's source status).
   end?: React.ReactNode;
+  // Replaces the page width when the feature's pages have their own (观影统计: 1180px).
+  width?: string;
 }) {
   const { href } = useLocale();
   const wide = useWidePage();
@@ -54,7 +57,7 @@ export function SubNav({
       <nav
         aria-label={label}
         className={cn(
-          pageWidth(wide),
+          width ?? pageWidth(wide),
           "flex h-11 [scrollbar-width:none] items-center gap-1 overflow-x-auto px-4 text-sm whitespace-nowrap",
         )}
       >

@@ -98,14 +98,12 @@ function Team({
                         </div>
                         <div className="max-w-40 truncate">
                           {p.account_id ? (
-                            <a
-                              href={`https://www.opendota.com/players/${p.account_id}`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <Link
+                              href={localePath(lang, `/dotahub/players/${p.account_id}`)}
                               className="hover:underline"
                             >
                               {p.personaname || p.account_id}
-                            </a>
+                            </Link>
                           ) : (
                             <span className="text-muted-foreground">{t.match.anonymous}</span>
                           )}

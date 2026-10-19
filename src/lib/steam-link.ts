@@ -92,6 +92,10 @@ export function dotaAccountId(steamId: string) {
   return Number(BigInt(steamId) - STEAM64_BASE);
 }
 
+export function steamIdOf(accountId: number) {
+  return String(BigInt(accountId) + STEAM64_BASE);
+}
+
 export async function getSteamAccount(userId: string) {
   const [row] = await db.select().from(steamAccount).where(eq(steamAccount.userId, userId)).limit(1);
   return row ?? null;

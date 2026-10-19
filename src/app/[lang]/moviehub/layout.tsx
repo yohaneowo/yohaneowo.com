@@ -35,7 +35,8 @@ export default async function MovieHubLayout({ children }: { children: React.Rea
   return (
     <>
       <Suspense fallback={<SubNavPlaceholder />}>
-        <SubNav label={t.nav.label} items={items} />
+        {/* Lined up with the statistics page (.profile .wrap: 1180px). */}
+        <SubNav label={t.nav.label} items={items} width="mx-auto w-full max-w-[1180px]" />
       </Suspense>
       {children}
     </>

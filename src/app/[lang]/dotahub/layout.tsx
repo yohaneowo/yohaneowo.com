@@ -8,7 +8,13 @@ import { SourceHealthDots } from "./source-health";
 export default async function DotaHubLayout({ children }: { children: React.ReactNode }) {
   const t = (await getDictionary()).dotahub;
   const items: SubNavItem[] = [
-    { href: "/dotahub", label: t.nav.overview, icon: <SwordsIcon aria-hidden /> },
+    // Someone else's page (/dotahub/players/…) counts as the overview too.
+    {
+      href: "/dotahub",
+      label: t.nav.overview,
+      icon: <SwordsIcon aria-hidden />,
+      alsoActive: ["/dotahub/players/"],
+    },
     { href: "/dotahub/matches", label: t.nav.matches, icon: <ListIcon aria-hidden /> },
     { href: "/dotahub/deaths", label: t.nav.deaths, icon: <FlameIcon aria-hidden /> },
     { href: "/dotahub/peers", label: t.nav.peers, icon: <UsersIcon aria-hidden /> },
