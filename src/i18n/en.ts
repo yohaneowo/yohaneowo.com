@@ -1,5 +1,6 @@
 import coinhubEn from "./coinhub-en";
 import moviehubEn from "./moviehub-en";
+import roadmapEn from "./roadmap-en";
 import type { Dictionary } from "./zh";
 
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
@@ -23,6 +24,11 @@ const en: Dictionary = {
     uidhub: {
       title: "UIDHub",
       description: "Share your UIDs from mobile games on one page, so friends can add you without asking.",
+    },
+    roadmap: {
+      title: "Roadmap",
+      description:
+        "What's coming and what has shipped; vote for the features you want, or suggest a new one.",
     },
   },
   header: {
@@ -424,6 +430,7 @@ const en: Dictionary = {
   },
   coinhub: coinhubEn,
   moviehub: moviehubEn,
+  roadmap: roadmapEn,
 };
 
 export default en;

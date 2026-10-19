@@ -14,6 +14,7 @@ const moviehubEn: typeof moviehubZh = {
     badge: "Planned",
     title: "Not built yet",
     note: "This feature is still being planned; it will show up here once it's ready.",
+    vote: "Want this? Vote for it on the roadmap",
     calendar:
       "The shows and anime you follow: which day and time they air this week, and how long until the next episode.",
     leaderboard:

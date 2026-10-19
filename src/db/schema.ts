@@ -108,6 +108,37 @@ export const discordGuild = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.guildId] }), index("discord_guild_guild_idx").on(t.guildId)],
 );
 
+// 开发计划: one vote per account per roadmap item. The items live in code (lib/roadmap.ts),
+// referenced here by id.
+export const roadmapVote = pgTable(
+  "roadmap_vote",
+  {
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    itemId: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.itemId] }), index("roadmap_vote_item_idx").on(t.itemId)],
+);
+
+// 开发计划 suggestions from signed-in accounts. Reviewed when the roadmap is updated: an item made
+// from one lists its id (lib/roadmap.ts), a declined one is listed with the reason.
+export const roadmapSuggestion = pgTable(
+  "roadmap_suggestion",
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    area: text().notNull(),
+    title: text().notNull(),
+    detail: text().notNull().default(""),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("roadmap_suggestion_user_idx").on(t.userId)],
+);
+
 // CoinHub workspace per site account: layout, charts, drawings, alerts and the paper account, as
 // the browser stores them (lib/coinhub/sync.ts). Last write wins.
 export const coinhubWorkspace = pgTable("coinhub_workspace", {

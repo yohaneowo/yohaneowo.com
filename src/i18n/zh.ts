@@ -1,6 +1,7 @@
 // Chinese texts; the English dictionary must have the same shape (see Dictionary).
 import coinhubZh from "./coinhub-zh";
 import moviehubZh from "./moviehub-zh";
+import roadmapZh from "./roadmap-zh";
 
 const zh = {
   site: {
@@ -20,6 +21,10 @@ const zh = {
     uidhub: {
       title: "UIDHub",
       description: "公开自己在各个手游的 UID，想加好友时直接把链接给对方，不用开游戏查。",
+    },
+    roadmap: {
+      title: "开发计划",
+      description: "接下来要做什么、已经上线了什么；替想要的功能投票，或提出新建议。",
     },
   },
   header: {
@@ -406,6 +411,7 @@ const zh = {
   },
   coinhub: coinhubZh,
   moviehub: moviehubZh,
+  roadmap: roadmapZh,
 };
 
 export default zh;

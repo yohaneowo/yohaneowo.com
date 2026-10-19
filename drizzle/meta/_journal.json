@@ -36,6 +36,13 @@
       "when": 1792268901217,
       "tag": "0004_discord_guilds",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792371970860,
+      "tag": "0005_roadmap",
+      "breakpoints": true
     }
   ]
 }

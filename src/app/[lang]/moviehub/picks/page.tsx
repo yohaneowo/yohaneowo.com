@@ -41,7 +41,17 @@ async function Picks({ searchParams }: { searchParams: SearchParams }) {
       </Message>
     );
   } else if (kind === "show") {
-    body = <Message>{t.showPlanned}</Message>;
+    body = (
+      <Message>
+        <p>{t.showPlanned}</p>
+        <Link
+          href={localePath(lang, "/roadmap#item-show-picks")}
+          className={cn(buttonVariants({ size: "sm", variant: "outline" }), "mt-3")}
+        >
+          {(await getDictionary()).moviehub.planned.vote}
+        </Link>
+      </Message>
+    );
   } else {
     let view: PicksView | null = null;
     let failed = false;

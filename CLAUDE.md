@@ -9,6 +9,8 @@
 
 ## 工作约定
 
+- **开发计划由 Claude 维护**：每次 commit / push（任何 repo）前，检查 `src/lib/roadmap.ts` 要不要跟着改——新功能进 dev 就把项目移到「开发中」（没有就新增），合并进 `main` 上线就改成「已上线」并填 `shipped` 日期，计划变了就调整「考虑中」。也查一次新的用户建议（正式站 Postgres 的 `roadmap_suggestion`，用 ssh 到 Coolify 主机 `docker exec` psql 查，只读）：采纳的写成项目并在 `suggestions` 列出建议 id，不采纳的加进 `DECLINED_SUGGESTIONS` 附理由；拿不准的先问用户。
+
 - 用中文回复。代码注释用英文，风格跟周围一致。前端只用 React，不用 Vue。
 - 格式以 Prettier 为准（`.prettierrc.json`，含 Tailwind class 排序），ESLint 只管代码问题。改完跑 `pnpm format`、`pnpm lint`、`pnpm build`。
 - 只有被要求时才 commit / push。commit 讯息用中文摘要，结尾加 `Co-Authored-By`。
@@ -27,6 +29,7 @@
 | `src/app/[lang]/moviehub/genre-weights.ts` | 类型环的加权（常见类型分得少、稀有类型分得多，一部片合计 1）与三份基率表；算法与抓样方法见 `docs/genre-weighting.md`                                                                                                                                                                                                                   |
 | `src/lib/coinhub/`                         | CoinHub：`chart-controller.ts` 包一个 KLineChart 实例（数据加载、画线保存与撤销、回放），`overlays/` 画线工具，`indicators/` 指标，`server.ts` 上游数据（只在服务端），`store.ts` 终端状态。KLineChart 一 import 就碰 `window`，所以终端用 `next/dynamic` + `ssr: false` 载入                                                          |
 | `src/components/mode-toggle.tsx`           | 深浅色切换：从按钮画圆扩散的动画（View Transitions + `clip-path`），做法与曾经的闪屏见 `docs/theme-toggle.md`；伪元素上的动画用完要 `cancel()`                                                                                                                                                                                         |
+| `src/lib/roadmap.ts`                       | 开发计划（`/roadmap`）的项目清单，写在代码里；票数和建议在资料库（`roadmap_vote`、`roadmap_suggestion`，`lib/roadmap-store.ts`），以项目 id 关联，所以 id 发布后不改                                                                                                                                                                   |
 | `src/lib/auth.ts`                          | Better Auth 设定（服务端）；`getSession()` 读当前登录者。客户端用 `src/lib/auth-client.ts`                                                                                                                                                                                                                                             |
 | `src/db/schema.ts`                         | Drizzle 表定义。Better Auth 的四张表（user / session / account / verification）属性名要跟 Better Auth 的栏位名一致，数据库栏位是 snake_case                                                                                                                                                                                            |
 | `drizzle/`                                 | 迁移 SQL（`pnpm db:generate` 生成，要 commit）                                                                                                                                                                                                                                                                                         |
