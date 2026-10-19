@@ -1,4 +1,5 @@
 import coinhubEn from "./coinhub-en";
+import homeEn from "./home-en";
 import moviehubEn from "./moviehub-en";
 import roadmapEn from "./roadmap-en";
 import type { Dictionary } from "./zh";
@@ -17,12 +18,12 @@ const en: Dictionary = {
         "Your taste from your Trakt history: genres, how you rate, and the directors and actors you like.",
     },
     coinhub: {
-      title: "CoinHub",
+      title: "TradeHub",
       description:
         "My own TradingView: candles, drawing tools, indicators and alerts, plus Fear & Greed, BTC.D, USDT.D and MSTR mNAV.",
     },
     uidhub: {
-      title: "UIDHub",
+      title: "UidHub",
       description: "Share your UIDs from mobile games on one page, so friends can add you without asking.",
     },
     roadmap: {
@@ -429,6 +430,7 @@ const en: Dictionary = {
       `${count} ${noun} watched, as many as or more than ${percent}% of the site's ${plural(users, "user")}. Uses your whole history.`,
   },
   coinhub: coinhubEn,
+  home: homeEn,
   moviehub: moviehubEn,
   roadmap: roadmapEn,
 };

@@ -1,7 +1,7 @@
 import type coinhubZh from "./coinhub-zh";
 
 const coinhubEn: typeof coinhubZh = {
-  title: "CoinHub",
+  title: "TradeHub",
   description:
     "My own TradingView: candles, drawing tools, indicators, alerts, replay, plus Fear & Greed, BTC.D, USDT.D, MSTR mNAV and other market gauges.",
   loading: "Loading chart…",

@@ -1,5 +1,6 @@
 // Chinese texts; the English dictionary must have the same shape (see Dictionary).
 import coinhubZh from "./coinhub-zh";
+import homeZh from "./home-zh";
 import moviehubZh from "./moviehub-zh";
 import roadmapZh from "./roadmap-zh";
 
@@ -14,12 +15,12 @@ const zh = {
       description: "从 Trakt 观看记录看自己的口味：类型、评分分布、喜欢的导演与演员。",
     },
     coinhub: {
-      title: "CoinHub",
+      title: "TradeHub",
       description:
         "自己的 TradingView：K 线、画线工具、指标和警报，外加恐惧贪婪指数、BTC.D、USDT.D、MSTR mNAV。",
     },
     uidhub: {
-      title: "UIDHub",
+      title: "UidHub",
       description: "公开自己在各个手游的 UID，想加好友时直接把链接给对方，不用开游戏查。",
     },
     roadmap: {
@@ -410,6 +411,7 @@ const zh = {
       `看过 ${count} 部${noun}，不少于平台上 ${percent}% 的用户（共 ${users} 位）。按全部观影记录计算。`,
   },
   coinhub: coinhubZh,
+  home: homeZh,
   moviehub: moviehubZh,
   roadmap: roadmapZh,
 };

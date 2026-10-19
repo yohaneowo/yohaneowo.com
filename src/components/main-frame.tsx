@@ -1,11 +1,11 @@
 "use client";
 import { usePathname } from "next/navigation";
 
-// The page container. CoinHub fills the viewport, so it gets no width limit or padding. This is
+// The page container. TradeHub fills the viewport, so it gets no width limit or padding. This is
 // decided from the route rather than with a `:has([data-fullbleed])` selector on <main>: the
-// selector sometimes stayed matched after a client-side navigation away from CoinHub, leaving the
+// selector sometimes stayed matched after a client-side navigation away from TradeHub, leaving the
 // next page stretched to the window edges until a reload.
-const FULL_BLEED = /^\/(zh|en)\/coinhub(\/|$)/;
+const FULL_BLEED = /^\/(zh|en)\/tradehub(\/|$)/;
 
 export function MainFrame({ children }: { children: React.ReactNode }) {
   const fullBleed = FULL_BLEED.test(usePathname() ?? "");

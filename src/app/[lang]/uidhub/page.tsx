@@ -3,14 +3,14 @@ import { Gamepad2Icon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDictionary } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "UIDHub" };
+export const metadata: Metadata = { title: "UidHub" };
 
 export default async function UidHubPage() {
   const t = await getDictionary();
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">UIDHub</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">UidHub</h1>
         <p className="text-muted-foreground">{t.uidhub.description}</p>
       </div>
       <Card>

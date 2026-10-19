@@ -862,6 +862,45 @@ export type Quote = {
   changePercent: number;
 };
 
+// The home page's market tile: BTC and ETH over the last 24 hours (Binance), BTC's hourly closes
+// for a sparkline, and today's Fear & Greed. Each part is null when its upstream fails.
+export type HomeMarket = {
+  coins: { symbol: string; price: number; changePercent: number }[];
+  btcCloses: number[];
+  fearGreed: { value: number; label: string } | null;
+};
+
+export async function getHomeMarket(): Promise<HomeMarket> {
+  "use cache";
+  cacheLife({ stale: 60, revalidate: 120, expire: 3600 });
+  const symbols = encodeURIComponent(JSON.stringify(["BTCUSDT", "ETHUSDT"]));
+  const [tickers, klines, fng] = await Promise.allSettled([
+    getJson<Array<{ symbol: string; lastPrice: string; priceChangePercent: string }>>(
+      `https://api.binance.com/api/v3/ticker/24hr?symbols=${symbols}`,
+    ),
+    getJson<Array<[number, string, string, string, string]>>(
+      "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=24",
+    ),
+    getFearGreed(1),
+  ]);
+  const coins =
+    tickers.status === "fulfilled"
+      ? tickers.value
+          .map((t) => ({
+            symbol: t.symbol.replace(/USDT$/, ""),
+            price: Number(t.lastPrice),
+            changePercent: Number(t.priceChangePercent),
+          }))
+          .filter((c) => Number.isFinite(c.price) && Number.isFinite(c.changePercent))
+      : [];
+  const btcCloses =
+    klines.status === "fulfilled"
+      ? klines.value.map((k) => Number(k[4])).filter((v) => Number.isFinite(v))
+      : [];
+  const today = fng.status === "fulfilled" ? fng.value.at(-1) : undefined;
+  return { coins, btcCloses, fearGreed: today ? { value: today.value, label: today.label } : null };
+}
+
 export async function getYahooQuote(ticker: string): Promise<Quote | null> {
   "use cache";
   cacheLife({ stale: 30, revalidate: 60, expire: 600 });

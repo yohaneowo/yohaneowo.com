@@ -4,7 +4,7 @@ import { TerminalLoader } from "./terminal-loader";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
-  return { title: "CoinHub", description: t.coinhub.description };
+  return { title: "TradeHub", description: t.coinhub.description };
 }
 
 export default function CoinHubPage() {

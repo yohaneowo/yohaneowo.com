@@ -70,7 +70,7 @@ export function indexSymbol(id: IndexId): CoinSymbol {
     ticker: id,
     display: id,
     description,
-    exchange: "CoinHub",
+    exchange: "TradeHub",
     kind: "index",
     pricePrecision,
     volumePrecision: 0,

@@ -1,0 +1,63 @@
+// Home page texts (Chinese); home-en.ts must have the same shape.
+const homeZh = {
+  signIn: "登录",
+  invite: "把 bot 加到 Discord",
+  roadmap: "开发计划",
+  features: "功能",
+  planned: "规划中",
+  voteForIt: "去投票",
+  latest: "最近更新",
+  allUpdates: "看全部更新",
+  testing: "正在测试",
+  topVoted: "最多人想要",
+  votes: (n: number) => `${n} 票`,
+  movie: {
+    points: [
+      "风格雷达、类型环、评分和大众评分的差距",
+      "电影、剧集、动漫分开统计",
+      "Discord 里抽推荐，想看、看过了写回 Trakt",
+    ],
+  },
+  market: {
+    title: "行情",
+    change24h: "24 小时",
+    fearGreed: "恐惧贪婪",
+    unavailable: "行情暂时读不到。",
+  },
+  bot: {
+    title: "Discord bot",
+    description: "同一套功能也在 Discord 里：推荐电影和动漫、解析链接、动态语音频道。",
+    commands: [
+      { name: "/movie recommend", text: "按你的口味抽一部没看过的电影" },
+      { name: "/anime recommend", text: "抽一部动漫：续作、新番、猜你喜欢" },
+      { name: "/movie profile", text: "贴出某人的观影统计" },
+      { name: "/x · 解析链接", text: "把社群网站的影片和图片抓下来贴回聊天" },
+      { name: "/voice-hub", text: "进频道就开一个自己的语音频道" },
+    ],
+  },
+  dashboard: {
+    greeting: (name: string) => `欢迎回来，${name}`,
+    subtitle: "你的观影、今天的推荐、行情和开发计划，都在这里。",
+    stats: "观影统计",
+    films: "部电影",
+    shows: "部剧集",
+    anime: "部动漫",
+    syncedAt: (date: string) => `更新于 ${date}`,
+    noProfile: "还没有观影档案。连接 Trakt 后，这里会显示你的统计。",
+    createProfile: "建立观影档案",
+    open: "打开",
+    picks: "今天的推荐",
+    filmPicks: "电影",
+    animePicks: "动漫",
+    left: (left: number, total: number) => `剩 ${left}/${total}`,
+    bonus: (n: number) => `奖励 ${n}`,
+    drawOnDiscord: "在 Discord 用 /movie recommend 或 /anime recommend 抽",
+    myVotes: (n: number) => `你投了 ${n} 个项目`,
+    noVotes: "还没投票，替想要的功能投一票吧。",
+    linkDiscord: "关联 Discord 后，bot 才找得到你的观影档案。",
+    linkAction: "关联 Discord",
+    unavailable: "暂时读不到。",
+  },
+};
+
+export default homeZh;

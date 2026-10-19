@@ -1,6 +1,6 @@
-// CoinHub texts (Chinese); coinhub-en.ts must have the same shape.
+// TradeHub texts (Chinese; the code still calls it coinhub); coinhub-en.ts must have the same shape.
 const coinhubZh = {
-  title: "CoinHub",
+  title: "TradeHub",
   description:
     "自己的 TradingView：K 线、画线工具、指标、警报、回放，以及恐惧贪婪、BTC.D、USDT.D、MSTR mNAV 等市场指标。",
   loading: "正在载入图表…",

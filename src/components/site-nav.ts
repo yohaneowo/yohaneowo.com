@@ -11,7 +11,7 @@ export type NavItem = {
 // Each feature gets one entry here; the header and the home page both render from it.
 export const NAV_ITEMS: NavItem[] = [
   { key: "moviehub", href: "/moviehub", icon: FilmIcon },
-  { key: "coinhub", href: "/coinhub", icon: ChartCandlestickIcon },
+  { key: "coinhub", href: "/tradehub", icon: ChartCandlestickIcon },
   { key: "uidhub", href: "/uidhub", icon: Gamepad2Icon },
   { key: "roadmap", href: "/roadmap", icon: MapIcon },
 ];

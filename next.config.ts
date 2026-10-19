@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/trakt", destination: "/moviehub", permanent: false },
       { source: "/trakt/:path*", destination: "/moviehub", permanent: false },
+      // CoinHub became TradeHub (2026-10-19); old links keep working.
+      { source: "/coinhub", destination: "/tradehub", permanent: true },
+      { source: "/:lang(zh|en)/coinhub", destination: "/:lang/tradehub", permanent: true },
     ];
   },
   turbopack: {
