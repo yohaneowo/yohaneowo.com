@@ -307,6 +307,16 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
+        "总览的 IMP 图表：最近 20 / 50 / 100 场走势与各英雄平均",
+        "An IMP chart on the overview: the trend over 20 / 50 / 100 matches and the average per hero",
+        true,
+      ),
+      step(
+        "STRATZ 解析太慢时自动请它重新解析，也能手动按",
+        "Ask STRATZ to parse slow matches again, automatically or with a button",
+        true,
+      ),
+      step(
         "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
         "How you died (burst, walked into wards, unused heals…)",
       ),
