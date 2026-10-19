@@ -130,6 +130,11 @@ const dotahubEn: typeof dotahubZh = {
     all: "All",
     hero: "Hero",
     allHeroes: "All heroes",
+    pickHero: "Pick a hero",
+    attrs: ["Strength", "Agility", "Intelligence", "Universal"],
+    notPlayed: "Not played in this range",
+    noPositions: (n: number) =>
+      `${n} more matches have no death positions on STRATZ (mostly older ones) and aren't counted.`,
     phase: "Phase",
     phases: {
       all: "Whole match",

@@ -6,6 +6,7 @@ import type { StoredMatch } from "@/lib/dota/admin";
 import type { HeroInfo } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
 import { HeatMap } from "../death-map";
+import { HeroPicker } from "./hero-picker";
 
 type Phase = "all" | "laning" | "mid" | "late";
 type Result = "all" | "win" | "loss";
@@ -63,18 +64,27 @@ export function DeathsExplorer({
   const t = dict.dotahub.deaths;
   const [hero, setHero] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>("all");
-  const [result, setResult] = useState<Result>("all");
+  const [result, setResult] = useState<Result>("loss");
 
-  const heroOptions = useMemo(() => {
+  // STRATZ marks many older matches parsed without any death positions: those can't be drawn, so
+  // they are left out (a match with no deaths is kept, it simply adds nothing to the map).
+  const usable = useMemo(
+    () => matches.filter((m) => m.parsed && (m.deathEvents.length || !m.deaths)),
+    [matches],
+  );
+  // How many matches per hero under the result filter, for the hero picker.
+  const counts = useMemo(() => {
     const counts = new Map<number, number>();
-    for (const m of matches) counts.set(m.heroId, (counts.get(m.heroId) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [matches]);
+    for (const m of usable)
+      if (result === "all" || (result === "win") === m.won)
+        counts.set(m.heroId, (counts.get(m.heroId) ?? 0) + 1);
+    return counts;
+  }, [usable, result]);
 
-  const shown = matches.filter(
+  const parsed = usable.filter(
     (m) => (hero === 0 || m.heroId === hero) && (result === "all" || (result === "win") === m.won),
   );
-  const parsed = shown.filter((m) => m.parsed);
+  const unusable = matches.filter((m) => m.parsed && m.deaths && !m.deathEvents.length).length;
   const events = parsed.flatMap((m) =>
     m.deathEvents.filter(
       (e) => phase === "all" || (e.t >= PHASE_RANGE[phase][0] && e.t < PHASE_RANGE[phase][1]),
@@ -106,21 +116,10 @@ export function DeathsExplorer({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">
-          {t.hero}
-          <select
-            value={hero}
-            onChange={(event) => setHero(Number(event.target.value))}
-            className="h-8 rounded-lg border bg-transparent px-2.5 text-sm text-foreground dark:bg-input/30"
-          >
-            <option value={0}>{t.allHeroes}</option>
-            {heroOptions.map(([id, n]) => (
-              <option key={id} value={id}>
-                {heroes[id]?.[lang] ?? id} ({n})
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{t.hero}</span>
+          <HeroPicker value={hero} onChange={setHero} heroes={heroes} counts={counts} />
+        </div>
         <Chips
           label={t.phase}
           value={phase}
@@ -140,6 +139,7 @@ export function DeathsExplorer({
           <p className="text-xs text-muted-foreground tabular-nums">
             {t.summary(events.length, parsed.length)}
           </p>
+          {unusable > 0 && <p className="text-xs text-muted-foreground">{t.noPositions(unusable)}</p>}
         </div>
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">{t.insights}</h2>
