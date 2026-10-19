@@ -196,6 +196,15 @@ const dotahubZh = {
     needSteam: "在 DotaHub 连结 Steam 后才能设定。",
     saveFailed: "没有存成功，请再试一次。",
   },
+  health: {
+    label: "资料来源状态",
+    states: { ok: "正常", slow: "变慢或最近失败过", down: "连不上", unknown: "还不知道" },
+    latency: (s: string) => `最近一次回应 ${s} 秒`,
+    error: (e: string) => `错误：${e}`,
+    quota: (period: string, n: number) => `${period}剩 ${n} 次`,
+    periods: { day: "今天", hour: "这小时", minute: "这分钟" },
+    checked: (m: number) => (m ? `${m} 分钟前检查` : "刚刚检查"),
+  },
   ago: {
     minutes: (n: number) => `${n} 分钟前`,
     hours: (n: number) => `${n} 小时前`,

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { FlameIcon, ListIcon, SwordsIcon, UsersIcon } from "lucide-react";
 import { SubNav, SubNavPlaceholder, type SubNavItem } from "@/components/sub-nav";
 import { getDictionary } from "@/i18n/server";
+import { SourceHealthDots } from "./source-health";
 
 // Every DotaHub page shares the sub-navigation, and the data sources at the bottom.
 export default async function DotaHubLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,7 @@ export default async function DotaHubLayout({ children }: { children: React.Reac
   return (
     <>
       <Suspense fallback={<SubNavPlaceholder />}>
-        <SubNav label={t.nav.label} items={items} />
+        <SubNav label={t.nav.label} items={items} end={<SourceHealthDots />} />
       </Suspense>
       {children}
       <p className="mt-10 text-xs text-muted-foreground">{t.sources}</p>

@@ -35,7 +35,16 @@ function isActive(path: string, item: SubNavItem, items: SubNavItem[]) {
 // A feature's own navigation under the site header (观影统计, 开发计划). Unlike the header it
 // never slides away: it sticks below it and moves up into its place while the header is hidden
 // (<html data-header-hidden>, set by HeaderShell).
-export function SubNav({ label, items }: { label: string; items: SubNavItem[] }) {
+export function SubNav({
+  label,
+  items,
+  end,
+}: {
+  label: string;
+  items: SubNavItem[];
+  // Shown at the far right of the bar (DotaHub's source status).
+  end?: React.ReactNode;
+}) {
   const { href } = useLocale();
   const wide = useWidePage();
   // The Chinese pages have no prefix in the address bar; the English ones start with /en.
@@ -73,6 +82,7 @@ export function SubNav({ label, items }: { label: string; items: SubNavItem[] })
             </Link>
           );
         })}
+        {end}
       </nav>
     </div>
   );

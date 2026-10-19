@@ -213,6 +213,15 @@ const dotahubEn: typeof dotahubZh = {
     needSteam: "Connect Steam in DotaHub to change this.",
     saveFailed: "Couldn't save. Please try again.",
   },
+  health: {
+    label: "Data source status",
+    states: { ok: "OK", slow: "Slow or failed lately", down: "Unreachable", unknown: "Not checked yet" },
+    latency: (s: string) => `Last answer took ${s}s`,
+    error: (e: string) => `Error: ${e}`,
+    quota: (period: string, n: number) => `${n} calls left ${period}`,
+    periods: { day: "today", hour: "this hour", minute: "this minute" },
+    checked: (m: number) => (m ? `Checked ${m} min ago` : "Just checked"),
+  },
   ago: {
     minutes: (n: number) => `${n} min ago`,
     hours: (n: number) => `${n} h ago`,

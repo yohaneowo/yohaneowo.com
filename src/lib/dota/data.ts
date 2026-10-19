@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
+import { recordCall, sourceOf } from "./health";
 
 // DotaHub's upstream data. OpenDota (no key needed on its free tier, about 60 requests a minute)
 // gives players and matches; Valve's own Dota 2 data feed gives hero and item names in Chinese and
@@ -17,12 +18,23 @@ export class DotaUnavailable extends Error {}
 // error from these calls as "unavailable" rather than checking the class.
 async function getJson<T>(url: string, options: { notFound?: "null" } = {}): Promise<T> {
   const host = new URL(url).host;
+  const source = sourceOf(url);
+  const started = Date.now();
   let response;
   try {
     response = await fetch(url, { signal: AbortSignal.timeout(12_000) });
   } catch (error) {
-    throw new DotaUnavailable(`${error instanceof Error ? error.name : "fetch failed"} ${host}`);
+    const reason = error instanceof Error ? error.name : "fetch failed";
+    recordCall(source, started, { ok: false, error: reason });
+    throw new DotaUnavailable(`${reason} ${host}`);
   }
+  // A 404 is an answer (no such match), not the source failing.
+  const answered = response.ok || response.status === 404;
+  recordCall(source, started, {
+    ok: answered,
+    error: answered ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
   if (response.status === 404 && options.notFound === "null") return null as T;
   if (!response.ok) throw new DotaUnavailable(`${response.status} ${host}`);
   try {

@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import type { DeathEvent } from "./admin";
+import { recordCall } from "./health";
 
 // STRATZ (GraphQL, STRATZ_API_TOKEN): one match's IMP scores and every player's deaths, with
 // where on the map each happened. Only parsed matches have them (usually minutes after the end).
@@ -44,6 +45,7 @@ export async function getStratzMatch(matchId: number): Promise<StratzMatch | nul
   "use cache";
   const token = process.env.STRATZ_API_TOKEN;
   if (!token) return null;
+  const started = Date.now();
   const response = await fetch("https://api.stratz.com/graphql", {
     method: "POST",
     // STRATZ asks API clients to send this exact user agent.
@@ -56,6 +58,14 @@ export async function getStratzMatch(matchId: number): Promise<StratzMatch | nul
       query: `{ match(id: ${Math.trunc(matchId)}) { parsedDateTime players { steamAccountId heroId isRadiant imp stats { deathEvents { time positionX positionY attacker goldLost timeDead } } } } }`,
     }),
     signal: AbortSignal.timeout(20_000),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
   });
   if (!response.ok) {
     cacheLife("minutes");

@@ -242,6 +242,11 @@ export const ROADMAP: RoadmapItem[] = [
         "A Discord DM with the death map after each ranked match (can be turned off in settings)",
         true,
       ),
+      step(
+        "导航右边显示 OpenDota、STRATZ、Steam 的连线状态与剩余额度",
+        "OpenDota, STRATZ and Steam status and quota at the end of the navigation",
+        true,
+      ),
       step("对线结果（STRATZ）", "Lane outcomes (STRATZ)"),
       step("别人的公开页、跟 Discord 好友比较", "Other players' pages and comparing with Discord friends"),
       step("Discord bot 指令（例如最近一场）", "Discord bot commands (e.g. the last match)"),
