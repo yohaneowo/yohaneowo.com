@@ -15,17 +15,23 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
-type HubItem = { key: Exclude<keyof Dictionary["moviehub"]["nav"], "label">; href: string; icon: LucideIcon };
+type HubItem = {
+  key: Exclude<keyof Dictionary["moviehub"]["nav"], "label">;
+  href: string;
+  icon: LucideIcon;
+  // Not built yet: tagged 规划中 in the bar.
+  planned?: boolean;
+};
 
 // 观影统计's own pages. Unlike the site header this bar never slides away: it sticks below the
 // header and moves up into its place while the header is hidden (<html data-header-hidden>).
 const ITEMS: HubItem[] = [
   { key: "stats", href: "/moviehub", icon: ChartPieIcon },
   { key: "picks", href: "/moviehub/picks", icon: DicesIcon },
-  { key: "calendar", href: "/moviehub/calendar", icon: CalendarDaysIcon },
-  { key: "leaderboard", href: "/moviehub/leaderboard", icon: TrophyIcon },
-  { key: "friends", href: "/moviehub/friends", icon: UsersIcon },
-  { key: "wrapped", href: "/moviehub/wrapped", icon: SparklesIcon },
+  { key: "calendar", href: "/moviehub/calendar", icon: CalendarDaysIcon, planned: true },
+  { key: "leaderboard", href: "/moviehub/leaderboard", icon: TrophyIcon, planned: true },
+  { key: "friends", href: "/moviehub/friends", icon: UsersIcon, planned: true },
+  { key: "wrapped", href: "/moviehub/wrapped", icon: SparklesIcon, planned: true },
 ];
 
 // The header is h-14 plus its 1px bottom border.
@@ -64,6 +70,11 @@ export function HubNav() {
             >
               <item.icon className="size-4" aria-hidden />
               {t.moviehub.nav[item.key]}
+              {item.planned && (
+                <span className="rounded-full border px-1.5 text-[10px] leading-4 text-muted-foreground">
+                  {t.moviehub.planned.badge}
+                </span>
+              )}
             </Link>
           );
         })}

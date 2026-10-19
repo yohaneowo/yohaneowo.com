@@ -91,6 +91,47 @@ export async function setAnimeSettings(userId: string, settings: { airing: boole
   );
 }
 
+// The 推荐 page: one kind of the Discord recommendations (read-only).
+const pickSchema = z.object({
+  pickId: z.string(),
+  day: z.string(),
+  shownAt: z.string().nullable(),
+  mode: z.string(),
+  reason: z.string(),
+  action: z.string().nullable(),
+  rating: z.number().nullable(),
+  usesBonus: z.boolean(),
+  title: z.string(),
+  originalTitle: z.string().nullable(),
+  year: z.number().nullable(),
+  poster: z.string().nullable(),
+  people: z.array(z.string()),
+  genres: z.array(z.string()),
+  url: z.string(),
+});
+const picksSchema = z.object({
+  kind: z.enum(["movie", "anime"]),
+  today: z.string(),
+  quota: z.number(),
+  remainingToday: z.number(),
+  bonus: z.number(),
+  discordLinked: z.boolean(),
+  todayPicks: z.array(pickSchema),
+  recent: z.array(pickSchema),
+});
+export type PickItem = z.infer<typeof pickSchema>;
+export type PicksView = z.infer<typeof picksSchema>;
+
+// null when the account has no movie profile yet.
+export async function getPicks(userId: string, kind: "movie" | "anime") {
+  try {
+    return picksSchema.parse(await call(`/users/${encodeURIComponent(userId)}/picks?kind=${kind}`));
+  } catch (error) {
+    if (error instanceof MoviesUnavailable && error.code === "noProfile") return null;
+    throw error;
+  }
+}
+
 export async function refreshMovieStatistics(userId: string) {
   await call(`/users/${encodeURIComponent(userId)}/refresh`, { method: "POST" });
 }

@@ -1,107 +1,106 @@
 import type { Metadata } from "next";
-import { DicesIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { getDictionary } from "@/i18n/server";
+import { localePath } from "@/i18n/config";
+import { getDictionary, getLocale } from "@/i18n/server";
+import { getSession } from "@/lib/auth";
+import { getPicks, MoviesUnavailable, type PicksView } from "@/lib/movies";
 import { cn } from "@/lib/utils";
-import { MockFrame } from "../mock-frame";
+import { PicksBody } from "./picks-body";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).moviehub.picks.title };
 }
 
-// Mock-up: the web side of the Discord recommendations.
-export default async function PicksPage() {
+type Kind = "movie" | "show" | "anime";
+const KINDS: Kind[] = ["movie", "show", "anime"];
+type SearchParams = Promise<{ kind?: string | string[] }>;
+function Message({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-lg border px-4 py-6 text-sm text-muted-foreground">{children}</div>;
+}
+
+async function Picks({ searchParams }: { searchParams: SearchParams }) {
+  const lang = await getLocale();
   const t = (await getDictionary()).moviehub.picks;
-  const quotas = [
-    { label: t.movie, left: 2, total: 3, bonus: 100 },
-    { label: t.anime, left: 4, total: 5, bonus: 105 },
-  ];
-  const statusText = (status: string, rating = 0) =>
-    status === "want"
-      ? t.status.want
-      : status === "watched"
-        ? t.status.watched(rating)
-        : status === "skipped"
-          ? t.status.skipped
-          : t.status.pending;
+  const raw = (await searchParams).kind;
+  const kind: Kind = KINDS.find((k) => k === (Array.isArray(raw) ? raw[0] : raw)) ?? "movie";
+  const session = await getSession();
+
+  let body: React.ReactNode;
+  if (!session) {
+    body = (
+      <Message>
+        <p>{t.signedOut}</p>
+        <Link
+          href={localePath(lang, "/login?next=/moviehub/picks")}
+          className={cn(buttonVariants({ size: "sm" }), "mt-3")}
+        >
+          {t.signIn}
+        </Link>
+      </Message>
+    );
+  } else if (kind === "show") {
+    body = <Message>{t.showPlanned}</Message>;
+  } else {
+    let view: PicksView | null = null;
+    let failed = false;
+    try {
+      view = await getPicks(session.user.id, kind);
+    } catch (error) {
+      if (!(error instanceof MoviesUnavailable)) throw error;
+      failed = true;
+    }
+    body = failed ? (
+      <Message>{t.unavailable}</Message>
+    ) : view ? (
+      <PicksBody t={t} lang={lang} view={view} />
+    ) : (
+      <Message>
+        <p>{t.noProfile}</p>
+        <Link href={localePath(lang, "/moviehub")} className={cn(buttonVariants({ size: "sm" }), "mt-3")}>
+          {t.toStats}
+        </Link>
+      </Message>
+    );
+  }
+
   return (
-    <MockFrame title={t.title} description={t.description}>
-      <section className="grid gap-4 sm:grid-cols-2" aria-label={t.quota}>
-        {quotas.map((quota) => (
-          <Card key={quota.label} size="sm">
-            <CardHeader>
-              <CardTitle>{quota.label}</CardTitle>
-              <CardDescription>
-                {t.left(quota.left, quota.total)} · {t.bonus(quota.bonus)}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Progress value={(quota.left / quota.total) * 100} aria-label={quota.label} />
-            </CardContent>
-          </Card>
+    <>
+      <nav aria-label={t.kindsLabel} className="flex gap-1 self-start rounded-lg bg-muted p-1 text-sm">
+        {KINDS.map((k) => (
+          <Link
+            key={k}
+            href={localePath(lang, `/moviehub/picks?kind=${k}`)}
+            aria-current={k === kind ? "page" : undefined}
+            className={cn(
+              "rounded-md px-3 py-1 transition-colors",
+              k === kind
+                ? "bg-background font-medium shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.kinds[k]}
+          </Link>
         ))}
-      </section>
+      </nav>
+      {body}
+    </>
+  );
+}
 
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">{t.today}</h2>
-          <span className={cn(buttonVariants({ size: "sm", variant: "outline" }), "pointer-events-none")}>
-            <DicesIcon aria-hidden />
-            {t.draw}
-          </span>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {t.items.map((item, index) => (
-            <Card key={item.title} className={item.status === "skipped" ? "opacity-60" : undefined}>
-              <div
-                aria-hidden
-                className="mx-4 aspect-[16/9] rounded-md"
-                style={{
-                  background: `linear-gradient(135deg, hsl(${index * 70 + 20} 45% 35%), hsl(${index * 70 + 60} 40% 18%))`,
-                }}
-              />
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{item.mode}</Badge>
-                  <span className="text-xs text-muted-foreground">{statusText(item.status)}</span>
-                </div>
-                <CardTitle className="leading-snug">{item.title}</CardTitle>
-                <CardDescription>{item.meta}</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">{item.reason}</CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="font-medium">{t.history}</h2>
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-muted-foreground">
-              <tr className="border-b">
-                <th className="px-3 py-2 font-normal">{t.columns.title}</th>
-                <th className="px-3 py-2 font-normal">{t.columns.mode}</th>
-                <th className="px-3 py-2 font-normal">{t.columns.result}</th>
-                <th className="px-3 py-2 text-right font-normal">{t.columns.day}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {t.past.map((row) => (
-                <tr key={row.title} className="border-b last:border-0">
-                  <td className="px-3 py-2">{row.title}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{row.mode}</td>
-                  <td className="px-3 py-2">{statusText(row.result, row.rating)}</td>
-                  <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">{row.day}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </MockFrame>
+// The Discord recommendations, read-only: films and anime (shows aren't built yet).
+export default async function PicksPage({ searchParams }: { searchParams: SearchParams }) {
+  const t = (await getDictionary()).moviehub.picks;
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">{t.title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
+      </div>
+      <Suspense fallback={<Message>{t.loading}</Message>}>
+        <Picks searchParams={searchParams} />
+      </Suspense>
+    </div>
   );
 }
