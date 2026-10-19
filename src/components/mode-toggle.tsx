@@ -28,6 +28,7 @@ function cancelRevealAnimations() {
 // old page (View Transitions), so the whole site switches at once underneath; the circle is a
 // clip-path on the new snapshot (to dark) or on the old one (to light; globals.css keeps that one
 // on top). Without View Transitions, or with reduced motion, the theme simply switches.
+// How it works and the flash it once had: docs/theme-toggle.md.
 export function ModeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const { t } = useLocale();
@@ -48,9 +49,6 @@ export function ModeToggle() {
     const root = document.documentElement;
     const expand = next === "dark";
     root.dataset.themeReveal = expand ? "expand" : "shrink";
-    // Where the circle starts; globals.css clips the new snapshot to it from its very first frame,
-    // since the script's animation only starts a frame later (after `ready`).
-    root.style.setProperty("--theme-reveal-at", `${x}px ${y}px`);
     const transition = document.startViewTransition(() => {
       // next-themes applies the class in an effect; flushSync runs it before the new snapshot.
       flushSync(() => setTheme(next));
@@ -76,7 +74,6 @@ export function ModeToggle() {
       cancelRevealAnimations();
       delete root.dataset.themeReveal;
       delete root.dataset.themeTurn;
-      root.style.removeProperty("--theme-reveal-at");
     });
   }
 

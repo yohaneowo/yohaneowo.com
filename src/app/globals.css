@@ -129,9 +129,9 @@
   }
 }
 
-/* Circular-reveal theme switch (mode-toggle.tsx). The circle is a clip-path animated from the
-   script, so the default cross-fade is off; going back to light the old (dark) snapshot shrinks
-   into the button, so it sits above the new one. */
+/* Circular-reveal theme switch (mode-toggle.tsx, docs/theme-toggle.md). The circle is a clip-path
+   animated from the script, so the default cross-fade is off; going back to light the old (dark)
+   snapshot shrinks into the button, so it sits above the new one. */
 html[data-theme-reveal]::view-transition-old(root),
 html[data-theme-reveal]::view-transition-new(root) {
   animation: none;
@@ -140,12 +140,6 @@ html[data-theme-reveal]::view-transition-new(root) {
 
 html[data-theme-reveal="shrink"]::view-transition-old(root) {
   z-index: 1;
-}
-
-/* To dark: the new snapshot starts as a zero circle at the button. Without this it shows in full
-   for the frame before the script's animation starts (a flash of the whole dark page). */
-html[data-theme-reveal="expand"]::view-transition-new(root) {
-  clip-path: circle(0px at var(--theme-reveal-at));
 }
 
 /* The incoming sun or moon turns into place with a small overshoot (0.6s, from #219). */
