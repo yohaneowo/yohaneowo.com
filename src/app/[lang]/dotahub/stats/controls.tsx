@@ -134,7 +134,8 @@ export function HeroFilter({
             aria-pressed={value === id}
             onClick={() => onChange(value === id ? 0 : id)}
             className={cn(
-              "flex h-8 items-center gap-2 rounded-lg border px-2 text-xs transition-colors",
+              // On short windows the panel drops these shortcuts (the picker has every hero) to fit.
+              "flex h-8 items-center gap-2 rounded-lg border px-2 text-xs transition-colors [@media(max-height:680px)]:hidden",
               value === id
                 ? "border-foreground/50 bg-muted font-medium"
                 : "text-muted-foreground hover:text-foreground",
@@ -269,7 +270,7 @@ export function FilterBar({
       {/* In the empty space left of the content (the page makes room and is what the panel is placed
           against, SIDE_PANEL_PAGE: from beside the title down, so it sticks all the way). */}
       <aside className="absolute top-0 right-full bottom-0 mr-4 hidden w-32 min-[1520px]:block">
-        <div className="sticky top-[118px] flex max-h-[calc(100vh-126px)] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top,max-height] duration-300 [html[data-header-hidden]_&]:top-16 [html[data-header-hidden]_&]:max-h-[calc(100vh-72px)]">
+        <div className="sticky top-[118px] flex max-h-[calc(100vh-126px)] [scrollbar-width:none] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top,max-height] duration-300 [&::-webkit-scrollbar]:hidden [@media(max-height:760px)]:gap-2.5 [html[data-header-hidden]_&]:top-16 [html[data-header-hidden]_&]:max-h-[calc(100vh-72px)]">
           {compare?.("panel")}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t.range}</span>
