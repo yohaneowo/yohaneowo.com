@@ -24,8 +24,20 @@ export async function SiteHeader() {
             <Link
               key={item.href}
               href={localePath(lang, item.href)}
-              className="transition-colors hover:text-foreground"
+              className="flex items-center gap-1.5 transition-colors hover:text-foreground"
             >
+              {item.logo && (
+                <span
+                  aria-hidden
+                  className="size-4 shrink-0 bg-current"
+                  style={{
+                    maskImage: `url(${item.logo})`,
+                    maskSize: "contain",
+                    maskRepeat: "no-repeat",
+                    maskPosition: "center",
+                  }}
+                />
+              )}
               {t.nav[item.key].title}
             </Link>
           ))}

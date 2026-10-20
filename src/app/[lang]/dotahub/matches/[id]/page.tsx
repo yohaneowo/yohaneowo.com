@@ -215,7 +215,10 @@ function Draft({
                   title={radiant ? t.match.radiant : t.match.dire}
                   width={36}
                   height={36}
-                  className="h-9 w-auto rounded"
+                  className={cn(
+                    "h-9 w-auto rounded-sm border-b-2",
+                    radiant ? "border-b-emerald-500/70" : "border-b-red-500/70",
+                  )}
                 />
               </div>
             ))}
