@@ -7,6 +7,7 @@ import { getDictionary, getLocale } from "@/i18n/server";
 import { dotaViewer, syncDotaLink } from "../account";
 import { Notice } from "../parts";
 import { DeathsView, rangeParam } from "./deaths-view";
+import { PlayerChip } from "./player-chip";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.deaths.title };
@@ -39,6 +40,16 @@ async function Deaths({ searchParams }: { searchParams: SearchParams }) {
   );
 }
 
+async function OwnChip() {
+  const viewer = await dotaViewer();
+  if (viewer.state !== "linked") return null;
+  return (
+    <div className="mt-2">
+      <PlayerChip accountId={viewer.accountId} lang={await getLocale()} own />
+    </div>
+  );
+}
+
 // Where the linked player dies in ranked matches, from admin's stored STRATZ deaths.
 export default async function DeathsPage({ searchParams }: { searchParams: SearchParams }) {
   const t = (await getDictionary()).dotahub.deaths;
@@ -47,6 +58,9 @@ export default async function DeathsPage({ searchParams }: { searchParams: Searc
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{t.title}</h1>
+          <Suspense fallback={<div className="mt-2 h-8" />}>
+            <OwnChip />
+          </Suspense>
           <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
         </div>
         {/* The win rate for the chosen range and hero, put here by DeathsExplorer. */}

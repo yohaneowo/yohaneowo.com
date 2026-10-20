@@ -112,6 +112,8 @@ const dotahubZh = {
   lanes: { 1: "优势路", 2: "中路", 3: "劣势路", 4: "打野" } as Record<number, string>,
   medals: ["", "先锋", "卫士", "中军", "统帅", "传奇", "万古流芳", "超凡入圣", "冠绝一世"],
   deaths: {
+    side: "阵营",
+    sides: { all: "都算", radiant: "天辉", dire: "夜魇" },
     firstBlood: "一血",
     title: "死亡热力图",
     description: "你在天梯比赛里死在地图哪里：越多次的地方颜色越深。资料来自 STRATZ，只算天梯。",

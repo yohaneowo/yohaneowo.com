@@ -5,6 +5,7 @@ import { getDictionary, getLocale } from "@/i18n/server";
 import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import { redirectIfOwn } from "../../../account";
 import { DeathsView, rangeParam } from "../../../deaths/deaths-view";
+import { PlayerChip } from "../../../deaths/player-chip";
 import { accountParam } from "../../../match-list";
 import { Notice } from "../../../parts";
 
@@ -39,6 +40,16 @@ async function Deaths({ params, searchParams }: { params: Params; searchParams: 
   );
 }
 
+async function OtherChip({ params }: { params: Params }) {
+  const id = accountParam((await params).id);
+  if (!id) return null;
+  return (
+    <div className="mt-2">
+      <PlayerChip accountId={id} lang={await getLocale()} own={false} />
+    </div>
+  );
+}
+
 // Someone's death heat map, when they linked Steam here too.
 export default async function PlayerDeathsPage({
   params,
@@ -53,6 +64,9 @@ export default async function PlayerDeathsPage({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{t.deaths.title}</h1>
+          <Suspense fallback={<div className="mt-2 h-8" />}>
+            <OtherChip params={params} />
+          </Suspense>
           <p className="mt-1 text-sm text-muted-foreground">{t.player.deathsDescription}</p>
         </div>
         {/* The win rate for the chosen range and hero, put here by DeathsExplorer. */}

@@ -16,6 +16,7 @@ import { costs, DEATHS_TITLE_SLOT, insights, type Zone, zoneOf, zoneShares } fro
 
 type Phase = "all" | "laning" | "mid" | "late";
 type Result = "all" | "win" | "loss";
+type Side = "all" | "radiant" | "dire";
 
 const PHASE_RANGE: Record<Exclude<Phase, "all">, [number, number]> = {
   laning: [-Infinity, 600],
@@ -145,6 +146,7 @@ export function DeathsExplorer({
   const [hero, setHero] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>("all");
   const [result, setResult] = useState<Result>("loss");
+  const [side, setSide] = useState<Side>("all");
   const [hoveredZone, setHoveredZone] = useState<Zone | null>(null);
   const [pinnedZone, setPinnedZone] = useState<Zone | null>(null);
   // The win rate sits at the end of the page title (outside this component): found after mount.
@@ -156,9 +158,16 @@ export function DeathsExplorer({
 
   // STRATZ marks many older matches parsed without any death positions: those can't be drawn, so
   // they are left out (a match with no deaths is kept, it simply adds nothing to the map).
+  // The side filter keeps matches whose side OpenDota knows; everything below follows it.
   const usable = useMemo(
-    () => matches.filter((m) => m.parsed && (m.deathEvents.length || !m.deaths)),
-    [matches],
+    () =>
+      matches.filter(
+        (m) =>
+          m.parsed &&
+          (m.deathEvents.length || !m.deaths) &&
+          (side === "all" || sides[m.matchId] === (side === "radiant")),
+      ),
+    [matches, side, sides],
   );
   // How many matches per hero under the result filter, for the hero picker.
   const counts = useMemo(() => {
@@ -206,12 +215,21 @@ export function DeathsExplorer({
           titleSlot,
         )}
       <div className="flex flex-col gap-2">
-        <Chips
-          label={t.phase}
-          value={phase}
-          onChange={setPhase}
-          options={(["all", "laning", "mid", "late"] as Phase[]).map((p) => [p, t.phases[p]])}
-        />
+        {/* Phase on the left; the side at the right end, above the result filter. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <Chips
+            label={t.phase}
+            value={phase}
+            onChange={setPhase}
+            options={(["all", "laning", "mid", "late"] as Phase[]).map((p) => [p, t.phases[p]])}
+          />
+          <Chips
+            label={t.side}
+            value={side}
+            onChange={setSide}
+            options={(["all", "radiant", "dire"] as Side[]).map((s) => [s, t.sides[s]])}
+          />
+        </div>
         {/* Heroes on the left; the result filter at the right end, above the highlight cards. */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex flex-wrap items-center gap-2">

@@ -122,6 +122,8 @@ const dotahubEn: typeof dotahubZh = {
   lanes: { 1: "Safe lane", 2: "Mid", 3: "Off lane", 4: "Jungle" } as Record<number, string>,
   medals: ["", "Herald", "Guardian", "Crusader", "Archon", "Legend", "Ancient", "Divine", "Immortal"],
   deaths: {
+    side: "Side",
+    sides: { all: "Both", radiant: "Radiant", dire: "Dire" },
     firstBlood: "First blood",
     title: "Death heat map",
     description:
