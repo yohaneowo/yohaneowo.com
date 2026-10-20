@@ -856,3 +856,114 @@ export async function getHeroLeaderboard(heroId: number, tier: number): Promise<
     change: p.changeInRanking,
   }));
 }
+
+// A hero's Dota Plus level leaderboard (STRATZ's, worldwide; level 30 is Grandmaster), the highest
+// levels first, with each player's ranked matches, win rate and average IMP on the hero (a second
+// request: aliases). Levels come from playing the hero a lot, not from playing it well; the IMP and
+// win rate show which. Kept for hours.
+export type LevelRow = {
+  account: number;
+  name: string | null;
+  avatar: string | null;
+  tier: number | null;
+  level: number;
+  reached: number | null;
+  matches: number | null;
+  wins: number | null;
+  imp: number | null;
+};
+
+const LEVEL_TAKE = 50;
+
+async function stratzQuery<T>(query: string, timeout: number): Promise<T> {
+  const token = process.env.STRATZ_API_TOKEN;
+  if (!token) throw new Error("STRATZ_API_TOKEN is not set");
+  const started = Date.now();
+  const response = await fetch("https://api.stratz.com/graphql", {
+    method: "POST",
+    // STRATZ asks API clients to send this exact user agent.
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "STRATZ_API",
+    },
+    body: JSON.stringify({ query }),
+    signal: AbortSignal.timeout(timeout),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
+  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+  const body = (await response.json()) as { errors?: unknown[]; data?: T };
+  if (body.errors?.length || !body.data) throw new Error("STRATZ query failed");
+  return body.data;
+}
+
+export async function getHeroLevelBoard(heroId: number): Promise<LevelRow[]> {
+  "use cache";
+  cacheLife("hours");
+  const hero = Math.trunc(heroId);
+  const board = await stratzQuery<{
+    leaderboard?: {
+      dotaPlus?: {
+        players:
+          | {
+              steamAccountId: number;
+              level: number;
+              createdDateTime: number | null;
+              steamAccount: { name: string | null; avatar: string | null; seasonRank: number | null } | null;
+            }[]
+          | null;
+      };
+    };
+  }>(
+    `{ leaderboard { dotaPlus(heroId: ${hero}, take: ${LEVEL_TAKE}, orderBy: LEVEL) { players { steamAccountId level createdDateTime steamAccount { name avatar seasonRank } } } } }`,
+    20_000,
+  );
+  // One row per player (a player can be listed once per level reached): their highest.
+  const best = new Map<number, LevelRow>();
+  for (const p of board.leaderboard?.dotaPlus?.players ?? []) {
+    const known = best.get(p.steamAccountId);
+    if (known && known.level >= p.level) continue;
+    best.set(p.steamAccountId, {
+      account: p.steamAccountId,
+      name: p.steamAccount?.name ?? null,
+      avatar: p.steamAccount?.avatar ?? null,
+      tier: p.steamAccount?.seasonRank ?? null,
+      level: p.level,
+      reached: p.createdDateTime,
+      matches: null,
+      wins: null,
+      imp: null,
+    });
+  }
+  const rows = [...best.values()];
+  if (!rows.length) return rows;
+  const perf = await stratzQuery<
+    Record<
+      string,
+      { heroPerformance: { matchCount: number; winCount: number; imp: number | null } | null } | null
+    >
+  >(
+    `{ ${rows
+      .map(
+        (r, i) =>
+          `p${i}: player(steamAccountId: ${Math.trunc(r.account)}) { heroPerformance(heroId: ${hero}, request: { lobbyTypeIds: [7], take: 10000 }) { matchCount winCount imp } }`,
+      )
+      .join(" ")} }`,
+    45_000,
+  ).catch(() => null);
+  rows.forEach((r, i) => {
+    const p = perf?.[`p${i}`]?.heroPerformance;
+    if (!p) return;
+    r.matches = p.matchCount;
+    r.wins = p.winCount;
+    r.imp = p.imp;
+  });
+  return rows;
+}

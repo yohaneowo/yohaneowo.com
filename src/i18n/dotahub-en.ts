@@ -317,6 +317,13 @@ const dotahubEn: typeof dotahubZh = {
       `Data: ${matches} ranked matches STRATZ has (since ${since}), ${withImp} with IMP.`,
     method:
       "By hero and position; 50 matches to be considered, 20 in the last 180 days to judge recent form. Win rate and IMP are shrunk toward a baseline so few matches can't look extreme. All thresholds are still being calibrated.",
+    boards: { imp: "By IMP", level: "By level" },
+    level: "Level",
+    reached: "Reached",
+    rankedMatches: "Ranked",
+    loadingLevels: "Loading… (each player's ranked showing too, about 5 seconds)",
+    levelHint:
+      "Dota Plus hero levels (worldwide, any rank; 30 is Grandmaster), highest first. Levels come from playing a lot; beside them, the player's ranked matches, win rate and average IMP on the hero.",
   },
   research: {
     title: "In-game lab",

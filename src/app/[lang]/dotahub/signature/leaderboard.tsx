@@ -6,11 +6,11 @@ import { useEffect, useState, useTransition } from "react";
 import { Loader2Icon } from "lucide-react";
 import { useLocale } from "@/i18n/locale-provider";
 import type { HeroInfo } from "@/lib/dota/data";
-import type { LeaderboardRow } from "@/lib/dota/stratz";
+import type { LeaderboardRow, LevelRow } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { HeroPicker } from "../deaths/hero-picker";
 import { Medal, medalName } from "../parts";
-import { heroLeaderboard } from "./actions";
+import { heroLeaderboard, heroLevelBoard } from "./actions";
 
 const points = (v: number) => (Math.round(v) > 0 ? `+${Math.round(v)}` : String(Math.round(v)));
 
@@ -44,12 +44,15 @@ export function HeroLeaderboard({
   const myMedal = tier ? Math.min(8, Math.max(1, Math.floor(tier / 10))) : 5;
   const [hero, setHero] = useState(firstHero);
   const [medal, setMedal] = useState(myMedal);
+  // Which board: STRATZ's by average IMP at a rank, or Dota Plus hero levels (worldwide).
+  const [board, setBoard] = useState<"imp" | "level">("imp");
   const [loaded, setLoaded] = useState<{ key: string; rows: LeaderboardRow[] | null } | null>(null);
   const [pending, startTransition] = useTransition();
   const key = `${hero}-${medal}`;
   const rows = loaded?.key === key ? loaded.rows : null;
 
   useEffect(() => {
+    if (board !== "imp") return;
     let stop = false;
     startTransition(async () => {
       const next = await heroLeaderboard(hero, medal);
@@ -58,12 +61,31 @@ export function HeroLeaderboard({
     return () => {
       stop = true;
     };
-  }, [hero, medal]);
+  }, [hero, medal, board]);
 
   const mine = recentImp[hero];
   const last = rows?.[rows.length - 1];
   return (
     <div className="flex flex-col gap-3">
+      <div role="tablist" className="flex gap-1 self-start rounded-lg bg-muted p-1 text-sm">
+        {(["imp", "level"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={board === v}
+            onClick={() => setBoard(v)}
+            className={cn(
+              "cursor-pointer rounded-md px-3 py-1 transition-colors",
+              board === v
+                ? "bg-background font-medium shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.boards[v]}
+          </button>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <HeroPicker
           value={hero}
@@ -71,117 +93,243 @@ export function HeroLeaderboard({
           heroes={heroes}
           counts={new Map(counts)}
         />
-        <div role="group" aria-label={t.rank} className="flex flex-wrap gap-0.5">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={medal === m}
-              onClick={() => setMedal(m)}
-              title={`${medalName(m * 10, dict.dotahub)}${m === myMedal ? ` · ${t.yourRank}` : ""}`}
-              className={cn(
-                "relative cursor-pointer rounded-md border p-0.5 transition-opacity",
-                medal === m
-                  ? "border-foreground/50 bg-muted"
-                  : "border-transparent opacity-50 hover:opacity-100",
-              )}
-            >
-              <Medal tier={m * 10} t={dict.dotahub} size={28} />
-              {m === myMedal && (
-                <span
-                  className="absolute -bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-foreground"
-                  aria-hidden
-                />
-              )}
-            </button>
-          ))}
-        </div>
+        {board === "imp" && (
+          <div role="group" aria-label={t.rank} className="flex flex-wrap gap-0.5">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={medal === m}
+                onClick={() => setMedal(m)}
+                title={`${medalName(m * 10, dict.dotahub)}${m === myMedal ? ` · ${t.yourRank}` : ""}`}
+                className={cn(
+                  "relative cursor-pointer rounded-md border p-0.5 transition-opacity",
+                  medal === m
+                    ? "border-foreground/50 bg-muted"
+                    : "border-transparent opacity-50 hover:opacity-100",
+                )}
+              >
+                <Medal tier={m * 10} t={dict.dotahub} size={28} />
+                {m === myMedal && (
+                  <span
+                    className="absolute -bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-foreground"
+                    aria-hidden
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
         {pending && (
           <Loader2Icon className="size-4 animate-spin text-muted-foreground" aria-label={t.loading} />
         )}
       </div>
-      {mine && (
-        <p className="text-xs text-muted-foreground">
-          {t.yourImp(own, heroes[hero]?.[lang] ?? "", mine.matches, points(mine.imp))}
-          {last ? ` ${t.cutoff(rows!.length, points(last.imp))}` : ""}
-        </p>
-      )}
-      {rows === null ? (
-        <p className="text-sm text-muted-foreground">{pending ? t.loading : t.unavailable}</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t.emptyBoard}</p>
+      {board === "level" ? (
+        <LevelBoard hero={hero} accountId={accountId} comparePath={comparePath} own={own} />
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-muted-foreground">
-              <tr className="border-b">
-                <th className="px-3 py-2 text-left font-normal">#</th>
-                <th className="px-3 py-2 text-left font-normal">{t.player}</th>
-                <th className="px-3 py-2 text-left font-normal">{t.position}</th>
-                <th className="px-3 py-2 text-right font-normal">{t.record}</th>
-                <th className="px-3 py-2 text-right font-normal">{t.winRate}</th>
-                <th className="px-3 py-2 text-right font-normal">{t.imp}</th>
-                <th className="px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => {
-                const games = r.wins + r.losses;
-                const self = r.account === accountId;
-                return (
-                  <tr key={r.account} className={cn("border-b last:border-0", self && "bg-muted/60")}>
-                    <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{i + 1}</td>
-                    <td className="px-3 py-1.5">
-                      <Link
-                        href={href(`/dotahub/players/${r.account}`)}
-                        className="flex min-w-0 items-center gap-2 hover:underline"
-                      >
-                        {r.avatar ? (
-                          <Image
-                            src={r.avatar}
-                            alt=""
-                            width={24}
-                            height={24}
-                            unoptimized
-                            className="size-6 rounded-full"
-                          />
-                        ) : (
-                          <span className="size-6 rounded-full bg-muted" />
-                        )}
-                        <span className="max-w-48 truncate">{r.name ?? r.account}</span>
-                        {r.tier ? <Medal tier={r.tier} t={dict.dotahub} size={22} /> : null}
-                        {self && (
-                          <span className="text-xs text-muted-foreground">{own ? t.you : t.thisPlayer}</span>
-                        )}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-1.5 text-xs text-muted-foreground">
-                      {r.pos ? positions[r.pos - 1] : "–"}
-                    </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">
-                      {r.wins}–{r.losses}
-                    </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">
-                      {games ? `${Math.round((r.wins / games) * 100)}%` : "–"}
-                    </td>
-                    <td className="px-3 py-1.5 text-right font-medium tabular-nums">{points(r.imp)}</td>
-                    <td className="px-3 py-1.5 text-right">
-                      {!self && (
-                        <Link
-                          href={`${comparePath}?vs=${r.account}`}
-                          className="rounded-md border px-2 py-0.5 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground"
-                        >
-                          {t.compare}
-                        </Link>
-                      )}
-                    </td>
+        <>
+          {mine && (
+            <p className="text-xs text-muted-foreground">
+              {t.yourImp(own, heroes[hero]?.[lang] ?? "", mine.matches, points(mine.imp))}
+              {last ? ` ${t.cutoff(rows!.length, points(last.imp))}` : ""}
+            </p>
+          )}
+          {rows === null ? (
+            <p className="text-sm text-muted-foreground">{pending ? t.loading : t.unavailable}</p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.emptyBoard}</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="px-3 py-2 text-left font-normal">#</th>
+                    <th className="px-3 py-2 text-left font-normal">{t.player}</th>
+                    <th className="px-3 py-2 text-left font-normal">{t.position}</th>
+                    <th className="px-3 py-2 text-right font-normal">{t.record}</th>
+                    <th className="px-3 py-2 text-right font-normal">{t.winRate}</th>
+                    <th className="px-3 py-2 text-right font-normal">{t.imp}</th>
+                    <th className="px-3 py-2" />
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => {
+                    const games = r.wins + r.losses;
+                    const self = r.account === accountId;
+                    return (
+                      <tr key={r.account} className={cn("border-b last:border-0", self && "bg-muted/60")}>
+                        <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{i + 1}</td>
+                        <td className="px-3 py-1.5">
+                          <Link
+                            href={href(`/dotahub/players/${r.account}`)}
+                            className="flex min-w-0 items-center gap-2 hover:underline"
+                          >
+                            {r.avatar ? (
+                              <Image
+                                src={r.avatar}
+                                alt=""
+                                width={24}
+                                height={24}
+                                unoptimized
+                                className="size-6 rounded-full"
+                              />
+                            ) : (
+                              <span className="size-6 rounded-full bg-muted" />
+                            )}
+                            <span className="max-w-48 truncate">{r.name ?? r.account}</span>
+                            {r.tier ? <Medal tier={r.tier} t={dict.dotahub} size={22} /> : null}
+                            {self && (
+                              <span className="text-xs text-muted-foreground">
+                                {own ? t.you : t.thisPlayer}
+                              </span>
+                            )}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-1.5 text-xs text-muted-foreground">
+                          {r.pos ? positions[r.pos - 1] : "–"}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">
+                          {r.wins}–{r.losses}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">
+                          {games ? `${Math.round((r.wins / games) * 100)}%` : "–"}
+                        </td>
+                        <td className="px-3 py-1.5 text-right font-medium tabular-nums">{points(r.imp)}</td>
+                        <td className="px-3 py-1.5 text-right">
+                          {!self && (
+                            <Link
+                              href={`${comparePath}?vs=${r.account}`}
+                              className="rounded-md border px-2 py-0.5 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground"
+                            >
+                              {t.compare}
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+// Dota Plus hero levels, worldwide (30 is Grandmaster): levels come from playing the hero a lot, so
+// each player's ranked matches, win rate and average IMP on it are beside the level.
+function LevelBoard({
+  hero,
+  accountId,
+  comparePath,
+  own,
+}: {
+  hero: number;
+  accountId: number;
+  comparePath: string;
+  own: boolean;
+}) {
+  const { t: dict, href } = useLocale();
+  const t = dict.dotahub.signature;
+  const [loaded, setLoaded] = useState<{ hero: number; rows: LevelRow[] | null } | null>(null);
+  const [pending, startTransition] = useTransition();
+  const rows = loaded?.hero === hero ? loaded.rows : null;
+
+  useEffect(() => {
+    let stop = false;
+    startTransition(async () => {
+      const next = await heroLevelBoard(hero);
+      if (!stop) setLoaded({ hero, rows: next });
+    });
+    return () => {
+      stop = true;
+    };
+  }, [hero]);
+
+  if (rows === null)
+    return (
+      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        {pending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
+        {pending ? t.loadingLevels : t.unavailable}
+      </p>
+    );
+  if (!rows.length) return <p className="text-sm text-muted-foreground">{t.emptyBoard}</p>;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs text-muted-foreground">{t.levelHint}</p>
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full text-sm">
+          <thead className="text-xs text-muted-foreground">
+            <tr className="border-b">
+              <th className="px-3 py-2 text-left font-normal">#</th>
+              <th className="px-3 py-2 text-left font-normal">{t.player}</th>
+              <th className="px-3 py-2 text-right font-normal">{t.level}</th>
+              <th className="px-3 py-2 text-right font-normal">{t.reached}</th>
+              <th className="px-3 py-2 text-right font-normal">{t.rankedMatches}</th>
+              <th className="px-3 py-2 text-right font-normal">{t.winRate}</th>
+              <th className="px-3 py-2 text-right font-normal">{t.imp}</th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const self = r.account === accountId;
+              return (
+                <tr key={r.account} className={cn("border-b last:border-0", self && "bg-muted/60")}>
+                  <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{i + 1}</td>
+                  <td className="px-3 py-1.5">
+                    <Link
+                      href={href(`/dotahub/players/${r.account}`)}
+                      className="flex min-w-0 items-center gap-2 hover:underline"
+                    >
+                      {r.avatar ? (
+                        <Image
+                          src={r.avatar}
+                          alt=""
+                          width={24}
+                          height={24}
+                          unoptimized
+                          className="size-6 rounded-full"
+                        />
+                      ) : (
+                        <span className="size-6 rounded-full bg-muted" />
+                      )}
+                      <span className="max-w-48 truncate">{r.name ?? r.account}</span>
+                      {r.tier ? <Medal tier={r.tier} t={dict.dotahub} size={22} /> : null}
+                      {self && (
+                        <span className="text-xs text-muted-foreground">{own ? t.you : t.thisPlayer}</span>
+                      )}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-medium tabular-nums">{r.level}</td>
+                  <td className="px-3 py-1.5 text-right text-xs text-muted-foreground tabular-nums">
+                    {r.reached ? new Date(r.reached * 1000).toISOString().slice(0, 10) : "–"}
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{r.matches ?? "–"}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">
+                    {r.matches && r.wins != null ? `${Math.round((r.wins / r.matches) * 100)}%` : "–"}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-medium tabular-nums">
+                    {r.imp == null ? "–" : points(r.imp)}
+                  </td>
+                  <td className="px-3 py-1.5 text-right">
+                    {!self && (
+                      <Link
+                        href={`${comparePath}?vs=${r.account}`}
+                        className="rounded-md border px-2 py-0.5 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground"
+                      >
+                        {t.compare}
+                      </Link>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

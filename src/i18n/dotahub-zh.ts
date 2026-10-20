@@ -303,6 +303,13 @@ const dotahubZh = {
       `资料：STRATZ 记录到的 ${matches} 场天梯（${since} 起），${withImp} 有 IMP。`,
     method:
       "以「英雄 × 位置」为单位，至少 50 场才进候选；近 180 天至少 20 场才判断近期状态。胜率与 IMP 都先向基准收缩，避免场数少时数字太极端。所有门槛都还在校准。",
+    boards: { imp: "IMP 榜", level: "等级榜" },
+    level: "等级",
+    reached: "达到",
+    rankedMatches: "天梯场数",
+    loadingLevels: "载入中…（要一并查每个人的天梯表现，约 5 秒）",
+    levelHint:
+      "Dota Plus 的英雄等级榜（全球，不分段位，30 级是宗师），等级最高的在前。等级是玩得多累积的，旁边是他在这个英雄所有天梯的场数、胜率与平均 IMP。",
   },
   research: {
     title: "局内科研",

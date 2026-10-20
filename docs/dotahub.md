@@ -67,7 +67,7 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 - **字段盘点（方案 1.2 节）**：全部用 STRATZ。`getRankedHistory` 抓玩家所有天梯（每次请求 20 页 × 100 场，用别名，抓到短页为止，快取数小时），每场取时间、英雄、胜负、IMP、位置。实测 968 场一次请求 0.7 秒，93% 有 IMP、96% 有位置，最早到 2020 年。IMP 本身就是「跟同英雄同位置的平均比」，直接当精通型的外部基准；OpenDota benchmarks 不用。分段与组排第一版没用。
 - **算法**：单位是「英雄 × 位置」（位置不明另成一组）。优势型拿同一段历史里的「其他英雄」当个人基准（合计 < 50 场就不判）：胜率用 Beta 后验（向基准收缩 k=30）算 P(差 > 3 个百分点)，IMP 用收缩后的平均与标准误算 P(差 > 2)，任一 ≥ 0.8。精通型：IMP 向 0 收缩（k=20）后 P(> 0) ≥ 0.8，而且有 IMP 的场次 ≥ 50%，并至少 2 个半年（每个 ≥ 10 场）、其中 ≥ 60% 平均 IMP 为正。近期是最近 180 天 ≥ 20 场；近期 IMP（向 0 收缩）> 0 才算当前。近期与较早的平均 IMP 相差 ≥ 5 标上升 / 下降。
 - **标签**：≥ 50 场且有证据 → 当前 / 历史绝活；不到 50 场但近 180 天 ≥ 20 场且有证据 → 潜力绝活；≥ 50 场没证据 → 高熟练候选（差一点：机率 ≥ 0.6，或 IMP 资料不到一半）或常玩英雄。只按证据挑，不凑数量。
-- **英雄排行榜**：STRATZ `leaderboard.hero(heroIds, bracketIds)`（stratz.com 英雄页的排行榜），必须指定段位，按最近这个英雄的平均 IMP 排名，取前 50（`getHeroLeaderboard`，快取数小时）。Dota Plus 的英雄等级榜（`leaderboard.dotaPlus`）不是同一个。
+- **英雄排行榜**：STRATZ `leaderboard.hero(heroIds, bracketIds)`（stratz.com 英雄页的排行榜），必须指定段位，按最近这个英雄的平均 IMP 排名，取前 50（`getHeroLeaderboard`，快取数小时）。另有「等级榜」分页：Dota Plus 的英雄等级榜（`leaderboard.dotaPlus`，全球、不分段位，`orderBy: LEVEL`，同一人取最高等级），再用别名一次查这 50 人在这个英雄的天梯 `heroPerformance`（场数、胜场、平均 IMP），`getHeroLevelBoard`，快取数小时，第一次约 10 秒。等级是玩得多累积的，实测幻影长矛手 30 级的人平均 IMP 多在 0 上下。
 - 页面：`signature/`（`body.tsx` 卡片与高熟练表、`leaderboard.tsx` 排行榜与 server action `actions.ts`），别人的在 `players/[id]/signature`。时间外验证脚本还没做（方案 8.2）。
 - 小导航另有「局内科研」（`research/`，规划中）。
 

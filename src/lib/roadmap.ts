@@ -473,6 +473,11 @@ export const ROADMAP: RoadmapItem[] = [
         "Hero leaderboards: the top 50 by average IMP at each rank, to open or compare",
         true,
       ),
+      step(
+        "等级榜：Dota Plus 英雄等级（全球），附每人在这个英雄的天梯场数、胜率与平均 IMP",
+        "A level board: Dota Plus hero levels (worldwide), with each player's ranked matches, win rate and average IMP on the hero",
+        true,
+      ),
       step("时间外验证脚本与参数校准", "Out-of-time validation and calibrating the thresholds"),
     ],
     links: [{ label: { zh: "绝活", en: "Signature heroes" }, href: "/dotahub/signature" }],
