@@ -632,3 +632,46 @@ export async function getStratzPeers(accountId: number): Promise<Peer[]> {
   add(player?.against, "against");
   return [...out.values()];
 }
+
+// A player's name, avatar and rank tier from STRATZ: the stand-in for OpenDota's profile when it's
+// down. Kept for hours.
+export async function getStratzProfile(
+  accountId: number,
+): Promise<{ name: string | null; avatar: string | null; tier: number | null } | null> {
+  "use cache";
+  cacheLife("hours");
+  const token = process.env.STRATZ_API_TOKEN;
+  if (!token) return null;
+  const started = Date.now();
+  const response = await fetch("https://api.stratz.com/graphql", {
+    method: "POST",
+    // STRATZ asks API clients to send this exact user agent.
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "STRATZ_API",
+    },
+    body: JSON.stringify({
+      query: `{ player(steamAccountId: ${Math.trunc(accountId)}) { steamAccount { name avatar seasonRank } } }`,
+    }),
+    signal: AbortSignal.timeout(15_000),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
+  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+  const body = (await response.json()) as {
+    data?: {
+      player?: {
+        steamAccount: { name: string | null; avatar: string | null; seasonRank: number | null } | null;
+      } | null;
+    };
+  };
+  const account = body.data?.player?.steamAccount;
+  return account ? { name: account.name, avatar: account.avatar, tier: account.seasonRank } : null;
+}

@@ -1,7 +1,7 @@
 import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getItemCosts, getItems, getPeers, getPlayer, isKeyItem } from "@/lib/dota/data";
-import { getRankAverages } from "@/lib/dota/stratz";
+import { getRankAverages, getStratzProfile } from "@/lib/dota/stratz";
 import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import type { DeathsSource } from "../deaths/deaths-view";
 import type { CompareProps } from "../economy/compare/compare-menu";
@@ -23,12 +23,15 @@ import { bracketVolatility, loadBracket, loadDetailMatches, loadRank } from "./l
 const BRACKET_HEROES = 8;
 const PEER_SUGGESTIONS = 12;
 
+// Name, avatar and rank tier: OpenDota's profile, STRATZ's when OpenDota is down.
 async function profileOf(accountId: number) {
   const player = await getPlayer(accountId).catch(() => null);
+  const profile = player?.data.profile;
+  const fallback = profile?.personaname ? null : await getStratzProfile(accountId).catch(() => null);
   return {
-    name: player?.data.profile?.personaname ?? String(accountId),
-    avatar: player?.data.profile?.avatarfull ?? null,
-    tier: player?.data.rank_tier ?? null,
+    name: profile?.personaname || fallback?.name || String(accountId),
+    avatar: profile?.avatarfull ?? fallback?.avatar ?? null,
+    tier: player?.data.rank_tier ?? fallback?.tier ?? null,
   };
 }
 

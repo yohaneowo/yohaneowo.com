@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckIcon, Loader2Icon, PlusIcon, UsersIcon, XIcon } from "lucide-react";
+import { CheckIcon, Loader2Icon, PlusIcon, UserIcon, UsersIcon, XIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLocale } from "@/i18n/locale-provider";
 import type { HeroInfo } from "@/lib/dota/data";
@@ -79,7 +79,13 @@ function Face({
       style={{ width: size, height: size, ...ring }}
     />
   ) : (
-    <span className="shrink-0 rounded-full bg-muted" style={{ width: size, height: size, ...ring }} />
+    // No avatar (the profile couldn't be read): a round placeholder with a person in it.
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+      style={{ width: size, height: size, ...ring }}
+    >
+      <UserIcon className="size-1/2" aria-hidden />
+    </span>
   );
 }
 
