@@ -1,5 +1,5 @@
 import type { DetailMatch } from "@/lib/dota/admin";
-import type { RankAverages } from "@/lib/dota/stratz";
+import type { RankAverages, RankAverageSet } from "@/lib/dota/stratz";
 import { applyFilters, type FilterState } from "../../stats/controls";
 
 // Who's being compared: the page's player ("me"), other players, and crowds: "bracket" (the other
@@ -18,8 +18,12 @@ export type Series = {
   // A player's avatar; a rank's rank_tier (medal × 10, for its medal icon).
   avatar?: string | null;
   tier?: number | null;
-  // rank: the hero, STRATZ's averages, and how far admin's sample has got.
+  // rank: the hero, STRATZ's averages by position (0: all) with the one the page player plays it
+  // most, and how far admin's sample has got. averages: the ones for the position filter (set by
+  // the page).
   heroId?: number;
+  averageSet?: RankAverageSet | null;
+  position?: number | null;
   averages?: RankAverages | null;
   progress?: { count: number; target: number };
   // rank: the volatility of each sampled player with enough matches.
@@ -73,4 +77,49 @@ export function parseAccount(input: string): number | null {
   const base = BigInt("76561197960265728");
   const id = value > base ? value - base : value;
   return id > BigInt(0) && id < BigInt(2) ** BigInt(32) ? Number(id) : null;
+}
+
+// A rank's averages for the position filter: that position's, or with every position (0) mixed by
+// how many matches the page player has in each (so the averages play the hero as they do), or
+// STRATZ's all-positions averages when that's unknown.
+export function averagesFor(
+  set: RankAverageSet | null | undefined,
+  position: number,
+  weights: Map<number, number>,
+): RankAverages | null {
+  if (!set) return null;
+  if (position) return set[position] ?? null;
+  const parts = [...weights.entries()]
+    .map(([p, w]) => [set[p], w] as const)
+    .filter((x): x is readonly [RankAverages, number] => x[0] != null && x[1] > 0);
+  if (!parts.length) return set[0] ?? null;
+  if (parts.length === 1) return parts[0][0];
+  const total = parts.reduce((a, [, w]) => a + w, 0);
+  const mix = (pick: (a: RankAverages) => (number | null)[]) => {
+    const length = Math.max(...parts.map(([a]) => pick(a).length));
+    return Array.from({ length }, (_, i) => {
+      const present = parts.filter(([a]) => pick(a)[i] != null);
+      const weight = present.reduce((a, [, w]) => a + w, 0);
+      return weight ? present.reduce((a, [x, w]) => a + pick(x)[i]! * w, 0) / weight : null;
+    });
+  };
+  const items: RankAverages["items"] = {};
+  for (const id of new Set(parts.flatMap(([a]) => Object.keys(a.items).map(Number)))) {
+    const having = parts.filter(([a]) => a.items[id]);
+    const weight = having.reduce((a, [, w]) => a + w, 0);
+    items[id] = {
+      time: Math.round(having.reduce((a, [x, w]) => a + x.items[id].time * w, 0) / weight),
+      rate: having.reduce((a, [x, w]) => a + x.items[id].rate * w, 0) / total,
+    };
+  }
+  const matches = parts.reduce((a, [x]) => a + x.matches, 0);
+  const winRate = parts.reduce((a, [x, w]) => a + (x.wins / x.matches) * w, 0) / total;
+  return {
+    matches,
+    wins: winRate * matches,
+    networth: mix((a) => a.networth),
+    lastHits: mix((a) => a.lastHits),
+    xp: mix((a) => a.xp),
+    items,
+  };
 }

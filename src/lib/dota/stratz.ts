@@ -409,9 +409,8 @@ export async function getHeroCvSample(heroId: number, accounts: number[]): Promi
 }
 
 // A hero's averages at a rank: STRATZ's statistics over its recent ranked matches, by its four
-// brackets (two medals each) and optionally one position. Per minute the net worth, last hits and
-// experience (of the matches still going at that minute); each item's average first-purchase
-// time and how often it's bought. Kept for a day.
+// brackets (two medals each). Per minute the net worth, last hits and experience (of the matches
+// still going at that minute); each item's average first-purchase time and how often it's bought.
 export type RankAverages = {
   matches: number;
   wins: number;
@@ -420,6 +419,8 @@ export type RankAverages = {
   xp: (number | null)[];
   items: Record<number, { time: number; rate: number }>;
 };
+// By position: 0 every position together, 1–5 each one (null: STRATZ has none).
+export type RankAverageSet = Record<number, RankAverages | null>;
 
 // STRATZ's brackets by medal (1 Herald … 8 Immortal).
 const BRACKETS = [
@@ -433,57 +434,20 @@ const BRACKETS = [
   "DIVINE_IMMORTAL",
   "DIVINE_IMMORTAL",
 ];
+const POSITIONS = [0, 1, 2, 3, 4, 5];
 
-type RawAverages = {
-  errors?: unknown[];
-  data?: {
-    heroStats?: {
-      t:
-        | { time: number; matchCount: number; winCount: number; networth: number; cs: number; xp: number }[]
-        | null;
-      i: { itemId: number; instance: number | null; time: number; matchCount: number }[] | null;
-    };
-  };
-};
+type RawTimes = {
+  time: number;
+  matchCount: number;
+  winCount: number;
+  networth: number;
+  cs: number;
+  xp: number;
+}[];
+type RawItems = { itemId: number; instance: number | null; time: number; matchCount: number }[];
 
-export async function getRankAverages(
-  heroId: number,
-  tier: number,
-  position: number | null,
-): Promise<RankAverages | null> {
-  "use cache";
-  cacheLife("days");
-  const token = process.env.STRATZ_API_TOKEN;
-  const bracket = BRACKETS[Math.trunc(tier)];
-  if (!token || !bracket) return null;
-  const hero = Math.trunc(heroId);
-  const where = `bracketBasicIds: [${bracket}]${position ? `, positionIds: [POSITION_${Math.trunc(position)}]` : ""}`;
-  const started = Date.now();
-  const response = await fetch("https://api.stratz.com/graphql", {
-    method: "POST",
-    // STRATZ asks API clients to send this exact user agent.
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "STRATZ_API",
-    },
-    body: JSON.stringify({
-      query: `{ heroStats { t: stats(heroIds: [${hero}], ${where}, groupByTime: true) { time matchCount winCount networth cs xp } i: itemFullPurchase(heroId: ${hero}, ${where}) { itemId instance time matchCount } } }`,
-    }),
-    signal: AbortSignal.timeout(30_000),
-  }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
-    throw error;
-  });
-  recordCall("stratz", started, {
-    ok: response.ok,
-    error: response.ok ? null : `HTTP ${response.status}`,
-    headers: response.headers,
-  });
-  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
-  const body = (await response.json()) as RawAverages;
-  if (body.errors?.length) throw new Error("STRATZ query failed");
-  const times = [...(body.data?.heroStats?.t ?? [])].sort((a, b) => a.time - b.time);
+function toAverages(rawTimes: RawTimes | null | undefined, rawItems: RawItems | null | undefined) {
+  const times = [...(rawTimes ?? [])].sort((a, b) => a.time - b.time);
   // Minute 0 counts every match (later minutes only those still going).
   const start = times.find((x) => x.time === 0) ?? times[0];
   if (!start?.matchCount) return null;
@@ -494,7 +458,7 @@ export async function getRankAverages(
   };
   // Purchases by minute; later copies of an item (instance 2 and on) are not its first purchase.
   const buys = new Map<number, { count: number; minutes: number }>();
-  for (const row of body.data?.heroStats?.i ?? []) {
+  for (const row of rawItems ?? []) {
     if ((row.instance ?? 1) > 1) continue;
     const item = buys.get(row.itemId) ?? { count: 0, minutes: 0 };
     item.count += row.matchCount;
@@ -515,4 +479,49 @@ export async function getRankAverages(
     xp: byMinute((x) => x.xp),
     items,
   };
+}
+
+// Every position in one request (aliases), so the page can follow its position filter. Kept for a
+// day.
+export async function getRankAverages(heroId: number, tier: number): Promise<RankAverageSet | null> {
+  "use cache";
+  cacheLife("days");
+  const token = process.env.STRATZ_API_TOKEN;
+  const bracket = BRACKETS[Math.trunc(tier)];
+  if (!token || !bracket) return null;
+  const hero = Math.trunc(heroId);
+  const query = POSITIONS.map((p) => {
+    const where = `bracketBasicIds: [${bracket}]${p ? `, positionIds: [POSITION_${p}]` : ""}`;
+    return `t${p}: stats(heroIds: [${hero}], ${where}, groupByTime: true) { time matchCount winCount networth cs xp } i${p}: itemFullPurchase(heroId: ${hero}, ${where}) { itemId instance time matchCount }`;
+  }).join(" ");
+  const started = Date.now();
+  const response = await fetch("https://api.stratz.com/graphql", {
+    method: "POST",
+    // STRATZ asks API clients to send this exact user agent.
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "STRATZ_API",
+    },
+    body: JSON.stringify({ query: `{ heroStats { ${query} } }` }),
+    signal: AbortSignal.timeout(30_000),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
+  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+  const body = (await response.json()) as {
+    errors?: unknown[];
+    data?: { heroStats?: Record<string, RawTimes | RawItems | null> };
+  };
+  if (body.errors?.length) throw new Error("STRATZ query failed");
+  const stats = body.data?.heroStats ?? {};
+  const set: RankAverageSet = {};
+  for (const p of POSITIONS) set[p] = toAverages(stats[`t${p}`] as RawTimes, stats[`i${p}`] as RawItems);
+  return set[0] ? set : null;
 }

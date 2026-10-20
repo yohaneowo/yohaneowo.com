@@ -525,7 +525,7 @@ const dotahubEn: typeof dotahubZh = {
     rankLabel: (medal: string, hero: string, position: string | null) =>
       [medal, hero, position].filter(Boolean).join(" · "),
     howCrowd:
-      "Every chart uses the same filters. My matches are the other nine players of your matches, over your range; a rank is that rank's players of the hero: win rate, curves and item timings are STRATZ's averages, the rest the collected sample (whatever your range).",
+      "Every chart uses the same filters. My matches are the other nine players of your matches, over your range; a rank is that rank's players of the hero: win rate, curves and item timings are STRATZ's averages (for the position filter; with every position, mixed like your matches of the hero), the rest the collected sample (whatever your range).",
     collecting: (who: string, count: number, target: number) =>
       `Collecting ${who}: ${count} / ${target} matches (a few more every minute; box plots and volatility fill in later).`,
     crowdBand: (who: string, mean: string) => `${who} ${mean} ±2σ`,

@@ -493,7 +493,7 @@ const dotahubZh = {
     rankLabel: (medal: string, hero: string, position: string | null) =>
       [medal, hero, position].filter(Boolean).join(" · "),
     howCrowd:
-      "所有图都套用同样的筛选。我的对局是你这些比赛里另外 9 个人，场数范围跟着你；段位是那个段位玩这个英雄的人：胜率、身价与正补曲线、出装时间用 STRATZ 的平均，其他图用后台收集的样本（不看场数）。",
+      "所有图都套用同样的筛选。我的对局是你这些比赛里另外 9 个人，场数范围跟着你；段位是那个段位玩这个英雄的人：胜率、身价与正补曲线、出装时间用 STRATZ 的平均（跟着位置筛选；「都算」时按你玩这个英雄各位置的场数加权），其他图用后台收集的样本（不看场数）。",
     collecting: (who: string, count: number, target: number) =>
       `${who}的样本收集中：${count} / ${target} 场（后台每分钟补一些，箱线图、波动率之后会更完整）。`,
     crowdBand: (who: string, mean: string) => `${who} ${mean} ±2σ`,

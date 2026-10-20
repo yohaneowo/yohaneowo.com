@@ -48,7 +48,7 @@ function parseVs(vs: string | undefined, accountId: number, bracketAvailable: bo
   return out;
 }
 
-// The position the player plays the hero most (for the rank averages), if any.
+// The position the player plays the hero most (where a rank starts its position filter), if any.
 function mainPosition(matches: { heroId: number; details: { pos: number | null } }[], heroId: number) {
   const counts = new Map<number, number>();
   for (const m of matches)
@@ -153,26 +153,22 @@ export async function StatsBody({
         }
         const rank = parseRankKey(key);
         if (rank) {
-          const position = mainPosition(data.matches, rank.heroId);
-          const [sample, averages] = await Promise.all([
+          const [sample, averageSet] = await Promise.all([
             loadRank(rank.heroId, rank.tier).catch(() => null),
-            getRankAverages(rank.heroId, rank.tier, position).catch(() => null),
+            getRankAverages(rank.heroId, rank.tier).catch(() => null),
           ]);
-          if (!sample && !averages) return null;
+          if (!sample && !averageSet) return null;
           return {
             key,
             kind: "rank",
-            label: t.compare.rankLabel(
-              t.medals[rank.tier],
-              heroName(rank.heroId),
-              position ? t.stats.positions[position - 1] : null,
-            ),
+            label: t.compare.rankLabel(t.medals[rank.tier], heroName(rank.heroId), null),
             color: crowdColor,
             matches: sample?.matches ?? [],
             sides: {},
             tier: rank.tier * 10,
             heroId: rank.heroId,
-            averages,
+            averageSet,
+            position: mainPosition(data.matches, rank.heroId),
             progress: sample?.progress,
             cv: sample?.cv,
           };
@@ -202,7 +198,8 @@ export async function StatsBody({
   const others = targets.filter((x): x is Series => x != null);
   for (const x of others) {
     addItems(x.matches);
-    for (const id of Object.keys(x.averages?.items ?? {})) addItem(Number(id));
+    for (const set of Object.values(x.averageSet ?? {}))
+      for (const id of Object.keys(set?.items ?? {})) addItem(Number(id));
   }
 
   // The heroes played most, for picking a rank's hero (the first is the default).

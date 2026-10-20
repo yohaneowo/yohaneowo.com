@@ -15,7 +15,7 @@ import { avg, FILTER_PAGE, FilterBar, perMinute, Section, Tabs, useFilterState }
 import { byHero, funnel, mean, rolling, sd } from "../../stats/volatility";
 import type { KeyItem } from "../economy-explorer";
 import { Forest, LOW_GAMES, MIN_GAMES } from "./forest";
-import { type FilteredSeries, filterSeries, isCrowd, type Series } from "./series";
+import { averagesFor, type FilteredSeries, filterSeries, isCrowd, type Series } from "./series";
 
 const thousands = (n: number) => Math.round(n).toLocaleString("en-US");
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -113,13 +113,31 @@ export function CompareView({
   const t = dict.dotahub.compare;
   const e = dict.dotahub.economy;
   const s = dict.dotahub.stats;
-  // A rank compares one hero: start on it.
-  const state = useFilterState(ranges, series.find((x) => x.kind === "rank")?.heroId ?? 0);
+  // A rank compares one hero: start on it, at the position the page player plays it most.
+  const rank = series.find((x) => x.kind === "rank");
+  const state = useFilterState(ranges, rank?.heroId ?? 0, rank?.position ?? 0);
   const { n, pos, side, hero, result } = state;
-  const sides = useMemo(
-    () => filterSeries(series, { n, pos, side, hero, result }),
-    [series, n, pos, side, hero, result],
-  );
+  const sides = useMemo(() => {
+    const filtered = filterSeries(series, { n, pos, side, hero, result });
+    // A rank's averages follow the position filter (with every position: mixed like the page
+    // player's matches of the hero), and its name says which position.
+    const weights = (heroId: number) => {
+      const counts = new Map<number, number>();
+      for (const m of filtered[0].lists.anyPosition)
+        if (m.heroId === heroId && m.details.pos)
+          counts.set(m.details.pos, (counts.get(m.details.pos) ?? 0) + 1);
+      return counts;
+    };
+    return filtered.map((x) =>
+      x.kind === "rank"
+        ? {
+            ...x,
+            label: pos ? `${x.label} · ${dict.dotahub.stats.positions[pos - 1]}` : x.label,
+            averages: averagesFor(x.averageSet, pos, weights(x.heroId ?? 0)),
+          }
+        : x,
+    );
+  }, [series, n, pos, side, hero, result, dict]);
   const [me] = sides;
   const [curve, setCurve] = useState<"networth" | "lastHits">("networth");
   const [leadState, setLeadState] = useState<LeadState>("ahead");
