@@ -201,17 +201,21 @@ function Draft({
       )}
       {picks.length > 0 && (
         <div className="overflow-x-auto">
-          <div className="grid w-max grid-flow-col grid-rows-2 items-start gap-y-2">
-            {/* The sides' marks at the left of their rows. */}
+          {/* Radiant's row and Dire's, a grey line between them from the sides' marks to the last
+              pick (Radiant's cells carry it, padded rather than spaced so it doesn't break). */}
+          <div className="grid w-max grid-flow-col grid-rows-2 items-stretch">
             {[true, false].map((radiant) => (
-              <div key={String(radiant)} className="flex h-9 w-9 items-center">
+              <div
+                key={String(radiant)}
+                className={cn("flex items-start pr-2", radiant ? "border-b border-border pb-2" : "pt-2")}
+              >
                 <Image
                   src={`/dota/${radiant ? "radiant" : "dire"}.webp`}
                   alt={radiant ? t.match.radiant : t.match.dire}
                   title={radiant ? t.match.radiant : t.match.dire}
-                  width={28}
-                  height={28}
-                  className="size-7 rounded"
+                  width={36}
+                  height={36}
+                  className="h-9 w-auto rounded"
                 />
               </div>
             ))}
@@ -219,7 +223,11 @@ function Draft({
               [true, false].map((radiant) => (
                 <div
                   key={`${i}-${radiant}`}
-                  className={cn("flex w-16 flex-col items-center gap-0.5", turnStart[i] && "ml-4")}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5",
+                    turnStart[i] ? "w-20 pl-4" : "w-16",
+                    radiant ? "border-b border-border pb-2" : "pt-2",
+                  )}
                 >
                   {x.radiant === radiant ? (
                     <>
