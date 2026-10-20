@@ -857,10 +857,11 @@ export async function getHeroLeaderboard(heroId: number, tier: number): Promise<
   }));
 }
 
-// A hero's Dota Plus level leaderboard (STRATZ's, worldwide; level 30 is Grandmaster), the highest
-// levels first, with each player's ranked matches, win rate and average IMP on the hero (a second
-// request: aliases). Levels come from playing the hero a lot, not from playing it well; the IMP and
-// win rate show which. Kept for hours.
+// A hero's Dota Plus level leaderboard at a rank (30 is Grandmaster). STRATZ's board is worldwide
+// with no rank filter and 100 rows a request, so a pool of LEVEL_POOL_PAGES pages (the highest
+// levels, aliases) is read and split by each player's rank; each rank's top LEVEL_TAKE then get
+// their ranked matches, win rate and average IMP on the hero (a second request). Levels come from
+// playing the hero a lot, not from playing it well; the IMP and win rate show which. Kept for hours.
 export type LevelRow = {
   account: number;
   name: string | null;
@@ -874,6 +875,7 @@ export type LevelRow = {
 };
 
 const LEVEL_TAKE = 50;
+const LEVEL_POOL_PAGES = 30;
 
 async function stratzQuery<T>(query: string, timeout: number): Promise<T> {
   const token = process.env.STRATZ_API_TOKEN;
@@ -904,45 +906,58 @@ async function stratzQuery<T>(query: string, timeout: number): Promise<T> {
   return body.data;
 }
 
-export async function getHeroLevelBoard(heroId: number): Promise<LevelRow[]> {
+type LevelPoolRow = Omit<LevelRow, "matches" | "wins" | "imp">;
+
+// The pool: one row per player (a player is listed once per level reached), their highest level.
+async function getHeroLevelPool(heroId: number): Promise<LevelPoolRow[]> {
   "use cache";
   cacheLife("hours");
   const hero = Math.trunc(heroId);
-  const board = await stratzQuery<{
-    leaderboard?: {
-      dotaPlus?: {
-        players:
-          | {
-              steamAccountId: number;
-              level: number;
-              createdDateTime: number | null;
-              steamAccount: { name: string | null; avatar: string | null; seasonRank: number | null } | null;
-            }[]
-          | null;
-      };
-    };
-  }>(
-    `{ leaderboard { dotaPlus(heroId: ${hero}, take: ${LEVEL_TAKE}, orderBy: LEVEL) { players { steamAccountId level createdDateTime steamAccount { name avatar seasonRank } } } } }`,
-    20_000,
+  type Page = {
+    players:
+      | {
+          steamAccountId: number;
+          level: number;
+          createdDateTime: number | null;
+          steamAccount: { name: string | null; avatar: string | null; seasonRank: number | null } | null;
+        }[]
+      | null;
+  };
+  const data = await stratzQuery<{ leaderboard?: Record<string, Page | null> }>(
+    `{ leaderboard { ${Array.from(
+      { length: LEVEL_POOL_PAGES },
+      (_, i) =>
+        `p${i}: dotaPlus(heroId: ${hero}, take: 100, skip: ${i * 100}, orderBy: LEVEL) { players { steamAccountId level createdDateTime steamAccount { name avatar seasonRank } } }`,
+    ).join(" ")} } }`,
+    45_000,
   );
-  // One row per player (a player can be listed once per level reached): their highest.
-  const best = new Map<number, LevelRow>();
-  for (const p of board.leaderboard?.dotaPlus?.players ?? []) {
-    const known = best.get(p.steamAccountId);
-    if (known && known.level >= p.level) continue;
-    best.set(p.steamAccountId, {
-      account: p.steamAccountId,
-      name: p.steamAccount?.name ?? null,
-      avatar: p.steamAccount?.avatar ?? null,
-      tier: p.steamAccount?.seasonRank ?? null,
-      level: p.level,
-      reached: p.createdDateTime,
-      matches: null,
-      wins: null,
-      imp: null,
-    });
-  }
-  const rows = [...best.values()];
+  const best = new Map<number, LevelPoolRow>();
+  for (let i = 0; i < LEVEL_POOL_PAGES; i++)
+    for (const p of data.leaderboard?.[`p${i}`]?.players ?? []) {
+      const known = best.get(p.steamAccountId);
+      if (known && known.level >= p.level) continue;
+      best.set(p.steamAccountId, {
+        account: p.steamAccountId,
+        name: p.steamAccount?.name ?? null,
+        avatar: p.steamAccount?.avatar ?? null,
+        tier: p.steamAccount?.seasonRank ?? null,
+        level: p.level,
+        reached: p.createdDateTime,
+      });
+    }
+  return [...best.values()];
+}
+
+export async function getHeroLevelBoard(heroId: number, tier: number): Promise<LevelRow[]> {
+  "use cache";
+  cacheLife("hours");
+  const hero = Math.trunc(heroId);
+  const medal = Math.trunc(tier);
+  const rows: LevelRow[] = (await getHeroLevelPool(hero))
+    .filter((r) => r.tier != null && Math.floor(r.tier / 10) === medal)
+    .sort((a, b) => b.level - a.level)
+    .slice(0, LEVEL_TAKE)
+    .map((r) => ({ ...r, matches: null, wins: null, imp: null }));
   if (!rows.length) return rows;
   const perf = await stratzQuery<
     Record<
@@ -966,4 +981,17 @@ export async function getHeroLevelBoard(heroId: number): Promise<LevelRow[]> {
     r.imp = p.imp;
   });
   return rows;
+}
+
+// A player's Dota Plus hero levels (hero id → level; heroes never levelled are missing). STRATZ lists
+// each level reached; the highest is the level now. Kept for hours.
+export async function getHeroLevels(accountId: number): Promise<Record<number, number>> {
+  "use cache";
+  cacheLife("hours");
+  const data = await stratzQuery<{
+    player?: { dotaPlus: { heroId: number; level: number }[] | null } | null;
+  }>(`{ player(steamAccountId: ${Math.trunc(accountId)}) { dotaPlus { heroId level } } }`, 20_000);
+  const out: Record<number, number> = {};
+  for (const x of data.player?.dotaPlus ?? []) out[x.heroId] = Math.max(out[x.heroId] ?? 0, x.level);
+  return out;
 }

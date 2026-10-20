@@ -121,3 +121,32 @@ export function ResultBadge({ won, t }: { won: boolean; t: T }) {
 export function Notice({ children }: { children: React.ReactNode }) {
   return <div className="rounded-lg border px-4 py-6 text-sm text-muted-foreground">{children}</div>;
 }
+
+// Dota Plus hero levels by tier: Bronze from 1, Silver 6, Gold 11, Platinum 16, Master 21,
+// Grandmaster 25 (to 30). Badge pictures 1–6 from STRATZ's CDN, kept in public/dota/plus.
+const PLUS_TIER_FROM = [1, 6, 11, 16, 21, 25];
+
+export function plusTier(level: number) {
+  let tier = 1;
+  PLUS_TIER_FROM.forEach((from, i) => {
+    if (level >= from) tier = i + 1;
+  });
+  return tier;
+}
+
+export function PlusBadge({ level, t, size = 20 }: { level: number; t: T; size?: number }) {
+  const tier = plusTier(level);
+  const label = t.signature.heroLevel(t.signature.plusTiers[tier - 1], level);
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5" title={label}>
+      <Image
+        src={`/dota/plus/${tier}.webp`}
+        alt={label}
+        width={size}
+        height={size}
+        style={{ width: size, height: size }}
+      />
+      <span className="text-[11px] font-semibold tabular-nums">{level}</span>
+    </span>
+  );
+}

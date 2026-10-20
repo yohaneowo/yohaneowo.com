@@ -9,7 +9,7 @@ import type { HeroInfo } from "@/lib/dota/data";
 import type { LeaderboardRow, LevelRow } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { HeroPicker } from "../deaths/hero-picker";
-import { Medal, medalName } from "../parts";
+import { Medal, medalName, PlusBadge } from "../parts";
 import { heroLeaderboard, heroLevelBoard } from "./actions";
 
 const points = (v: number) => (Math.round(v) > 0 ? `+${Math.round(v)}` : String(Math.round(v)));
@@ -23,6 +23,7 @@ export function HeroLeaderboard({
   counts,
   accountId,
   recentImp,
+  levels,
   comparePath,
   own,
 }: {
@@ -34,6 +35,8 @@ export function HeroLeaderboard({
   accountId: number;
   // The player's newest rated matches per hero (up to 25): how many and the mean IMP.
   recentImp: Record<number, { matches: number; imp: number }>;
+  // The player's Dota Plus levels per hero.
+  levels: Record<number, number>;
   // The economy page to compare from (the page player's).
   comparePath: string;
   own: boolean;
@@ -93,41 +96,47 @@ export function HeroLeaderboard({
           heroes={heroes}
           counts={new Map(counts)}
         />
-        {board === "imp" && (
-          <div role="group" aria-label={t.rank} className="flex flex-wrap gap-0.5">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={medal === m}
-                onClick={() => setMedal(m)}
-                title={`${medalName(m * 10, dict.dotahub)}${m === myMedal ? ` · ${t.yourRank}` : ""}`}
-                className={cn(
-                  "relative cursor-pointer rounded-md border p-0.5 transition-opacity",
-                  medal === m
-                    ? "border-foreground/50 bg-muted"
-                    : "border-transparent opacity-50 hover:opacity-100",
-                )}
-              >
-                <Medal tier={m * 10} t={dict.dotahub} size={28} />
-                {m === myMedal && (
-                  <span
-                    className="absolute -bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-foreground"
-                    aria-hidden
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+        <div role="group" aria-label={t.rank} className="flex flex-wrap gap-0.5">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={medal === m}
+              onClick={() => setMedal(m)}
+              title={`${medalName(m * 10, dict.dotahub)}${m === myMedal ? ` · ${t.yourRank}` : ""}`}
+              className={cn(
+                "relative cursor-pointer rounded-md border p-0.5 transition-opacity",
+                medal === m
+                  ? "border-foreground/50 bg-muted"
+                  : "border-transparent opacity-50 hover:opacity-100",
+              )}
+            >
+              <Medal tier={m * 10} t={dict.dotahub} size={28} />
+              {m === myMedal && (
+                <span
+                  className="absolute -bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-foreground"
+                  aria-hidden
+                />
+              )}
+            </button>
+          ))}
+        </div>
         {pending && (
           <Loader2Icon className="size-4 animate-spin text-muted-foreground" aria-label={t.loading} />
         )}
       </div>
       {board === "level" ? (
-        <LevelBoard hero={hero} accountId={accountId} comparePath={comparePath} own={own} />
+        <LevelBoard
+          hero={hero}
+          medal={medal}
+          level={levels[hero]}
+          accountId={accountId}
+          comparePath={comparePath}
+          own={own}
+        />
       ) : (
         <>
+          <p className="text-xs text-muted-foreground">{t.impRules}</p>
           {mine && (
             <p className="text-xs text-muted-foreground">
               {t.yourImp(own, heroes[hero]?.[lang] ?? "", mine.matches, points(mine.imp))}
@@ -218,35 +227,40 @@ export function HeroLeaderboard({
   );
 }
 
-// Dota Plus hero levels, worldwide (30 is Grandmaster): levels come from playing the hero a lot, so
+// Dota Plus hero levels at a rank (30 is Grandmaster): levels come from playing the hero a lot, so
 // each player's ranked matches, win rate and average IMP on it are beside the level.
 function LevelBoard({
   hero,
+  medal,
+  level,
   accountId,
   comparePath,
   own,
 }: {
   hero: number;
+  medal: number;
+  // The page player's own level on the hero, if any.
+  level: number | undefined;
   accountId: number;
   comparePath: string;
   own: boolean;
 }) {
   const { t: dict, href } = useLocale();
   const t = dict.dotahub.signature;
-  const [loaded, setLoaded] = useState<{ hero: number; rows: LevelRow[] | null } | null>(null);
+  const [loaded, setLoaded] = useState<{ key: string; rows: LevelRow[] | null } | null>(null);
   const [pending, startTransition] = useTransition();
-  const rows = loaded?.hero === hero ? loaded.rows : null;
+  const rows = loaded?.key === `${hero}-${medal}` ? loaded.rows : null;
 
   useEffect(() => {
     let stop = false;
     startTransition(async () => {
-      const next = await heroLevelBoard(hero);
-      if (!stop) setLoaded({ hero, rows: next });
+      const next = await heroLevelBoard(hero, medal);
+      if (!stop) setLoaded({ key: `${hero}-${medal}`, rows: next });
     });
     return () => {
       stop = true;
     };
-  }, [hero]);
+  }, [hero, medal]);
 
   if (rows === null)
     return (
@@ -259,6 +273,11 @@ function LevelBoard({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs text-muted-foreground">{t.levelHint}</p>
+      {level ? (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {t.yourLevel(own)} <PlusBadge level={level} t={dict.dotahub} size={18} />
+        </p>
+      ) : null}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead className="text-xs text-muted-foreground">
@@ -303,7 +322,11 @@ function LevelBoard({
                       )}
                     </Link>
                   </td>
-                  <td className="px-3 py-1.5 text-right font-medium tabular-nums">{r.level}</td>
+                  <td className="px-3 py-1.5 text-right">
+                    <span className="inline-flex justify-end">
+                      <PlusBadge level={r.level} t={dict.dotahub} size={18} />
+                    </span>
+                  </td>
                   <td className="px-3 py-1.5 text-right text-xs text-muted-foreground tabular-nums">
                     {r.reached ? new Date(r.reached * 1000).toISOString().slice(0, 10) : "–"}
                   </td>

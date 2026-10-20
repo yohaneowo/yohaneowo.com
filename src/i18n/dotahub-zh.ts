@@ -309,7 +309,12 @@ const dotahubZh = {
     rankedMatches: "天梯场数",
     loadingLevels: "载入中…（要一并查每个人的天梯表现，约 5 秒）",
     levelHint:
-      "Dota Plus 的英雄等级榜（全球，不分段位，30 级是宗师），等级最高的在前。等级是玩得多累积的，旁边是他在这个英雄所有天梯的场数、胜率与平均 IMP。",
+      "Dota Plus 的英雄等级榜，按段位分（STRATZ 的等级榜不分段位，这里从等级最高的约 3000 人里按各人现在的段位挑出前 50 名）。等级是玩得多累积的，旁边是他在这个英雄所有天梯的场数、胜率与平均 IMP。",
+    impRules:
+      "STRATZ 的规则：90 天内这个英雄至少 25 场天梯才能上榜，按 90 天内最近 25 场的平均 IMP 排名，每个段位前 50 名。榜由 STRATZ 定期更新，不是即时的。",
+    plusTiers: ["青铜", "白银", "黄金", "铂金", "大师", "宗师"],
+    heroLevel: (tier: string, level: number) => `英雄等级 ${level}（${tier}）`,
+    yourLevel: (own: boolean): string => (own ? "你在这个英雄的等级：" : "这位玩家在这个英雄的等级："),
   },
   research: {
     title: "局内科研",

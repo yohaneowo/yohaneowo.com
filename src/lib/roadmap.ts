@@ -474,7 +474,7 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
-        "等级榜：Dota Plus 英雄等级（全球），附每人在这个英雄的天梯场数、胜率与平均 IMP",
+        "等级榜：Dota Plus 英雄等级，按段位分，附每人在这个英雄的天梯场数、胜率与平均 IMP；绝活卡片显示自己的英雄等级徽章",
         "A level board: Dota Plus hero levels (worldwide), with each player's ranked matches, win rate and average IMP on the hero",
         true,
       ),

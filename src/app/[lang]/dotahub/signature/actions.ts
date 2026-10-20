@@ -16,8 +16,17 @@ export async function heroLeaderboard(heroId: number, tier: number): Promise<Lea
   return getHeroLeaderboard(heroId, tier).catch(() => null);
 }
 
-// A hero's Dota Plus level leaderboard (worldwide) with each player's ranked IMP and win rate on it.
-export async function heroLevelBoard(heroId: number): Promise<LevelRow[] | null> {
-  if (!Number.isInteger(heroId) || heroId < 1 || heroId > 1000) return null;
-  return getHeroLevelBoard(heroId).catch(() => null);
+// A hero's Dota Plus level leaderboard at a rank tier (medal 1–8), with each player's ranked IMP and
+// win rate on it.
+export async function heroLevelBoard(heroId: number, tier: number): Promise<LevelRow[] | null> {
+  if (
+    !Number.isInteger(heroId) ||
+    heroId < 1 ||
+    heroId > 1000 ||
+    !Number.isInteger(tier) ||
+    tier < 1 ||
+    tier > 8
+  )
+    return null;
+  return getHeroLevelBoard(heroId, tier).catch(() => null);
 }

@@ -4,9 +4,9 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getHeroes, getPlayer, type HeroInfo } from "@/lib/dota/data";
 import { type Signature, signatures, type SignatureLabel } from "@/lib/dota/signature";
-import { getRankedHistory, getStratzProfile } from "@/lib/dota/stratz";
+import { getHeroLevels, getRankedHistory, getStratzProfile } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
-import { HeroImage, Notice } from "../parts";
+import { HeroImage, Notice, PlusBadge } from "../parts";
 import { HeroLeaderboard } from "./leaderboard";
 
 type T = Dictionary["dotahub"];
@@ -47,14 +47,19 @@ function Card({
   s,
   heroes,
   t,
+  dict,
   lang,
   positions,
+  level,
 }: {
   s: Signature;
   heroes: Record<number, HeroInfo>;
   t: T["signature"];
+  dict: T;
   lang: Locale;
   positions: string[];
+  // The player's Dota Plus level on the hero, if any.
+  level: number | undefined;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border p-3">
@@ -63,6 +68,7 @@ function Card({
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-medium">{heroes[s.hero]?.[lang] ?? s.hero}</span>
+            {level ? <PlusBadge level={level} t={dict} /> : null}
             <span className="text-xs text-muted-foreground">
               {s.pos ? positions[s.pos - 1] : t.unknownPosition}
             </span>
@@ -147,9 +153,13 @@ export async function SignatureBody({
   own: boolean;
   hero: number | null;
 }) {
-  let history, heroes;
+  let history, heroes, levels: Record<number, number>;
   try {
-    [history, heroes] = await Promise.all([getRankedHistory(accountId), getHeroes()]);
+    [history, heroes, levels] = await Promise.all([
+      getRankedHistory(accountId),
+      getHeroes(),
+      getHeroLevels(accountId).catch(() => ({})),
+    ]);
   } catch {
     return <Notice>{t.unavailable}</Notice>;
   }
@@ -192,8 +202,10 @@ export async function SignatureBody({
                 s={x}
                 heroes={heroes}
                 t={s}
+                dict={t}
                 lang={lang}
                 positions={positions}
+                level={levels[x.hero]}
               />
             ))}
           </div>
@@ -217,6 +229,7 @@ export async function SignatureBody({
                       <span className="flex items-center gap-2">
                         <HeroImage hero={heroes[x.hero]} lang={lang} className="h-6 w-10 rounded-sm" />
                         {heroes[x.hero]?.[lang] ?? x.hero}
+                        {levels[x.hero] ? <PlusBadge level={levels[x.hero]} t={t} size={16} /> : null}
                         <span className="text-xs text-muted-foreground">
                           {x.pos ? positions[x.pos - 1] : s.unknownPosition}
                         </span>
@@ -249,6 +262,7 @@ export async function SignatureBody({
           counts={[...counts.entries()]}
           accountId={accountId}
           recentImp={recentImp}
+          levels={levels}
           comparePath={localePath(lang, own ? "/dotahub/economy" : `/dotahub/players/${accountId}/economy`)}
           own={own}
         />

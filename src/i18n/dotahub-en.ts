@@ -323,7 +323,12 @@ const dotahubEn: typeof dotahubZh = {
     rankedMatches: "Ranked",
     loadingLevels: "Loading… (each player's ranked showing too, about 5 seconds)",
     levelHint:
-      "Dota Plus hero levels (worldwide, any rank; 30 is Grandmaster), highest first. Levels come from playing a lot; beside them, the player's ranked matches, win rate and average IMP on the hero.",
+      "Dota Plus hero levels by rank (STRATZ's level board has no rank filter, so the top 50 at each rank are picked by their current rank from the about 3,000 highest levels). Levels come from playing a lot; beside them, the player's ranked matches, win rate and average IMP on the hero.",
+    impRules:
+      "STRATZ's rules: 25 ranked matches on the hero in the last 90 days to get on, ranked by the average IMP of the newest 25 of them, the top 50 at each rank. STRATZ updates the board now and then, not live.",
+    plusTiers: ["Bronze", "Silver", "Gold", "Platinum", "Master", "Grandmaster"],
+    heroLevel: (tier: string, level: number) => `Hero level ${level} (${tier})`,
+    yourLevel: (own: boolean) => (own ? "Your level on this hero:" : "This player's level on this hero:"),
   },
   research: {
     title: "In-game lab",
