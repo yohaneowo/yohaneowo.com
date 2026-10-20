@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import type { DeathEvent, StoredMatch } from "./admin";
+import type { DeathEvent, MatchDetails, StoredMatch } from "./admin";
 import { recordCall } from "./health";
 
 // STRATZ (GraphQL, STRATZ_API_TOKEN): one match's IMP scores and every player's deaths, with
@@ -119,6 +119,15 @@ type RawRanked = {
                   deaths: number | null;
                   assists: number | null;
                   imp: number | null;
+                  position: string | null;
+                  lane: string | null;
+                  award: string | null;
+                  goldPerMinute: number | null;
+                  experiencePerMinute: number | null;
+                  networth: number | null;
+                  numLastHits: number | null;
+                  numDenies: number | null;
+                  heroDamage: number | null;
                   stats: {
                     deathEvents:
                       | {
@@ -130,6 +139,10 @@ type RawRanked = {
                           timeDead: number | null;
                         }[]
                       | null;
+                    networthPerMinute: number[] | null;
+                    impPerMinute: number[] | null;
+                    lastHitsPerMinute: number[] | null;
+                    itemPurchases: { time: number | null; itemId: number | null }[] | null;
                   } | null;
                 }[]
               | null;
@@ -139,13 +152,46 @@ type RawRanked = {
   };
   errors?: unknown[];
 };
+type RawRankedPlayer = NonNullable<
+  NonNullable<NonNullable<NonNullable<RawRanked["data"]>["player"]>["matches"]>[number]["players"]
+>[number];
+
+// The same details admin stores (stratz.details there).
+function toDetails(p: RawRankedPlayer): MatchDetails | null {
+  const s = p.stats;
+  if (!s?.networthPerMinute?.length) return null;
+  const first = new Map<number, number>();
+  for (const purchase of s.itemPurchases ?? [])
+    if (purchase.itemId != null && purchase.time != null && !first.has(purchase.itemId))
+      first.set(purchase.itemId, purchase.time);
+  const position = p.position ?? "";
+  return {
+    pos: /^POSITION_[1-5]$/.test(position) ? Number(position.slice(-1)) : null,
+    lane: p.lane,
+    award: p.award && p.award !== "NONE" ? p.award : null,
+    gpm: p.goldPerMinute ?? 0,
+    xpm: p.experiencePerMinute ?? 0,
+    nw: p.networth ?? 0,
+    lh: p.numLastHits ?? 0,
+    dn: p.numDenies ?? 0,
+    hd: p.heroDamage ?? 0,
+    nwm: s.networthPerMinute.map((v) => v ?? 0),
+    impm: (s.impPerMinute ?? []).map((v) => v ?? 0),
+    lhm: (s.lastHitsPerMinute ?? []).map((v) => v ?? 0),
+    items: [...first.entries()].map(([id, t]) => [t, id] as [number, number]).sort((a, b) => a[0] - b[0]),
+  };
+}
+
+// A ranked match asked from STRATZ directly: what admin stores for linked players, deaths and
+// details together.
+export type RankedMatch = StoredMatch & { details: MatchDetails | null };
 
 // Up to RECENT_RANKED of a player's newest ranked matches with their deaths, in the shape admin
 // stores for linked players: the heat map of someone who never linked Steam here. One request,
 // kept for hours (STRATZ's quota is shared with admin's checks).
 export const RECENT_RANKED = 100;
 
-export async function getStratzRankedDeaths(accountId: number): Promise<StoredMatch[]> {
+export async function getStratzRanked(accountId: number): Promise<RankedMatch[]> {
   "use cache";
   cacheLife("hours");
   const token = process.env.STRATZ_API_TOKEN;
@@ -161,7 +207,7 @@ export async function getStratzRankedDeaths(accountId: number): Promise<StoredMa
       "User-Agent": "STRATZ_API",
     },
     body: JSON.stringify({
-      query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime firstBloodTime players(steamAccountId: ${id}) { heroId isVictory kills deaths assists imp stats { deathEvents { time positionX positionY attacker goldLost timeDead } } } } } }`,
+      query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime firstBloodTime players(steamAccountId: ${id}) { heroId isVictory kills deaths assists imp position lane award goldPerMinute experiencePerMinute networth numLastHits numDenies heroDamage stats { deathEvents { time positionX positionY attacker goldLost timeDead } networthPerMinute impPerMinute lastHitsPerMinute itemPurchases { time itemId } } } } } }`,
     }),
     signal: AbortSignal.timeout(30_000),
   }).catch((error) => {
@@ -176,7 +222,7 @@ export async function getStratzRankedDeaths(accountId: number): Promise<StoredMa
   if (!response.ok) throw new Error(`STRATZ ${response.status}`);
   const body = (await response.json()) as RawRanked;
   if (body.errors?.length) throw new Error("STRATZ query failed");
-  const matches: StoredMatch[] = [];
+  const matches: RankedMatch[] = [];
   for (const m of body.data?.player?.matches ?? []) {
     const p = m.players?.[0];
     if (!p || !m.startDateTime) continue;
@@ -202,6 +248,7 @@ export async function getStratzRankedDeaths(accountId: number): Promise<StoredMa
           dead: e.timeDead ?? 0,
           fb: m.firstBloodTime != null && e.time === m.firstBloodTime,
         })),
+      details: m.parsedDateTime ? toDetails(p) : null,
     });
   }
   return matches.sort((a, b) => b.startTime - a.startTime);

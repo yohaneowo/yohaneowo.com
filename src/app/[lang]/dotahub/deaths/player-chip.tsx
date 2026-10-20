@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { localePath, type Locale } from "@/i18n/config";
 import { getPlayer } from "@/lib/dota/data";
+import { dotaViewer } from "../account";
 
 // Whose heat map this is: the player's Steam avatar and name, linking to their overview.
 export async function PlayerChip({
@@ -35,5 +36,16 @@ export async function PlayerChip({
       )}
       <span className="font-medium">{profile.personaname}</span>
     </Link>
+  );
+}
+
+// The signed-in viewer's chip (nothing when they haven't linked Steam).
+export async function ViewerChip({ lang }: { lang: Locale }) {
+  const viewer = await dotaViewer();
+  if (viewer.state !== "linked") return null;
+  return (
+    <div className="mt-2">
+      <PlayerChip accountId={viewer.accountId} lang={lang} own />
+    </div>
   );
 }

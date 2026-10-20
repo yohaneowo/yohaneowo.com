@@ -82,6 +82,33 @@ export async function getHeroes(): Promise<Record<number, HeroInfo>> {
   );
 }
 
+// What OpenDota knows of each item beyond its name: price, shop quality and whether it's made from
+// a recipe. Used to pick the "key items" whose timings are worth showing.
+export type ItemCost = { cost: number; qual: string | null; created: boolean };
+
+export async function getItemCosts(): Promise<Record<number, ItemCost>> {
+  "use cache";
+  cacheLife("days");
+  const items = await getJson<
+    Record<string, { id: number; cost: number | null; qual?: string; created?: boolean }>
+  >(`${OPENDOTA}/constants/items`);
+  return Object.fromEntries(
+    Object.entries(items)
+      .filter(([name]) => !name.startsWith("recipe_"))
+      .map(([, item]) => [
+        item.id,
+        { cost: item.cost ?? 0, qual: item.qual ?? null, created: Boolean(item.created) },
+      ]),
+  );
+}
+
+// A finished item worth timing: not a consumable or a secret-shop component, and either pricey
+// (2000+, e.g. Blink) or assembled from a recipe (1000+, e.g. BKB, Arcane Boots).
+export function isKeyItem(item: ItemCost | undefined) {
+  if (!item || item.qual === "consumable" || item.qual === "secret_shop") return false;
+  return item.cost >= 2000 || (item.created && item.cost >= 1000);
+}
+
 export async function getItems(): Promise<Record<number, ItemInfo>> {
   "use cache";
   cacheLife("days");

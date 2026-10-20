@@ -244,12 +244,24 @@ async function Lanes({ t, accountId }: Omit<Props, "lang">) {
 
 // STRATZ's IMP over the newest ranked matches, from the same place as the death heat map (admin's
 // stored history for players linked here, STRATZ asked directly for anyone else).
-async function Imp({ t, lang, accountId, source }: Props & { source: DeathsSource }) {
+async function Imp({ t, lang, accountId, source, own }: Props & { source: DeathsSource; own: boolean }) {
   const [data, heroes] = await Promise.all([
     loadDeaths(source, accountId, 100).catch(() => null),
     getHeroes().catch(() => null),
   ]);
-  const heading = <Heading title={t.imp.title} />;
+  const heading = (
+    <Heading title={t.imp.title}>
+      <Link
+        href={localePath(
+          lang,
+          source.kind === "stored" && own ? "/dotahub/imp" : `/dotahub/players/${accountId}/imp`,
+        )}
+        className="text-xs text-muted-foreground hover:underline"
+      >
+        {t.imp.more}
+      </Link>
+    </Heading>
+  );
   if (!data || !heroes)
     return (
       <>
@@ -336,7 +348,7 @@ export function Overview({
                 </>
               }
             >
-              <Imp {...props} source={source} />
+              <Imp {...props} source={source} own={own} />
             </Suspense>
           </section>
         </div>

@@ -3,7 +3,7 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { type DotaStatus, getStoredDeaths } from "@/lib/dota/admin";
 import { getHeroes, getRankedSides } from "@/lib/dota/data";
-import { getStratzRankedDeaths } from "@/lib/dota/stratz";
+import { getStratzRanked } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { Notice } from "../parts";
 import { DeathsExplorer } from "./deaths-explorer";
@@ -22,7 +22,12 @@ export type DeathsSource = { kind: "stored"; userId: string } | { kind: "stratz"
 
 export async function loadDeaths(source: DeathsSource, accountId: number, n: number) {
   if (source.kind === "stored") return getStoredDeaths(source.userId, n);
-  const matches = await getStratzRankedDeaths(accountId);
+  // Without the details: the heat map doesn't use them, and they'd only weigh on the page.
+  const matches = (await getStratzRanked(accountId)).map((match) => {
+    const { details, ...rest } = match;
+    void details;
+    return rest;
+  });
   return { historyDone: true, matches: n ? matches.slice(0, n) : matches };
 }
 

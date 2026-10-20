@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftIcon, FlameIcon, ListIcon, SwordsIcon, UsersIcon } from "lucide-react";
+import {
+  ActivityIcon,
+  ArrowLeftIcon,
+  CoinsIcon,
+  FlameIcon,
+  ListIcon,
+  SwordsIcon,
+  UsersIcon,
+} from "lucide-react";
 import { SubNav } from "@/components/sub-nav";
 import { useLocale } from "@/i18n/locale-provider";
 import { SourceHealthDots } from "./source-health";
@@ -23,6 +31,8 @@ export function DotaSubNav() {
         { href: base, label: t.nav.overview, icon: <SwordsIcon aria-hidden /> },
         { href: `${base}/matches`, label: t.nav.matches, icon: <ListIcon aria-hidden /> },
         { href: `${base}/deaths`, label: t.nav.deaths, icon: <FlameIcon aria-hidden /> },
+        { href: `${base}/economy`, label: t.nav.economy, icon: <CoinsIcon aria-hidden /> },
+        { href: `${base}/imp`, label: t.nav.imp, icon: <ActivityIcon aria-hidden /> },
         { href: `${base}/peers`, label: t.nav.peers, icon: <UsersIcon aria-hidden /> },
       ]}
       end={

@@ -76,6 +76,46 @@ export type StoredMatch = z.infer<typeof storedMatchSchema>;
 
 const deathsSchema = z.object({ historyDone: z.boolean(), matches: z.array(storedMatchSchema) });
 
+// A parsed match's economy and IMP: position 1–5, lane, STRATZ's award, GPM, XPM, final net worth,
+// last hits, denies, hero damage; per minute the net worth (running total), IMP (at that minute)
+// and last hits (that minute's); each item's first purchase as [seconds, item id].
+export const matchDetailsSchema = z.object({
+  pos: z.number().nullable(),
+  lane: z.string().nullable(),
+  award: z.string().nullable(),
+  gpm: z.number(),
+  xpm: z.number(),
+  nw: z.number(),
+  lh: z.number(),
+  dn: z.number(),
+  hd: z.number(),
+  nwm: z.array(z.number()),
+  impm: z.array(z.number()),
+  lhm: z.array(z.number()),
+  items: z.array(z.tuple([z.number(), z.number()])),
+});
+export type MatchDetails = z.infer<typeof matchDetailsSchema>;
+
+const detailMatchSchema = z.object({
+  matchId: z.number(),
+  heroId: z.number(),
+  won: z.boolean(),
+  startTime: z.number(),
+  duration: z.number(),
+  kills: z.number(),
+  deaths: z.number(),
+  assists: z.number(),
+  imp: z.number().nullable(),
+  details: matchDetailsSchema,
+});
+// A match for the economy and IMP pages (no deaths; always with details).
+export type DetailMatch = z.infer<typeof detailMatchSchema>;
+
+const detailsListSchema = z.object({
+  historyDone: z.boolean(),
+  matches: z.array(detailMatchSchema.extend({ details: matchDetailsSchema.nullable() })),
+});
+
 export async function linkDota(
   userId: string,
   input: { steamId: string; accountId: number; discordId: string | null },
@@ -102,6 +142,19 @@ export async function setDotaNotify(userId: string, notify: boolean) {
 }
 
 // limit 0: every stored match.
+// The stored ranked matches with details, newest first (limit 0: all of them); null when admin
+// doesn't know the account.
+export async function getStoredDetails(userId: string, limit: number) {
+  const data = detailsListSchema
+    .nullable()
+    .parse(await call(`/users/${encodeURIComponent(userId)}/details?limit=${limit}`));
+  if (!data) return null;
+  return {
+    historyDone: data.historyDone,
+    matches: data.matches.filter((m): m is DetailMatch => m.details !== null),
+  };
+}
+
 export async function getStoredDeaths(userId: string, limit: number) {
   return deathsSchema
     .nullable()

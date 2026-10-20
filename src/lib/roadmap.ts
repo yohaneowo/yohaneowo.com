@@ -317,6 +317,16 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
+        "IMP 页：走势、一场里每分钟的 IMP、各位置、英雄表、最好与最差的比赛、STRATZ 奖项",
+        "An IMP page: trend, IMP minute by minute, by position, a hero table, best and worst games, STRATZ awards",
+        true,
+      ),
+      step(
+        "经济页：GPM、XPM、正补与身价、身价曲线、各位置、关键装备时间",
+        "An economy page: GPM, XPM, last hits and net worth, net worth by minute, by position, item timings",
+        true,
+      ),
+      step(
         "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
         "How you died (burst, walked into wards, unused heals…)",
       ),
