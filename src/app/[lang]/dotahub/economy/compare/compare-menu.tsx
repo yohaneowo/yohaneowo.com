@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckIcon, PlusIcon, UsersIcon, XIcon } from "lucide-react";
+import { CheckIcon, Loader2Icon, PlusIcon, UsersIcon, XIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLocale } from "@/i18n/locale-provider";
 import type { HeroInfo } from "@/lib/dota/data";
@@ -101,6 +101,7 @@ export function CompareMenu({
   position,
   counts,
   onHero,
+  busy = null,
   variant,
 }: CompareProps & {
   heroes: Record<number, HeroInfo>;
@@ -111,9 +112,11 @@ export function CompareMenu({
   counts: Map<number, number>;
   // Picking a rank sets the page's hero filter to its hero.
   onHero: (hero: number) => void;
+  // What the page is loading for the comparison by itself (switching the rank's hero).
+  busy?: string | null;
   variant: "panel" | "top";
 }) {
-  const { t: dict } = useLocale();
+  const { t: dict, lang } = useLocale();
   const t = dict.dotahub.compare;
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -126,23 +129,38 @@ export function CompareMenu({
   const keys = targets.map((x) => x.key);
   const full = keys.length >= MAX_TARGETS;
   const myMedal = myTier ? Math.floor(myTier / 10) : null;
+  // Loading the comparison takes a few seconds (a rank picked for the first time longer): say what.
+  const [pending, startTransition] = useTransition();
+  const [loading, setLoading] = useState<string | null>(null);
+  const status = pending ? loading : busy;
 
-  const go = (next: string[]) => {
+  const go = (next: string[], what: string) => {
     setOpen(false);
     setInput("");
     setError(false);
-    router.push(next.length ? `${path}?vs=${next.join(",")}` : path, { scroll: false });
+    setLoading(what);
+    startTransition(() =>
+      router.push(next.length ? `${path}?vs=${next.join(",")}` : path, { scroll: false }),
+    );
   };
   // Picking what's picked takes it away.
-  const toggle = (key: string) => {
-    if (keys.includes(key)) go(keys.filter((k) => k !== key));
-    else if (!full) go([...keys, key]);
+  const toggle = (key: string, label: string) => {
+    if (keys.includes(key))
+      go(
+        keys.filter((k) => k !== key),
+        t.updating,
+      );
+    else if (!full) go([...keys, key], t.loading(label));
   };
-  const addPlayer = (id: number | null) => {
+  const addPlayer = (id: number | null, label?: string) => {
     if (!id || id === ownerId) return setError(true);
-    toggle(String(id));
+    toggle(String(id), label ?? String(id));
   };
-  const remove = (key: string) => go(keys.filter((k) => k !== key));
+  const remove = (key: string) =>
+    go(
+      keys.filter((k) => k !== key),
+      t.updating,
+    );
   const rankTargets = targets.filter((x) => x.kind === "rank");
   const chosenTier = (medal: number) =>
     rankTargets.find((x) => x.key === rankKey(medal, rankHero)) ??
@@ -156,7 +174,7 @@ export function CompareMenu({
     <PopoverContent
       side={variant === "panel" ? "right" : "bottom"}
       align="start"
-      className="max-h-[70vh] w-[min(92vw,400px)] gap-3 overflow-y-auto"
+      className="max-h-[70vh] w-[min(92vw,400px)] gap-3 overflow-y-auto [&_button]:cursor-pointer [&_button:disabled]:cursor-not-allowed"
     >
       <div role="tablist" className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
         {(["friends", "ranks"] as const).map((v) => (
@@ -216,7 +234,7 @@ export function CompareMenu({
                     type="button"
                     disabled={!chosen && full}
                     aria-pressed={Boolean(chosen)}
-                    onClick={() => toggle(String(p.id))}
+                    onClick={() => toggle(String(p.id), p.name)}
                     className={cn(
                       "flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm hover:bg-muted disabled:opacity-40",
                       chosen && "bg-muted",
@@ -249,7 +267,7 @@ export function CompareMenu({
                   type="button"
                   disabled={!chosen && full}
                   aria-pressed={Boolean(chosen)}
-                  onClick={() => toggle("bracket")}
+                  onClick={() => toggle("bracket", t.mine)}
                   className={cn(
                     "flex items-center gap-2 rounded-md border px-2 py-1.5 text-left hover:bg-muted disabled:opacity-40",
                     chosen && "bg-muted",
@@ -297,7 +315,10 @@ export function CompareMenu({
                   onClick={() => {
                     if (chosen) return remove(chosen.key);
                     onHero(rankHero);
-                    toggle(rankKey(medal, rankHero));
+                    toggle(
+                      rankKey(medal, rankHero),
+                      `${medalName(medal * 10, dict.dotahub)} · ${heroes[rankHero]?.[lang] ?? rankHero}`,
+                    );
                   }}
                   className={cn(
                     "relative flex flex-col items-center gap-0.5 rounded-md border px-1 py-1.5 text-xs hover:bg-muted disabled:opacity-40",
@@ -331,11 +352,11 @@ export function CompareMenu({
 
   if (variant === "panel")
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 [&_button]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
         <span className="text-xs text-muted-foreground">{t.label}</span>
-        {/* One row in the panel's 110px: three faces and VS (with two picked, no plus: removing one
-            with its × brings it back). */}
-        <div className="flex items-center justify-between gap-0.5">
+        {/* One centred row in the panel's 110px: three faces and VS (with two picked, no plus:
+            removing one with its × brings it back). */}
+        <div className="flex items-center justify-center gap-[3px]">
           <span title={me.label}>
             <Face avatar={me.avatar} color={ME_COLOR} size={28} />
           </span>
@@ -360,19 +381,27 @@ export function CompareMenu({
                 title={t.pick}
                 className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-muted-foreground hover:text-foreground"
               >
-                <PlusIcon className="size-4" aria-hidden />
+                {status ? (
+                  <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <PlusIcon className="size-4" aria-hidden />
+                )}
               </PopoverTrigger>
               {menu}
             </Popover>
           )}
-          {/* Keeps the faces at the left while there's room. */}
-          {targets.length === 0 && <span className="size-7" aria-hidden />}
         </div>
+        {status && (
+          <p role="status" className="flex items-start gap-1 text-[11px] leading-tight text-muted-foreground">
+            <Loader2Icon className="mt-px size-3 shrink-0 animate-spin" aria-hidden />
+            {status}
+          </p>
+        )}
       </div>
     );
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-3 py-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-3 py-2 [&_button]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
       <span className="flex min-w-0 items-center gap-2">
         <Face avatar={me.avatar} color={ME_COLOR} />
         <span className="truncate text-sm font-medium">{me.label}</span>
@@ -401,9 +430,13 @@ export function CompareMenu({
           className="flex items-center gap-2 rounded-full py-0.5 pr-3 pl-0.5 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
           <span className="flex size-8 items-center justify-center rounded-full border-2 border-dashed">
-            <PlusIcon className="size-4" aria-hidden />
+            {status ? (
+              <Loader2Icon className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <PlusIcon className="size-4" aria-hidden />
+            )}
           </span>
-          {full ? t.change : targets.length ? t.addAnother : t.pick}
+          {status ?? (full ? t.change : targets.length ? t.addAnother : t.pick)}
         </PopoverTrigger>
         {menu}
       </Popover>

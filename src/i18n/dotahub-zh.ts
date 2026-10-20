@@ -503,6 +503,9 @@ const dotahubZh = {
     rankHero: "英雄",
     pickHeroFirst: "先选一个英雄，段位会跟那个英雄比。",
     change: "更换",
+    loading: (who: string) => `正在载入 ${who}…（第一次选的段位要等后台收集一下）`,
+    updating: "更新中…",
+    switchingHero: (hero: string) => `换成${hero}…`,
   },
   fresh: {
     justNow: "刚刚",

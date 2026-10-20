@@ -536,6 +536,9 @@ const dotahubEn: typeof dotahubZh = {
     rankHero: "Hero",
     pickHeroFirst: "Pick a hero first: a rank compares that hero.",
     change: "Change",
+    loading: (who: string) => `Loading ${who}… (a rank picked for the first time takes a while)`,
+    updating: "Updating…",
+    switchingHero: (hero: string) => `Switching to ${hero}…`,
   },
   fresh: {
     justNow: "just now",

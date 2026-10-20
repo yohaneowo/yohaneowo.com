@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { EChartsOption } from "echarts";
 import { EChart } from "@/components/charts/echart";
@@ -130,6 +130,8 @@ export function CompareView({
   const state = useFilterState(ranges, rank?.heroId ?? 0, rank?.position ?? 0);
   const { n, pos, side, hero, result } = state;
   const router = useRouter();
+  const [switching, startSwitch] = useTransition();
+  const [switchingTo, setSwitchingTo] = useState<number | null>(null);
   // A rank follows the hero filter: picking another hero there compares that hero at the same rank.
   const pickHero = (id: number) => {
     state.setHero(id);
@@ -138,7 +140,8 @@ export function CompareView({
       const r = parseRankKey(x.key);
       return r ? rankKey(r.tier, id) : x.key;
     });
-    router.replace(`${compare.path}?vs=${keys.join(",")}`, { scroll: false });
+    setSwitchingTo(id);
+    startSwitch(() => router.replace(`${compare.path}?vs=${keys.join(",")}`, { scroll: false }));
   };
   const sides = useMemo(() => {
     const filtered = filterSeries(series, { n, pos, side, hero, result });
@@ -306,6 +309,7 @@ export function CompareView({
             position={pos}
             counts={me.lists.counts}
             onHero={state.setHero}
+            busy={switching && switchingTo ? t.switchingHero(heroes[switchingTo]?.[lang] ?? "") : null}
             variant={variant}
           />
         )}
