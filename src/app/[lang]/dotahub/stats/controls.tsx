@@ -266,8 +266,8 @@ export function FilterBar({
   const results = (["all", "win", "loss"] as Result[]).map((v): [Result, string] => [v, t.results[v]]);
   return (
     <>
-      {/* In the empty space left of the content (the page makes room, SIDE_PANEL_PAGE). The parent
-          (FILTER_PAGE) is positioned and spans the page's content, so the panel sticks all the way down. */}
+      {/* In the empty space left of the content (the page makes room and is what the panel is placed
+          against, SIDE_PANEL_PAGE: from beside the title down, so it sticks all the way). */}
       <aside className="absolute top-0 right-full bottom-0 mr-4 hidden w-32 min-[1520px]:block">
         <div className="sticky top-[118px] flex max-h-[calc(100vh-126px)] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top,max-height] duration-300 [html[data-header-hidden]_&]:top-16 [html[data-header-hidden]_&]:max-h-[calc(100vh-72px)]">
           {compare?.("panel")}
@@ -341,8 +341,8 @@ export function FilterBar({
   );
 }
 
-// The root of a page with FilterBar (the side panel is placed against it).
-export const FILTER_PAGE = "relative flex flex-col gap-6";
+// The root of a page body with FilterBar (the side panel is placed against the whole page: SIDE_PANEL_PAGE).
+export const FILTER_PAGE = "flex flex-col gap-6";
 
 // One row of three small buttons in the side panel (side as the factions' pictures, result as W / L).
 function PanelRow<V extends string | number>({
