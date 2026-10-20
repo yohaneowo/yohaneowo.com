@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { ArrowDownRightIcon, ArrowUpRightIcon } from "lucide-react";
@@ -9,7 +8,6 @@ import { type Signature, signatures, type SignatureLabel } from "@/lib/dota/sign
 import { getHeroLevels, getRankedHistory, getStratzProfile } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { HeroImage, Notice, PlusBadge } from "../parts";
-import { CardPortrait } from "./card-portrait";
 import { LabelPillars } from "./label-pillars";
 import { HeroLeaderboard } from "./leaderboard";
 
@@ -55,7 +53,6 @@ function Card({
   lang,
   positions,
   level,
-  portrait,
 }: {
   s: Signature;
   heroes: Record<number, HeroInfo>;
@@ -65,18 +62,16 @@ function Card({
   positions: string[];
   // The player's Dota Plus level on the hero, if any.
   level: number | undefined;
-  // The hero picture (CardPortrait), which may fly in from the pillar.
-  portrait: ReactNode;
 }) {
   return (
-    <div data-sig-card className="relative flex flex-col gap-3 rounded-xl border p-3">
+    <div className="relative flex flex-col gap-3 rounded-xl border p-3">
       {level ? (
         <div className="absolute -top-4 -right-3">
           <PlusBadge level={level} t={dict} size={76} fontSize={19} />
         </div>
       ) : null}
       <div className={cn("flex items-start gap-3", level && "pr-16")}>
-        {portrait}
+        <HeroImage hero={heroes[s.hero]} lang={lang} className="h-12 w-20 shrink-0 rounded" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-medium">{heroes[s.hero]?.[lang] ?? s.hero}</span>
@@ -181,13 +176,6 @@ export async function SignatureBody({
   const skilled = report.signatures.filter((s) => s.label === "skilled" || s.label === "frequent");
   const s = t.signature;
   const positions = t.stats.positions;
-  const portraitOf = (id: number) => ({
-    id,
-    name: heroes[id]?.[lang] ?? String(id),
-    // Cached hero lists from before the render field fall back to the small picture.
-    render: heroes[id]?.render ?? heroes[id]?.img ?? "",
-    attr: heroes[id]?.attr ?? 3,
-  });
 
   // The player's rank (for the leaderboard's default) and their recent matches per hero.
   const player = await getPlayer(accountId).catch(() => null);
@@ -216,46 +204,34 @@ export async function SignatureBody({
         </div>
         {found.length ? (
           <LabelPillars
-            groups={(["historic", "current", "potential"] as const).map((label) => {
-              const cards = found.filter((x) => x.label === label);
-              const art = [...new Set(cards.map((x) => x.hero))]
+            groups={(["historic", "current", "potential"] as const).map((label) => ({
+              key: label,
+              name: s.labels[label],
+              art: [...new Set(found.filter((x) => x.label === label).map((x) => x.hero))]
                 .filter((id) => heroes[id])
                 .slice(0, 4)
-                .map((id) => portraitOf(id));
-              // The first card of each hero on the pillar catches its picture, in card order.
-              const flying = new Map<number, { pos: number | null; order: number }>();
-              for (const x of cards)
-                if (art.some((a) => a.id === x.hero) && !flying.has(x.hero))
-                  flying.set(x.hero, { pos: x.pos, order: flying.size });
-              return {
-                key: label,
-                name: s.labels[label],
-                art,
-                cards: cards.map((x) => {
-                  const fly = flying.get(x.hero);
-                  const catches = fly != null && fly.pos === x.pos;
-                  return (
-                    <Card
-                      key={`${x.hero}-${x.pos}`}
-                      s={x}
-                      heroes={heroes}
-                      t={s}
-                      dict={t}
-                      lang={lang}
-                      positions={positions}
-                      level={levels[x.hero]}
-                      portrait={
-                        <CardPortrait
-                          hero={portraitOf(x.hero)}
-                          layoutId={catches ? `sig-${label}-${x.hero}` : undefined}
-                          delay={catches ? fly.order * 0.08 : 0}
-                        />
-                      }
-                    />
-                  );
-                }),
-              };
-            })}
+                .map((id) => ({
+                  id,
+                  name: heroes[id][lang],
+                  // Cached hero lists from before the render field fall back to the small picture.
+                  render: heroes[id].render ?? heroes[id].img,
+                  attr: heroes[id].attr,
+                })),
+              cards: found
+                .filter((x) => x.label === label)
+                .map((x) => (
+                  <Card
+                    key={`${x.hero}-${x.pos}`}
+                    s={x}
+                    heroes={heroes}
+                    t={s}
+                    dict={t}
+                    lang={lang}
+                    positions={positions}
+                    level={levels[x.hero]}
+                  />
+                )),
+            }))}
           />
         ) : (
           <p className="rounded-lg border px-4 py-6 text-center text-sm text-muted-foreground">{s.none}</p>
