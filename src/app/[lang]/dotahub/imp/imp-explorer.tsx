@@ -170,7 +170,7 @@ export function ImpExplorer({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="relative flex flex-col gap-6">
       <FilterBar f={f} heroes={heroes} ranges={ranges} />
       {!rated.length ? (
         <p className="text-sm text-muted-foreground">{s.empty}</p>

@@ -14,15 +14,17 @@ export function Chips<V extends string | number>({
   value,
   options,
   onChange,
+  stacked = false,
 }: {
   label: string;
   value: V;
   options: [V, string][];
   onChange: (value: V) => void;
+  stacked?: boolean;
 }) {
   return (
     <div role="group" aria-label={label} className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 text-xs text-muted-foreground">{label}</span>
+      <span className={cn("mr-1 text-xs text-muted-foreground", stacked && "w-full")}>{label}</span>
       {options.map(([v, text]) => (
         <button
           key={v}
@@ -49,14 +51,20 @@ export function Tabs<V extends string | number>({
   value,
   options,
   onChange,
+  className,
 }: {
   label: string;
   value: V;
   options: [V, string][];
   onChange: (value: V) => void;
+  className?: string;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex gap-1 self-start rounded-lg bg-muted p-1 text-sm">
+    <div
+      role="group"
+      aria-label={label}
+      className={cn("flex gap-1 self-start rounded-lg bg-muted p-1 text-sm", className)}
+    >
       {options.map(([v, text]) => (
         <button
           key={v}
@@ -83,15 +91,59 @@ export function HeroFilter({
   onChange,
   heroes,
   counts,
+  stacked = false,
 }: {
   value: number;
   onChange: (hero: number) => void;
   heroes: Record<number, HeroInfo>;
   counts: Map<number, number>;
+  stacked?: boolean;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.deaths;
   const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const reset = (
+    <button
+      type="button"
+      onClick={() => onChange(0)}
+      disabled={value === 0}
+      aria-label={t.resetHero}
+      title={t.resetHero}
+      className="flex size-8 shrink-0 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+    >
+      <RotateCcwIcon className="size-3.5" aria-hidden />
+    </button>
+  );
+  if (stacked)
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs text-muted-foreground">{t.hero}</span>
+        <div className="flex items-center gap-2">
+          <HeroPicker value={value} onChange={onChange} heroes={heroes} counts={counts} />
+          {reset}
+        </div>
+        {top.map(([id, n]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={value === id}
+            onClick={() => onChange(value === id ? 0 : id)}
+            className={cn(
+              "flex h-8 items-center gap-2 rounded-lg border px-2 text-xs transition-colors",
+              value === id
+                ? "border-foreground/50 bg-muted font-medium"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {heroes[id] && (
+              <Image src={heroes[id].icon} alt="" width={20} height={20} unoptimized className="size-5" />
+            )}
+            <span className="min-w-0 flex-1 truncate text-left">{heroes[id]?.[lang]}</span>
+            <span className="tabular-nums">{n}</span>
+          </button>
+        ))}
+      </div>
+    );
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs text-muted-foreground">{t.hero}</span>
@@ -117,16 +169,7 @@ export function HeroFilter({
           <span className="tabular-nums">{n}</span>
         </button>
       ))}
-      <button
-        type="button"
-        onClick={() => onChange(0)}
-        disabled={value === 0}
-        aria-label={t.resetHero}
-        title={t.resetHero}
-        className="flex size-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-      >
-        <RotateCcwIcon className="size-3.5" aria-hidden />
-      </button>
+      {reset}
     </div>
   );
 }
@@ -207,36 +250,67 @@ export function FilterBar({
   const { t: dict } = useLocale();
   const t = dict.dotahub.deaths;
   const s = dict.dotahub.stats;
+  const range = ranges.map((r): [number, string] => [r, r ? t.recent(r) : t.all]);
+  const positions = POSITIONS.map((p): [number, string] => [p, p ? s.positions[p - 1] : s.anyPosition]);
+  const sides = (["all", "radiant", "dire"] as Side[]).map((v): [Side, string] => [v, t.sides[v]]);
+  const results = (["all", "win", "loss"] as Result[]).map((v): [Result, string] => [v, t.results[v]]);
   return (
-    <div className="flex flex-col gap-2">
-      <Tabs
-        label={t.range}
-        value={f.n}
-        onChange={f.setN}
-        options={ranges.map((r) => [r, r ? t.recent(r) : t.all])}
-      />
+    <>
+      {/* The parent is positioned and spans the page's content, so the panel can stick all the way down. */}
+      <aside className={cn("absolute top-0 right-full bottom-0 mr-8 hidden w-56", WIDE_SCREEN)}>
+        <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-3 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-muted-foreground">{t.range}</span>
+            <Tabs
+              label={t.range}
+              value={f.n}
+              onChange={f.setN}
+              options={range}
+              className="grid w-full grid-cols-2 text-xs"
+            />
+          </div>
+          <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} stacked />
+          <Chips label={t.side} value={f.side} onChange={f.setSide} options={sides} stacked />
+          <Chips label={t.result} value={f.result} onChange={f.setResult} options={results} stacked />
+          <HeroFilter value={f.hero} onChange={f.setHero} heroes={heroes} counts={f.counts} stacked />
+        </div>
+      </aside>
+      <TopFilters f={f} heroes={heroes} range={range} positions={positions} sides={sides} results={results} />
+    </>
+  );
+}
+
+// Wide enough for the side panel to fit beside DotaHub's 1280px content.
+const WIDE_SCREEN = "min-[1800px]:block";
+
+function TopFilters({
+  f,
+  heroes,
+  range,
+  positions,
+  sides,
+  results,
+}: {
+  f: MatchFilters;
+  heroes: Record<number, HeroInfo>;
+  range: [number, string][];
+  positions: [number, string][];
+  sides: [Side, string][];
+  results: [Result, string][];
+}) {
+  const { t: dict } = useLocale();
+  const t = dict.dotahub.deaths;
+  const s = dict.dotahub.stats;
+  return (
+    <div className="flex flex-col gap-2 min-[1800px]:hidden">
+      <Tabs label={t.range} value={f.n} onChange={f.setN} options={range} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <Chips
-          label={s.position}
-          value={f.pos}
-          onChange={f.setPos}
-          options={POSITIONS.map((p) => [p, p ? s.positions[p - 1] : s.anyPosition])}
-        />
-        <Chips
-          label={t.side}
-          value={f.side}
-          onChange={f.setSide}
-          options={(["all", "radiant", "dire"] as Side[]).map((v) => [v, t.sides[v]])}
-        />
+        <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} />
+        <Chips label={t.side} value={f.side} onChange={f.setSide} options={sides} />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <HeroFilter value={f.hero} onChange={f.setHero} heroes={heroes} counts={f.counts} />
-        <Chips
-          label={t.result}
-          value={f.result}
-          onChange={f.setResult}
-          options={(["all", "win", "loss"] as Result[]).map((v) => [v, t.results[v]])}
-        />
+        <Chips label={t.result} value={f.result} onChange={f.setResult} options={results} />
       </div>
     </div>
   );

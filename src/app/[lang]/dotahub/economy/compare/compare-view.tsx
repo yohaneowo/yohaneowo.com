@@ -212,7 +212,7 @@ export function CompareView({
     .map(([id]) => id);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="relative flex flex-col gap-6">
       <FilterBar f={{ ...state, ...me.lists }} heroes={heroes} ranges={ranges} />
       <p className="text-xs text-muted-foreground">{bracket ? t.howBracket : t.how}</p>
 
