@@ -32,7 +32,7 @@ export async function MatchList({
   return (
     <div className="flex flex-col gap-4">
       {matches.length ? (
-        <MatchTable matches={matches} heroes={heroes} t={t} lang={lang} />
+        <MatchTable matches={matches} heroes={heroes} t={t} lang={lang} accountId={accountId} />
       ) : (
         <Notice>{t.matches.empty}</Notice>
       )}

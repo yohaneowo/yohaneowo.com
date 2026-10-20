@@ -82,7 +82,7 @@ export async function LatestMatch({
           <div className="ml-auto flex items-center gap-4">
             {me?.imp != null && <ImpBadge imp={me.imp} t={t} />}
             <Link
-              href={localePath(lang, `/dotahub/matches/${match.match_id}`)}
+              href={localePath(lang, `/dotahub/matches/${match.match_id}?p=${accountId}`)}
               className="text-sm text-muted-foreground hover:underline"
             >
               {t.latest.open}

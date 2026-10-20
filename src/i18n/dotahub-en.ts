@@ -89,6 +89,10 @@ const dotahubEn: typeof dotahubZh = {
     notFound: "Match not found.",
     back: "Back to matches",
     openOn: "Open on OpenDota",
+    banPhase: "Bans",
+    pickNumber: (n: number) => `Pick ${n}`,
+    draftNote:
+      "The top row is the bans: in ranked All Pick all ten players nominate and some go through, so they have no side. Below, the picks in order, Radiant above, Dire below.",
   },
   matches: {
     title: "Matches",
@@ -236,6 +240,21 @@ const dotahubEn: typeof dotahubZh = {
     average: "Average",
     parsing: "STRATZ is still parsing this match; IMP and the death map appear in a few minutes.",
     open: "Open match",
+  },
+  matchImp: {
+    title: "IMP by minute",
+    hint: "STRATZ's IMP: how much better than the average of the same hero and position the player was doing at each minute; 0 is average. Click a face above to add a player.",
+    players: "Players",
+    overlay: (hero: string) => `Add ${hero} at a rank`,
+    tier: "Rank",
+    thisMatch: "this match's rank",
+    loading: "Loading…",
+    none: "No sample at this rank yet",
+    collecting: (count: number, target: number) =>
+      `Collecting: ${count} / ${target} matches, updates by itself`,
+    sample: (who: string, count: number) => `${who}: average and middle 50% of ${count} matches`,
+    average: (who: string) => `${who} average`,
+    band: "Middle 50%",
   },
   matchDeaths: { title: "Death map", player: "Player" },
   settings: {

@@ -10,11 +10,14 @@ export function MatchTable({
   heroes,
   t,
   lang,
+  accountId,
 }: {
   matches: PlayerMatch[];
   heroes: Record<number, HeroInfo>;
   t: Dictionary["dotahub"];
   lang: Locale;
+  // Whose matches these are: the match page puts them first.
+  accountId?: number;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -32,7 +35,10 @@ export function MatchTable({
         <tbody>
           {matches.map((m) => {
             const hero = heroes[m.hero_id];
-            const href = localePath(lang, `/dotahub/matches/${m.match_id}`);
+            const href = localePath(
+              lang,
+              `/dotahub/matches/${m.match_id}${accountId ? `?p=${accountId}` : ""}`,
+            );
             return (
               <tr key={m.match_id} className="border-b last:border-0 hover:bg-muted/40">
                 <td className="px-3 py-1.5">

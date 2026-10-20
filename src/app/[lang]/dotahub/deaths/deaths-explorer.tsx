@@ -32,26 +32,30 @@ function Chips<V extends string>({
 }: {
   label: string;
   value: V;
-  options: [V, string][];
+  // [value, name, what to show instead of the name (its title then)].
+  options: [V, string, React.ReactNode?][];
   onChange: (value: V) => void;
 }) {
   return (
     <div role="group" aria-label={label} className="flex flex-wrap items-center gap-1.5">
       <span className="mr-1 text-xs text-muted-foreground">{label}</span>
-      {options.map(([v, text]) => (
+      {options.map(([v, text, content]) => (
         <button
           key={v}
           type="button"
           aria-pressed={value === v}
+          aria-label={content ? text : undefined}
+          title={content ? text : undefined}
           onClick={() => onChange(v)}
           className={cn(
-            "rounded-full border px-3 py-1 text-xs transition-colors",
+            "flex h-7 items-center justify-center rounded-full border text-xs transition-colors",
+            content ? "min-w-10 px-2" : "px-3",
             value === v
               ? "border-foreground/40 bg-muted font-medium"
-              : "text-muted-foreground hover:text-foreground",
+              : "text-muted-foreground opacity-90 hover:text-foreground hover:opacity-100",
           )}
         >
-          {text}
+          {content ?? text}
         </button>
       ))}
     </div>
@@ -227,7 +231,19 @@ export function DeathsExplorer({
             label={t.side}
             value={side}
             onChange={setSide}
-            options={(["all", "radiant", "dire"] as Side[]).map((s) => [s, t.sides[s]])}
+            options={(["all", "radiant", "dire"] as Side[]).map((s) => [
+              s,
+              t.sides[s],
+              s === "all" ? undefined : (
+                <Image
+                  src={`/dota/${s}.webp`}
+                  alt=""
+                  width={18}
+                  height={18}
+                  className="size-[18px] rounded-sm"
+                />
+              ),
+            ])}
           />
         </div>
         {/* Heroes on the left; the result filter at the right end, above the highlight cards. */}
@@ -272,7 +288,15 @@ export function DeathsExplorer({
             label={t.result}
             value={result}
             onChange={setResult}
-            options={(["all", "win", "loss"] as Result[]).map((r) => [r, t.results[r]])}
+            options={(["all", "win", "loss"] as Result[]).map((r) => [
+              r,
+              t.results[r],
+              r === "all" ? undefined : (
+                <span className={cn("font-semibold", r === "win" ? "text-emerald-500" : "text-red-500")}>
+                  {t.resultsShort[r]}
+                </span>
+              ),
+            ])}
           />
         </div>
       </div>

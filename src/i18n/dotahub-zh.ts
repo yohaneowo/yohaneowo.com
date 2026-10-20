@@ -85,6 +85,10 @@ const dotahubZh = {
     notFound: "找不到这场比赛。",
     back: "回到比赛列表",
     openOn: "在 OpenDota 看",
+    banPhase: "禁用",
+    pickNumber: (n: number) => `第 ${n} 选`,
+    draftNote:
+      "上排是禁用：天梯全英雄选择是十个人一起提名、随机生效，所以不分阵营。下面是选人的顺序，天辉在上、夜魇在下。",
   },
   matches: {
     title: "比赛",
@@ -224,6 +228,20 @@ const dotahubZh = {
     average: "平均",
     parsing: "STRATZ 还在解析这场，过几分钟再看就有 IMP 和死亡地图。",
     open: "看这场",
+  },
+  matchImp: {
+    title: "每分钟 IMP",
+    hint: "STRATZ 的 IMP：这个玩家每一分钟打得比同英雄同位置的平均好多少，0 是平均。点上面的头像加上其他玩家。",
+    players: "玩家",
+    overlay: (hero: string) => `叠上同段位的${hero}`,
+    tier: "段位",
+    thisMatch: "这场的段位",
+    loading: "载入中…",
+    none: "这个段位还没有样本",
+    collecting: (count: number, target: number) => `样本收集中：${count} / ${target} 场，稍后自动更新`,
+    sample: (who: string, count: number) => `${who}：${count} 场的平均与中间 50%`,
+    average: (who: string) => `${who} 平均`,
+    band: "中间 50%",
   },
   matchDeaths: { title: "死亡地图", player: "看谁的" },
   settings: {

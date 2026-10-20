@@ -12,21 +12,43 @@ export type StratzPlayer = {
   heroId: number;
   isRadiant: boolean;
   imp: number | null;
+  // IMP at each minute (where the player stood then).
+  impm: number[];
   deathEvents: DeathEvent[];
 };
-export type StratzMatch = { parsed: boolean; players: StratzPlayer[] };
+// rank: the match's average rank tier (medal × 10 + stars). picks: in draft order; bans: the heroes
+// banned (in ranked All Pick everyone nominates and some go through, so they have no side).
+export type StratzMatch = {
+  parsed: boolean;
+  rank: number | null;
+  picks: { heroId: number; radiant: boolean; order: number }[];
+  bans: number[];
+  players: StratzPlayer[];
+};
 
 type Raw = {
   data?: {
     match?: {
       parsedDateTime: number | null;
       firstBloodTime: number | null;
+      rank: number | null;
+      pickBans:
+        | {
+            isPick: boolean;
+            heroId: number | null;
+            bannedHeroId: number | null;
+            isRadiant: boolean | null;
+            order: number | null;
+            wasBannedSuccessfully: boolean | null;
+          }[]
+        | null;
       players: {
         steamAccountId: number | null;
         heroId: number;
         isRadiant: boolean;
         imp: number | null;
         stats: {
+          impPerMinute: (number | null)[] | null;
           deathEvents:
             | {
                 time: number;
@@ -57,7 +79,7 @@ export async function getStratzMatch(matchId: number): Promise<StratzMatch | nul
       "User-Agent": "STRATZ_API",
     },
     body: JSON.stringify({
-      query: `{ match(id: ${Math.trunc(matchId)}) { parsedDateTime firstBloodTime players { steamAccountId heroId isRadiant imp stats { deathEvents { time positionX positionY attacker goldLost timeDead } } } } }`,
+      query: `{ match(id: ${Math.trunc(matchId)}) { parsedDateTime firstBloodTime rank pickBans { isPick heroId bannedHeroId isRadiant order wasBannedSuccessfully } players { steamAccountId heroId isRadiant imp stats { impPerMinute deathEvents { time positionX positionY attacker goldLost timeDead } } } } }`,
     }),
     signal: AbortSignal.timeout(20_000),
   }).catch((error) => {
@@ -82,13 +104,23 @@ export async function getStratzMatch(matchId: number): Promise<StratzMatch | nul
   // A parsed match never changes; an unparsed one is asked again soon.
   if (parsed) cacheLife("days");
   else cacheLife("minutes");
+  const pickBans = match.pickBans ?? [];
   return {
     parsed,
+    rank: match.rank ?? null,
+    picks: pickBans
+      .filter((x) => x.isPick && x.heroId && x.order != null && x.isRadiant != null)
+      .map((x) => ({ heroId: x.heroId!, radiant: x.isRadiant!, order: x.order! }))
+      .sort((a, b) => a.order - b.order),
+    bans: pickBans
+      .filter((x) => !x.isPick && x.bannedHeroId && x.wasBannedSuccessfully !== false)
+      .map((x) => x.bannedHeroId!),
     players: match.players.map((p) => ({
       steamAccountId: p.steamAccountId,
       heroId: p.heroId,
       isRadiant: p.isRadiant,
       imp: typeof p.imp === "number" ? p.imp : null,
+      impm: (p.stats?.impPerMinute ?? []).map((v) => v ?? 0),
       deathEvents: (p.stats?.deathEvents ?? []).map((e) => ({
         t: e.time,
         x: e.positionX,

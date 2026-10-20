@@ -392,6 +392,40 @@ export const ROADMAP: RoadmapItem[] = [
     shipped: "2026-10-20",
   },
   {
+    id: "dotahub-match",
+    status: "testing",
+    area: "dotahub",
+    title: { zh: "DotaHub：比赛页的选角与每分钟 IMP", en: "DotaHub: the draft and IMP by minute in a match" },
+    summary: {
+      zh: "选角改成禁用一排加选人时间轴；新增那一场每分钟的 IMP，能叠上同段位同英雄的平均。",
+      en: "The draft as a row of bans and a timeline of picks; a match's IMP minute by minute, with the same hero's average at a rank behind it.",
+    },
+    why: {
+      zh: "旧的选角把禁用都算进天辉、看不出轮流选人；一场里什么时候打得好也只看得到最后的 IMP。",
+      en: "The old draft put every ban under Radiant and hid the turns, and a match's IMP was only its final number.",
+    },
+    steps: [
+      step(
+        "选角：禁用独立一排、选人时间轴、修好天辉显示太多英雄",
+        "Draft: bans on their own, picks on a timeline, Radiant no longer shows extra heroes",
+        true,
+      ),
+      step(
+        "每分钟 IMP 图：预设只看那位玩家，点头像加其他人",
+        "IMP by minute: the player first, others added by their faces",
+        true,
+      ),
+      step(
+        "叠上同段位同英雄的每分钟 IMP（平均与中间 50%），可选八个牌位",
+        "The same hero's IMP at any of the eight ranks behind it (average and middle half)",
+        true,
+      ),
+      step("死亡热力图的阵营与胜负改成图示", "The heat map's side and result as icons", true),
+    ],
+    added: "2026-10-21",
+    started: "2026-10-21",
+  },
+  {
     id: "dotahub-next",
     status: "considering",
     area: "dotahub",
