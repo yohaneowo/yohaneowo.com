@@ -23,8 +23,15 @@ export function Chips<V extends string | number>({
   stacked?: boolean;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex flex-wrap items-center gap-1.5">
-      <span className={cn("mr-1 text-xs text-muted-foreground", stacked && "w-full")}>{label}</span>
+    <div
+      role="group"
+      aria-label={label}
+      className={cn(
+        "items-center gap-1.5",
+        stacked ? "grid grid-cols-2 min-[1800px]:grid-cols-3" : "flex flex-wrap",
+      )}
+    >
+      <span className={cn("mr-1 text-xs text-muted-foreground", stacked && "col-span-full")}>{label}</span>
       {options.map(([v, text]) => (
         <button
           key={v}
@@ -32,7 +39,8 @@ export function Chips<V extends string | number>({
           aria-pressed={value === v}
           onClick={() => onChange(v)}
           className={cn(
-            "rounded-full border px-3 py-1 text-xs transition-colors",
+            "rounded-full border py-1 text-xs transition-colors",
+            stacked ? "px-1 text-[11px] whitespace-nowrap min-[1800px]:text-xs" : "px-3",
             value === v
               ? "border-foreground/40 bg-muted font-medium"
               : "text-muted-foreground hover:text-foreground",
@@ -117,11 +125,18 @@ export function HeroFilter({
   if (stacked)
     return (
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs text-muted-foreground">{t.hero}</span>
-        <div className="flex items-center gap-2">
-          <HeroPicker value={value} onChange={onChange} heroes={heroes} counts={counts} />
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{t.hero}</span>
           {reset}
         </div>
+        <HeroPicker
+          value={value}
+          onChange={onChange}
+          heroes={heroes}
+          counts={counts}
+          className="w-full px-2"
+          showCount={false}
+        />
         {top.map(([id, n]) => (
           <button
             key={id}
@@ -256,11 +271,10 @@ export function FilterBar({
   const results = (["all", "win", "loss"] as Result[]).map((v): [Result, string] => [v, t.results[v]]);
   return (
     <>
-      {/* The parent (FILTER_PAGE) is positioned and spans the page's content, so the panel can stick
-          all the way down: in a column it leaves free on the left, or in the empty space beside the
-          content on screens wide enough. */}
-      <aside className="absolute top-0 bottom-0 left-0 hidden w-56 min-[1800px]:right-full min-[1800px]:left-auto min-[1800px]:mr-8 xl:block">
-        <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-3 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
+      {/* In the empty space left of the content (narrow until there's room for more). The parent
+          (FILTER_PAGE) is positioned and spans the page's content, so the panel sticks all the way down. */}
+      <aside className="absolute top-0 right-full bottom-0 mr-3 hidden w-28 min-[1520px]:block min-[1800px]:mr-8 min-[1800px]:w-56">
+        <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top] duration-300 min-[1800px]:p-3 [html[data-header-hidden]_&]:top-16">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t.range}</span>
             <Tabs
@@ -268,7 +282,7 @@ export function FilterBar({
               value={f.n}
               onChange={f.setN}
               options={range}
-              className="grid w-full grid-cols-2 text-xs"
+              className="grid w-full grid-cols-1 text-[11px] whitespace-nowrap min-[1800px]:grid-cols-2 min-[1800px]:text-xs"
             />
           </div>
           <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} stacked />
@@ -282,9 +296,8 @@ export function FilterBar({
   );
 }
 
-// The root of a page with FilterBar: from xl it keeps a column free on the left for the side
-// panel, except on screens wide enough (1800px) for the panel to sit beside DotaHub's 1280px content.
-export const FILTER_PAGE = "relative flex flex-col gap-6 xl:pl-64 min-[1800px]:pl-0";
+// The root of a page with FilterBar (the side panel is placed against it).
+export const FILTER_PAGE = "relative flex flex-col gap-6";
 
 function TopFilters({
   f,
@@ -305,7 +318,7 @@ function TopFilters({
   const t = dict.dotahub.deaths;
   const s = dict.dotahub.stats;
   return (
-    <div className="flex flex-col gap-2 xl:hidden">
+    <div className="flex flex-col gap-2 min-[1520px]:hidden">
       <Tabs label={t.range} value={f.n} onChange={f.setN} options={range} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} />

@@ -19,11 +19,16 @@ export function HeroPicker({
   onChange,
   heroes,
   counts,
+  className,
+  showCount = true,
 }: {
   value: number;
   onChange: (hero: number) => void;
   heroes: Record<number, HeroInfo>;
   counts: Map<number, number>;
+  className?: string;
+  // Off where the matches are shown next to it already.
+  showCount?: boolean;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.deaths;
@@ -46,11 +51,14 @@ export function HeroPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={t.pickHero}
-        className="flex h-8 items-center gap-2 rounded-lg border px-2.5 text-sm hover:bg-muted dark:bg-input/30"
+        className={cn(
+          "flex h-8 items-center gap-2 rounded-lg border px-2.5 text-sm hover:bg-muted dark:bg-input/30",
+          className,
+        )}
       >
         {current && <Image src={current.icon} alt="" width={20} height={20} unoptimized className="size-5" />}
-        {current ? current[lang] : t.allHeroes}
-        {value !== 0 && (
+        <span className="truncate">{current ? current[lang] : t.allHeroes}</span>
+        {showCount && value !== 0 && (
           <span className="text-xs text-muted-foreground tabular-nums">({counts.get(value) ?? 0})</span>
         )}
         <ChevronDownIcon className="size-3.5 text-muted-foreground" aria-hidden />
