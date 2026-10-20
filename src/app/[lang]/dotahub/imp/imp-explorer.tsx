@@ -9,7 +9,16 @@ import type { DetailMatch } from "@/lib/dota/admin";
 import type { HeroInfo } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
 import { BarsChart, LOSS, MinuteChart, TrendChart, WIN } from "../stats/charts";
-import { avg, FilterBar, perMinute, Section, signed, Stat, useMatchFilters } from "../stats/controls";
+import {
+  avg,
+  FILTER_PAGE,
+  FilterBar,
+  perMinute,
+  Section,
+  signed,
+  Stat,
+  useMatchFilters,
+} from "../stats/controls";
 import { ByLength, Distribution, ImpByLane, ImpByState, Predicted, Streaks, WhenBest } from "./more";
 
 const PHASES = [
@@ -170,7 +179,7 @@ export function ImpExplorer({
   );
 
   return (
-    <div className="relative flex flex-col gap-6">
+    <div className={FILTER_PAGE}>
       <FilterBar f={f} heroes={heroes} ranges={ranges} />
       {!rated.length ? (
         <p className="text-sm text-muted-foreground">{s.empty}</p>

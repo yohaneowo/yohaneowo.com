@@ -11,7 +11,7 @@ import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { gameState, incomeByState, LEAD_STATES, type LeadState, spread } from "../../stats/analysis";
 import { MinuteChart, SpreadChart } from "../../stats/charts";
-import { avg, FilterBar, perMinute, Section, Tabs, useFilterState } from "../../stats/controls";
+import { avg, FILTER_PAGE, FilterBar, perMinute, Section, Tabs, useFilterState } from "../../stats/controls";
 import { byHero, funnel, mean, rolling, sd } from "../../stats/volatility";
 import type { KeyItem } from "../economy-explorer";
 import { Forest, LOW_GAMES, MIN_GAMES } from "./forest";
@@ -212,7 +212,7 @@ export function CompareView({
     .map(([id]) => id);
 
   return (
-    <div className="relative flex flex-col gap-6">
+    <div className={FILTER_PAGE}>
       <FilterBar f={{ ...state, ...me.lists }} heroes={heroes} ranges={ranges} />
       <p className="text-xs text-muted-foreground">{bracket ? t.howBracket : t.how}</p>
 

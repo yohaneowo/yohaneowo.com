@@ -256,8 +256,10 @@ export function FilterBar({
   const results = (["all", "win", "loss"] as Result[]).map((v): [Result, string] => [v, t.results[v]]);
   return (
     <>
-      {/* The parent is positioned and spans the page's content, so the panel can stick all the way down. */}
-      <aside className={cn("absolute top-0 right-full bottom-0 mr-8 hidden w-56", WIDE_SCREEN)}>
+      {/* The parent (FILTER_PAGE) is positioned and spans the page's content, so the panel can stick
+          all the way down: in a column it leaves free on the left, or in the empty space beside the
+          content on screens wide enough. */}
+      <aside className="absolute top-0 bottom-0 left-0 hidden w-56 min-[1800px]:right-full min-[1800px]:left-auto min-[1800px]:mr-8 xl:block">
         <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-3 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t.range}</span>
@@ -280,8 +282,9 @@ export function FilterBar({
   );
 }
 
-// Wide enough for the side panel to fit beside DotaHub's 1280px content.
-const WIDE_SCREEN = "min-[1800px]:block";
+// The root of a page with FilterBar: from xl it keeps a column free on the left for the side
+// panel, except on screens wide enough (1800px) for the panel to sit beside DotaHub's 1280px content.
+export const FILTER_PAGE = "relative flex flex-col gap-6 xl:pl-64 min-[1800px]:pl-0";
 
 function TopFilters({
   f,
@@ -302,7 +305,7 @@ function TopFilters({
   const t = dict.dotahub.deaths;
   const s = dict.dotahub.stats;
   return (
-    <div className="flex flex-col gap-2 min-[1800px]:hidden">
+    <div className="flex flex-col gap-2 xl:hidden">
       <Tabs label={t.range} value={f.n} onChange={f.setN} options={range} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} />

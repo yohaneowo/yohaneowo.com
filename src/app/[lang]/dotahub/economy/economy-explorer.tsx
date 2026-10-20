@@ -8,7 +8,16 @@ import type { HeroInfo } from "@/lib/dota/data";
 import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { LOSS, MinuteChart, WIN } from "../stats/charts";
-import { avg, FilterBar, perMinute, Section, Stat, Tabs, useMatchFilters } from "../stats/controls";
+import {
+  avg,
+  FILTER_PAGE,
+  FilterBar,
+  perMinute,
+  Section,
+  Stat,
+  Tabs,
+  useMatchFilters,
+} from "../stats/controls";
 import { AgainstAverage, GameStates, IncomeSpread, LaneOutcomes, Swings } from "./more";
 import { VolatilityCharts } from "./volatility-charts";
 
@@ -111,7 +120,7 @@ export function EconomyExplorer({
     .slice(0, 15);
 
   return (
-    <div className="relative flex flex-col gap-6">
+    <div className={FILTER_PAGE}>
       <FilterBar f={f} heroes={heroes} ranges={ranges} />
       {!shown.length ? (
         <p className="text-sm text-muted-foreground">{s.empty}</p>
