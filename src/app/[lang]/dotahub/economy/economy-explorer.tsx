@@ -7,7 +7,7 @@ import type { DetailMatch } from "@/lib/dota/admin";
 import type { HeroInfo } from "@/lib/dota/data";
 import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
-import { LOSS, MinuteChart, TrendChart, WIN } from "../stats/charts";
+import { LOSS, MinuteChart, WIN } from "../stats/charts";
 import { avg, FilterBar, perMinute, Section, Stat, Tabs, useMatchFilters } from "../stats/controls";
 import { AgainstAverage, GameStates, IncomeSpread, LaneOutcomes, Swings } from "./more";
 import { VolatilityCharts } from "./volatility-charts";
@@ -40,20 +40,13 @@ export function EconomyExplorer({
   ranges: number[];
   matchHref: string;
 }) {
-  const { t: dict, lang } = useLocale();
+  const { t: dict } = useLocale();
   const t = dict.dotahub.economy;
   const s = dict.dotahub.stats;
   const f = useMatchFilters(matches, sides, ranges);
   const [curve, setCurve] = useState<"networth" | "lastHits">("networth");
 
   const shown = f.shown;
-  const ordered = [...shown].reverse();
-  const heroName = (id: number) => heroes[id]?.[lang] ?? String(id);
-  const date = (unix: number) =>
-    new Date(unix * 1000).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", {
-      month: "numeric",
-      day: "numeric",
-    });
 
   const gpm = avg(shown.map((m) => m.details.gpm));
   const xpm = avg(shown.map((m) => m.details.xpm));
@@ -146,21 +139,6 @@ export function EconomyExplorer({
               ]}
             />
             <MinuteChart series={curves} minuteLabel={(m) => s.minute(m)} format={thousands} />
-          </Section>
-
-          <Section title={t.gpmTrend} hint={t.gpmTrendHint}>
-            <TrendChart
-              points={ordered.map((m) => ({
-                value: m.details.gpm,
-                won: m.won,
-                label: date(m.startTime),
-                matchId: m.matchId,
-                tip: `${heroName(m.heroId)} · ${m.won ? t.won : t.lost} · ${date(m.startTime)}<br/>GPM <b>${m.details.gpm}</b> · XPM ${m.details.xpm} · ${t.lastHitsShort} ${m.details.lh}`,
-              }))}
-              averageLabel={t.movingAverage}
-              baseline={{ value: Math.round(gpm!), label: t.averageLine(Math.round(gpm!)) }}
-              matchHref={matchHref}
-            />
           </Section>
 
           <Section title={t.spreadTitle} hint={t.spreadHint}>

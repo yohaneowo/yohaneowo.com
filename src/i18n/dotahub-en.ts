@@ -410,10 +410,7 @@ const dotahubEn: typeof dotahubZh = {
     curveHint: "The average per minute in wins and in losses: see when the lost games fall behind.",
     won: "Wins",
     lost: "Losses",
-    gpmTrend: "GPM trend",
-    gpmTrendHint: "Each dot is a match (green won, red lost); click one to open it.",
     movingAverage: "10-match average",
-    averageLine: (n: number) => `Average ${n}`,
     byPosition: "By position",
     byPositionHint: "Ignores the position filter; click a row to show only that position.",
     matchesColumn: "Matches",
@@ -434,36 +431,17 @@ const dotahubEn: typeof dotahubZh = {
     chart: "Chart",
     views: {
       riskReturn: "Income × volatility",
-      ranked: "Ranked",
-      swarm: "Every match",
-      errorBars: "Mean ± SD",
       funnel: "Funnel",
-      interval: "Intervals",
       control: "Control chart",
-      violin: "Violins",
-      heatmap: "Ahead / behind heat map",
-      cdf: "Cumulative",
-      dumbbell: "Ahead vs behind",
       rolling: "Rolling",
     },
     explain: {
       riskReturn:
         "Median GPM across, volatility up, bigger dots for more matches. Bottom right earns a lot steadily, top right a lot unsteadily, bottom left little but steadily, top left little and unsteadily; dashed lines are the averages.",
-      ranked: "Heroes from steadiest to least steady; hollow dots have under 5 matches, take them lightly.",
-      swarm: "Each dot is a match's GPM (green won, red lost): spread out is unsteady, bunched up is steady.",
-      errorBars: "The dot is the mean GPM, the bar one standard deviation either way, in gold.",
       funnel:
         "Matches across, volatility up; the dashed funnel is what luck alone produces (95%), narrowing with more matches. Red dots outside it are really steadier or shakier than chance.",
-      interval:
-        "Each hero's volatility with its 95% range from 500 resamples: the fewer matches, the wider and the less reliable.",
       control:
         "GPM match by match over time, the purple line the mean, the red dashes two standard deviations; matches beyond them are red. Shows whether it was always shaky or only lately.",
-      violin: "The shape of each hero's GPM (two-humped?); heroes with at least 10 matches.",
-      heatmap:
-        "Each hero's volatility while ahead, even and behind (each match counts only those minutes, from minute 10): is it only shaky from behind?",
-      cdf: "Each line climbs from 0% to 100% across GPM: steeper is steadier. Dashed lines have under 5 matches.",
-      dumbbell:
-        "Green is the volatility ahead, red behind: the longer the bar, the more the steadiness changes.",
       rolling:
         "Volatility over the last 10 matches, match by match: is the overall steadiness getting better or worse?",
     },
@@ -479,7 +457,6 @@ const dotahubEn: typeof dotahubZh = {
     luckRange: "Luck (95%)",
     luckMiddle: "Luck median",
     notEnough: "Not enough matches for this chart (at least 3 per hero).",
-    notEnoughViolin: "Violins need a hero with at least 10 matches.",
     followsHero:
       "This one follows the hero filter: GPM differs a lot between positions, so pick a hero for a clearer picture.",
   },

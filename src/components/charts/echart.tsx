@@ -3,7 +3,6 @@
 import {
   BarChart,
   BoxplotChart,
-  CustomChart,
   LineChart,
   PieChart,
   RadarChart,
@@ -29,7 +28,6 @@ import { useTheme } from "next-themes";
 echarts.use([
   BarChart,
   BoxplotChart,
-  CustomChart,
   LineChart,
   PieChart,
   RadarChart,

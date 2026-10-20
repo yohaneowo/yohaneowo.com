@@ -1,9 +1,9 @@
 import type { DetailMatch } from "@/lib/dota/admin";
-import { FROM_MINUTE, LEAD_STATES, type LeadState, quantile, stateOf } from "./analysis";
+import { quantile } from "./analysis";
 
 // The numbers behind the 波动率 charts. A match's income is its GPM; a hero's volatility is how
-// much that varies from match to match (coefficient of variation). Random draws (the funnel and the
-// bootstrap) use a fixed seed, so the same data always draws the same chart.
+// much that varies from match to match (coefficient of variation). The funnel's random draws use a
+// fixed seed, so the same data always draws the same chart.
 
 export const MIN_MATCHES = 3;
 // Under this many matches a hero is drawn hollow / faded: its number is mostly luck.
@@ -29,9 +29,6 @@ function random(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-
-// A steady jitter for a match's dot (the same match always lands in the same place).
-export const jitter = (matchId: number) => (random(matchId)() - 0.5) * 0.7;
 
 export type HeroIncome = {
   id: number;
@@ -69,18 +66,6 @@ export function byHero(list: DetailMatch[]): HeroIncome[] {
     .sort((a, b) => b.n - a.n);
 }
 
-// The 95% range of a hero's volatility from resampling its own matches.
-export function bootstrapCv(gpm: number[], seed: number) {
-  const next = random(seed);
-  const draws: number[] = [];
-  for (let i = 0; i < DRAWS; i++) {
-    const sample = gpm.map(() => gpm[Math.floor(next() * gpm.length)]);
-    draws.push(cv(sample) ?? 0);
-  }
-  draws.sort((a, b) => a - b);
-  return [quantile(draws, 0.025)!, quantile(draws, 0.975)!] as const;
-}
-
 // The funnel: what volatility n matches would show from luck alone. Every match's GPM over its
 // hero's average is pooled (taking out the hero), then samples of n are drawn from that pool.
 export function funnel(heroes: HeroIncome[], maxN: number) {
@@ -105,38 +90,7 @@ export function funnel(heroes: HeroIncome[], maxN: number) {
   return { pooled: cv(pool) ?? 0, points };
 }
 
-// A match's average income over the minutes (from FROM_MINUTE) the team was in a state; null with
-// fewer than 3 such minutes.
-function stateIncome(m: DetailMatch, state: LeadState) {
-  const { nwm, lead } = m.details;
-  const gains: number[] = [];
-  for (let minute = FROM_MINUTE; minute < nwm.length && minute < lead.length; minute++)
-    if (stateOf(lead[minute]) === state) gains.push(nwm[minute] - nwm[minute - 1]);
-  return gains.length >= 3 ? mean(gains) : null;
-}
-
-// Each hero's volatility while ahead, even and behind (matches with enough minutes in the state).
-export function stateVolatility(hero: HeroIncome) {
-  return Object.fromEntries(
-    LEAD_STATES.map((state) => {
-      const incomes = hero.matches.map((m) => stateIncome(m, state)).filter((v): v is number => v != null);
-      return [state, incomes.length >= MIN_MATCHES ? { cv: cv(incomes)!, n: incomes.length } : null];
-    }),
-  ) as Record<LeadState, { cv: number; n: number } | null>;
-}
-
 // Volatility over the last `window` matches, match by match (oldest first).
 export function rolling(gpm: number[], window: number) {
   return gpm.map((_, i) => (i + 1 < window ? null : cv(gpm.slice(i + 1 - window, i + 1))));
-}
-
-// A smoothed density (Gaussian kernel) of a hero's GPM, for the violins.
-export function density(values: number[], from: number, to: number, steps = 40) {
-  const bandwidth = 1.06 * (sd(values) || 50) * values.length ** -0.2;
-  const xs = Array.from({ length: steps + 1 }, (_, i) => from + ((to - from) * i) / steps);
-  return xs.map((x) => [
-    x,
-    values.reduce((s, v) => s + Math.exp(-0.5 * ((x - v) / bandwidth) ** 2), 0) /
-      (values.length * bandwidth * Math.sqrt(2 * Math.PI)),
-  ]);
 }
