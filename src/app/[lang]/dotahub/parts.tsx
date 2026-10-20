@@ -135,8 +135,19 @@ export function plusTier(level: number) {
   return tier;
 }
 
-// From 32px up the level is written on the badge; smaller ones put it beside.
-export function PlusBadge({ level, t, size = 20 }: { level: number; t: T; size?: number }) {
+// From 32px up the level is written on the badge (fontSize defaults to a third of it); smaller
+// ones put it beside.
+export function PlusBadge({
+  level,
+  t,
+  size = 20,
+  fontSize = Math.round(size * 0.34),
+}: {
+  level: number;
+  t: T;
+  size?: number;
+  fontSize?: number;
+}) {
   const tier = plusTier(level);
   const label = t.signature.heroLevel(t.signature.plusTiers[tier - 1], level);
   const image = (
@@ -155,7 +166,7 @@ export function PlusBadge({ level, t, size = 20 }: { level: number; t: T; size?:
         <span
           className="absolute inset-0 flex items-center justify-center font-extrabold text-white tabular-nums"
           style={{
-            fontSize: Math.round(size * 0.34),
+            fontSize,
             textShadow: "0 0 3px #000, 0 0 2px #000, 0 1px 1px #000",
           }}
         >

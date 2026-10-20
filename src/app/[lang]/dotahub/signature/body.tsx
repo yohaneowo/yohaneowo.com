@@ -65,11 +65,11 @@ function Card({
   return (
     <div className="relative flex flex-col gap-3 rounded-xl border p-3">
       {level ? (
-        <div className="absolute -top-3 -right-2">
-          <PlusBadge level={level} t={dict} size={56} />
+        <div className="absolute -top-4 -right-3">
+          <PlusBadge level={level} t={dict} size={76} fontSize={19} />
         </div>
       ) : null}
-      <div className={cn("flex items-start gap-3", level && "pr-12")}>
+      <div className={cn("flex items-start gap-3", level && "pr-16")}>
         <HeroImage hero={heroes[s.hero]} lang={lang} className="h-12 w-20 shrink-0 rounded" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-1.5">
