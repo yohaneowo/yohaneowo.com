@@ -111,6 +111,8 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 
 ## 私讯
 
+开关（`bot_dota_profile.notify`）**预设关闭**：新连结不私讯，要在网站的设定打开（之后打算加 Discord 指令订阅）；还要关联 Discord，而且只私讯天梯。
+
 bot 每 60 秒 `GET /internal/dota/notifications`，私讯 embed：英雄、胜负、KDA、IMP、依序的死亡（时间、一血、谁杀的、掉金、等待），附 `/api/dotahub/deathmap?match=&account=` 画的 PNG（Satori；底图用 OpenDota 的 JPEG，Satori 不能读 webp）。dev 站在 Cloudflare Access 后面，bot-dev 拿到的是登录页，会只发文字。
 
 ## 健康状态

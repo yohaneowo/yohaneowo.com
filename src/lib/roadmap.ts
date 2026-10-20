@@ -525,6 +525,10 @@ export const ROADMAP: RoadmapItem[] = [
         "The overview's win rate, heroes and matches from STRATZ when OpenDota is down",
       ),
       step("Discord bot 指令（例如最近一场）", "Discord bot commands (e.g. the last match)"),
+      step(
+        "在 Discord 用指令订阅死亡地图私讯（网站的开关预设关闭）",
+        "Subscribing to the death-map DM with a Discord command (the site's switch is off by default)",
+      ),
     ],
     added: "2026-10-20",
   },

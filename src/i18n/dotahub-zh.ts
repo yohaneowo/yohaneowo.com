@@ -314,7 +314,7 @@ const dotahubZh = {
   settings: {
     title: "DotaHub",
     notify: "每场天梯比赛后，用 Discord 私讯这场的死亡地图",
-    hint: "要先关联 Discord；只有天梯比赛会私讯。",
+    hint: "预设关闭。要先关联 Discord；只有天梯比赛会私讯。",
     needSteam: "在 DotaHub 连结 Steam 后才能设定。",
     saveFailed: "没有存成功，请再试一次。",
   },

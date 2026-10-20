@@ -328,7 +328,7 @@ const dotahubEn: typeof dotahubZh = {
   settings: {
     title: "DotaHub",
     notify: "DM me the death map on Discord after each ranked match",
-    hint: "Needs Discord linked; ranked matches only.",
+    hint: "Off by default. Needs Discord linked; ranked matches only.",
     needSteam: "Connect Steam in DotaHub to change this.",
     saveFailed: "Couldn't save. Please try again.",
   },
