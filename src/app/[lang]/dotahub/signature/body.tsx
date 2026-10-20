@@ -8,6 +8,7 @@ import { type Signature, signatures, type SignatureLabel } from "@/lib/dota/sign
 import { getHeroLevels, getRankedHistory, getStratzProfile } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { HeroImage, Notice, PlusBadge } from "../parts";
+import { LabelTabs } from "./label-tabs";
 import { HeroLeaderboard } from "./leaderboard";
 
 type T = Dictionary["dotahub"];
@@ -202,20 +203,26 @@ export async function SignatureBody({
           <p className="text-xs text-muted-foreground">{s.foundHint}</p>
         </div>
         {found.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {found.map((x) => (
-              <Card
-                key={`${x.hero}-${x.pos}`}
-                s={x}
-                heroes={heroes}
-                t={s}
-                dict={t}
-                lang={lang}
-                positions={positions}
-                level={levels[x.hero]}
-              />
-            ))}
-          </div>
+          <LabelTabs
+            groups={(["current", "potential", "historic"] as const).map((label) => ({
+              key: label,
+              name: s.labels[label],
+              cards: found
+                .filter((x) => x.label === label)
+                .map((x) => (
+                  <Card
+                    key={`${x.hero}-${x.pos}`}
+                    s={x}
+                    heroes={heroes}
+                    t={s}
+                    dict={t}
+                    lang={lang}
+                    positions={positions}
+                    level={levels[x.hero]}
+                  />
+                )),
+            }))}
+          />
         ) : (
           <p className="rounded-lg border px-4 py-6 text-center text-sm text-muted-foreground">{s.none}</p>
         )}
