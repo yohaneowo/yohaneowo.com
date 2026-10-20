@@ -93,6 +93,18 @@ export const matchDetailsSchema = z.object({
   impm: z.array(z.number()),
   lhm: z.array(z.number()),
   items: z.array(z.tuple([z.number(), z.number()])),
+  // From the player's side (missing on matches read before these were kept): the team's net worth
+  // lead and win chance (0–100) per minute, the lane outcome (-2 stomped … 2 stomped them),
+  // STRATZ's read of the match, and the hero's average [net worth, last hits] at 10 / 20 / 30 min.
+  rad: z.boolean().optional(),
+  lead: z.array(z.number()).default([]),
+  wp: z.array(z.number()).default([]),
+  laneOut: z.number().nullable().default(null),
+  outcome: z.string().nullable().default(null),
+  bench: z
+    .record(z.string(), z.tuple([z.number(), z.number()]))
+    .nullable()
+    .default(null),
 });
 export type MatchDetails = z.infer<typeof matchDetailsSchema>;
 

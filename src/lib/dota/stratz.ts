@@ -111,10 +111,18 @@ type RawRanked = {
             durationSeconds: number | null;
             parsedDateTime: number | null;
             firstBloodTime: number | null;
+            radiantNetworthLeads: number[] | null;
+            winRates: number[] | null;
+            topLaneOutcome: string | null;
+            midLaneOutcome: string | null;
+            bottomLaneOutcome: string | null;
+            analysisOutcome: string | null;
             players:
               | {
                   heroId: number;
                   isVictory: boolean;
+                  isRadiant: boolean;
+                  heroAverage: { time: number; networth: number | null; cs: number | null }[] | null;
                   kills: number | null;
                   deaths: number | null;
                   assists: number | null;
@@ -156,8 +164,19 @@ type RawRankedPlayer = NonNullable<
   NonNullable<NonNullable<NonNullable<RawRanked["data"]>["player"]>["matches"]>[number]["players"]
 >[number];
 
+type RawRankedMatch = NonNullable<NonNullable<NonNullable<RawRanked["data"]>["player"]>["matches"]>[number];
+
+const LANE_SCORE: Record<string, number> = {
+  RADIANT_STOMP: 2,
+  RADIANT_VICTORY: 1,
+  TIE: 0,
+  DIRE_VICTORY: -1,
+  DIRE_STOMP: -2,
+};
+const BENCH_MINUTES = [10, 20, 30];
+
 // The same details admin stores (stratz.details there).
-function toDetails(p: RawRankedPlayer): MatchDetails | null {
+function toDetails(p: RawRankedPlayer, m: RawRankedMatch): MatchDetails | null {
   const s = p.stats;
   if (!s?.networthPerMinute?.length) return null;
   const first = new Map<number, number>();
@@ -179,6 +198,43 @@ function toDetails(p: RawRankedPlayer): MatchDetails | null {
     impm: (s.impPerMinute ?? []).map((v) => v ?? 0),
     lhm: (s.lastHitsPerMinute ?? []).map((v) => v ?? 0),
     items: [...first.entries()].map(([id, t]) => [t, id] as [number, number]).sort((a, b) => a[0] - b[0]),
+    ...side(p, m),
+  };
+}
+
+// From the player's side: lead and win chance per minute, lane outcome, the hero's averages.
+function side(p: RawRankedPlayer, m: RawRankedMatch) {
+  const sign = p.isRadiant ? 1 : -1;
+  const lane =
+    p.lane === "MID_LANE"
+      ? m.midLaneOutcome
+      : p.lane === "SAFE_LANE"
+        ? p.isRadiant
+          ? m.bottomLaneOutcome
+          : m.topLaneOutcome
+        : p.lane === "OFF_LANE"
+          ? p.isRadiant
+            ? m.topLaneOutcome
+            : m.bottomLaneOutcome
+          : null;
+  const score = lane != null && lane in LANE_SCORE ? LANE_SCORE[lane] * sign : null;
+  const averages = new Map((p.heroAverage ?? []).map((a) => [a.time, a]));
+  const bench = Object.fromEntries(
+    BENCH_MINUTES.filter((minute) => averages.has(minute)).map((minute) => {
+      const a = averages.get(minute)!;
+      return [
+        String(minute),
+        [Math.round(a.networth ?? 0), Math.round((a.cs ?? 0) * 10) / 10] as [number, number],
+      ];
+    }),
+  );
+  return {
+    rad: p.isRadiant,
+    lead: (m.radiantNetworthLeads ?? []).map((v) => sign * (v ?? 0)),
+    wp: (m.winRates ?? []).filter((v) => v != null).map((v) => Math.round(100 * (sign > 0 ? v : 1 - v))),
+    laneOut: score === 0 ? 0 : score,
+    outcome: m.analysisOutcome && m.analysisOutcome !== "NONE" ? m.analysisOutcome : null,
+    bench: Object.keys(bench).length ? bench : null,
   };
 }
 
@@ -207,9 +263,9 @@ export async function getStratzRanked(accountId: number): Promise<RankedMatch[]>
       "User-Agent": "STRATZ_API",
     },
     body: JSON.stringify({
-      query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime firstBloodTime players(steamAccountId: ${id}) { heroId isVictory kills deaths assists imp position lane award goldPerMinute experiencePerMinute networth numLastHits numDenies heroDamage stats { deathEvents { time positionX positionY attacker goldLost timeDead } networthPerMinute impPerMinute lastHitsPerMinute itemPurchases { time itemId } } } } } }`,
+      query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime firstBloodTime radiantNetworthLeads winRates topLaneOutcome midLaneOutcome bottomLaneOutcome analysisOutcome players(steamAccountId: ${id}) { heroId isVictory isRadiant heroAverage { time networth cs } kills deaths assists imp position lane award goldPerMinute experiencePerMinute networth numLastHits numDenies heroDamage stats { deathEvents { time positionX positionY attacker goldLost timeDead } networthPerMinute impPerMinute lastHitsPerMinute itemPurchases { time itemId } } } } } }`,
     }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(45_000),
   }).catch((error) => {
     recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
     throw error;
@@ -248,7 +304,7 @@ export async function getStratzRanked(accountId: number): Promise<RankedMatch[]>
           dead: e.timeDead ?? 0,
           fb: m.firstBloodTime != null && e.time === m.firstBloodTime,
         })),
-      details: m.parsedDateTime ? toDetails(p) : null,
+      details: m.parsedDateTime ? toDetails(p, m) : null,
     });
   }
   return matches.sort((a, b) => b.startTime - a.startTime);

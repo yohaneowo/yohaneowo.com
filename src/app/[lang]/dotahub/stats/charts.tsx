@@ -218,3 +218,105 @@ export function BarsChart({
     </div>
   );
 }
+
+// Box plots by category: each series is one box per category (low end, quartiles, median, high end);
+// null where a category has too little data.
+export function SpreadChart({
+  categories,
+  series,
+  format = String,
+  unit = "",
+}: {
+  categories: string[];
+  series: { name: string; color: string; boxes: ([number, number, number, number, number] | null)[] }[];
+  format?: (value: number) => string;
+  unit?: string;
+}) {
+  const option: EChartsOption = {
+    grid: { left: 8, right: 16, top: 32, bottom: 8, containLabel: true },
+    legend: { top: 0, data: series.map((s) => s.name), textStyle: { fontSize: 11 } },
+    tooltip: {
+      trigger: "item",
+      formatter: (params) => {
+        const p = params as { seriesName: string; name: string; data: number[] };
+        const [, low, q1, median, q3, high] = p.data;
+        return `${p.name} · ${p.seriesName}<br/>${format(low)} – ${format(high)}${unit}<br/>${format(q1)} – <b>${format(median)}</b> – ${format(q3)}`;
+      },
+    },
+    xAxis: {
+      type: "category",
+      data: categories,
+      axisLabel: { fontSize: 11, interval: 0 },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: "value",
+      splitLine: { lineStyle: { opacity: 0.25 } },
+      axisLabel: { fontSize: 10, formatter: (v: number) => format(v) },
+    },
+    series: series.map((s) => ({
+      name: s.name,
+      type: "boxplot" as const,
+      itemStyle: { color: `${s.color}33`, borderColor: s.color },
+      boxWidth: [6, 18],
+      data: s.boxes.map((b) => b ?? [NaN, NaN, NaN, NaN, NaN]),
+    })),
+  };
+  return (
+    <div style={{ height: 300 }}>
+      <EChart option={option} />
+    </div>
+  );
+}
+
+// Counts per bin, wins and losses stacked.
+export function HistogramChart({
+  bins,
+  wonLabel,
+  lostLabel,
+}: {
+  bins: { label: string; won: number; lost: number }[];
+  wonLabel: string;
+  lostLabel: string;
+}) {
+  const option: EChartsOption = {
+    grid: { left: 36, right: 12, top: 28, bottom: 28 },
+    legend: { top: 0, data: [wonLabel, lostLabel], textStyle: { fontSize: 11 } },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    xAxis: {
+      type: "category",
+      data: bins.map((b) => b.label),
+      axisLabel: { fontSize: 10 },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: "value",
+      minInterval: 1,
+      splitLine: { lineStyle: { opacity: 0.25 } },
+      axisLabel: { fontSize: 10 },
+    },
+    series: [
+      {
+        name: wonLabel,
+        type: "bar",
+        stack: "n",
+        color: WIN,
+        barCategoryGap: "20%",
+        data: bins.map((b) => b.won),
+      },
+      {
+        name: lostLabel,
+        type: "bar",
+        stack: "n",
+        color: LOSS,
+        itemStyle: { borderRadius: [3, 3, 0, 0] },
+        data: bins.map((b) => b.lost),
+      },
+    ],
+  };
+  return (
+    <div style={{ height: 240 }}>
+      <EChart option={option} />
+    </div>
+  );
+}

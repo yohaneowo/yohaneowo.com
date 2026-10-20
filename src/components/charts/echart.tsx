@@ -1,6 +1,14 @@
 "use client";
 
-import { BarChart, LineChart, PieChart, RadarChart, ScatterChart, SunburstChart } from "echarts/charts";
+import {
+  BarChart,
+  BoxplotChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
+  SunburstChart,
+} from "echarts/charts";
 import {
   GridComponent,
   LegendComponent,
@@ -18,6 +26,7 @@ import { useTheme } from "next-themes";
 // Register only what the site uses to keep the bundle small; add chart types here as needed.
 echarts.use([
   BarChart,
+  BoxplotChart,
   LineChart,
   PieChart,
   RadarChart,

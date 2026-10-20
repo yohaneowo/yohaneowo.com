@@ -10,6 +10,7 @@ import type { HeroInfo } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
 import { BarsChart, LOSS, MinuteChart, TrendChart, WIN } from "../stats/charts";
 import { avg, FilterBar, perMinute, Section, signed, Stat, useMatchFilters } from "../stats/controls";
+import { ByLength, Distribution, ImpByLane, ImpByState, Predicted, Streaks, WhenBest } from "./more";
 
 const PHASES = [
   ["laning", 0, 10],
@@ -253,6 +254,33 @@ export function ImpExplorer({
             </Section>
           </div>
 
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Section title={t.byState} hint={t.byStateHint}>
+              <ImpByState list={f.shown} />
+            </Section>
+            <Section title={t.byLane} hint={t.byLaneHint}>
+              <ImpByLane list={f.bothResults} />
+            </Section>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Section title={t.length} hint={t.lengthHint}>
+              <ByLength list={f.bothResults} />
+            </Section>
+            <Section title={t.distribution} hint={t.distributionHint}>
+              <Distribution list={f.shown} />
+            </Section>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Section title={t.streak} hint={t.streakHint}>
+              <Streaks list={f.bothResults} all={matches} />
+            </Section>
+            <Section title={t.when} hint={t.whenHint}>
+              <WhenBest list={f.bothResults} />
+            </Section>
+          </div>
+
           <Section title={t.heroes} hint={t.heroesHint}>
             <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
@@ -343,6 +371,11 @@ export function ImpExplorer({
             </Section>
           </div>
         </>
+      )}
+      {rated.length > 0 && (
+        <Section title={t.predicted} hint={t.predictedHint}>
+          <Predicted list={f.bothResults} heroes={heroes} matchHref={matchHref} />
+        </Section>
       )}
       <p className="text-xs text-muted-foreground">{t.about}</p>
     </div>

@@ -327,6 +327,16 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
+        "经济加强：顺逆风收入的上下限与波动率、跟同英雄平均比、顺风局与逆风局、对线结果、翻盘与被翻盘、出装早晚的胜率",
+        "More economy: income ahead and behind with its range and volatility, against the hero's average, winning and losing games, lane outcomes, comebacks and throws, item timing and win rate",
+        true,
+      ),
+      step(
+        "IMP 加强：顺逆风时的 IMP、对线、比赛长短、分布、连胜连败、什么时候打得最好、胜率预测",
+        "More IMP: ahead and behind, by lane, by game length, its spread, streaks, when you play best, against the win chance",
+        true,
+      ),
+      step(
         "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
         "How you died (burst, walked into wards, unused heals…)",
       ),

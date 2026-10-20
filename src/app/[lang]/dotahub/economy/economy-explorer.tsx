@@ -9,6 +9,7 @@ import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { LOSS, MinuteChart, TrendChart, WIN } from "../stats/charts";
 import { avg, FilterBar, perMinute, Section, Stat, Tabs, useMatchFilters } from "../stats/controls";
+import { AgainstAverage, GameStates, IncomeSpread, LaneOutcomes, Swings } from "./more";
 
 export type KeyItem = { name: string; img: string };
 
@@ -84,26 +85,31 @@ export function EconomyExplorer({
     })
     .filter((p) => p.n > 0);
 
-  // Key item timings: each item's first purchase in the matches where it was bought at all.
-  const timings = new Map<number, { won: number[]; lost: number[] }>();
-  for (const m of shown)
+  // Key item timings over both results: each item's first purchase in the matches where it was
+  // bought, and the win rate when it came before or after its median time.
+  const timings = new Map<number, { time: number; won: boolean }[]>();
+  for (const m of f.bothResults)
     for (const [time, id] of m.details.items)
-      if (items[id] && time > 0) {
-        const entry = timings.get(id) ?? { won: [], lost: [] };
-        (m.won ? entry.won : entry.lost).push(time);
-        timings.set(id, entry);
-      }
+      if (items[id] && time > 0) timings.set(id, [...(timings.get(id) ?? []), { time, won: m.won }]);
   const itemRows = [...timings.entries()]
-    .map(([id, { won, lost }]) => {
-      const all = [...won, ...lost];
+    .map(([id, buys]) => {
+      const times = buys.map((b) => b.time).sort((a, b) => a - b);
+      const median = times[Math.floor((times.length - 1) / 2)];
+      const early = buys.filter((b) => b.time <= median);
+      const late = buys.filter((b) => b.time > median);
+      const rate = (list: typeof buys) =>
+        list.length ? list.filter((b) => b.won).length / list.length : null;
       return {
         id,
-        n: all.length,
-        share: all.length / shown.length,
-        avg: avg(all)!,
-        won: avg(won),
-        lost: avg(lost),
-        fastest: Math.min(...all),
+        n: buys.length,
+        share: buys.length / f.bothResults.length,
+        avg: avg(times)!,
+        won: avg(buys.filter((b) => b.won).map((b) => b.time)),
+        lost: avg(buys.filter((b) => !b.won).map((b) => b.time)),
+        fastest: times[0],
+        median,
+        earlyWin: rate(early),
+        lateWin: rate(late),
       };
     })
     .filter((r) => r.n >= 2)
@@ -125,6 +131,8 @@ export function EconomyExplorer({
             <Stat label={t.netWorth20} value={nw20 == null ? "–" : thousands(nw20)} />
             <Stat label={t.denies} value={Math.round(denies!)} />
           </div>
+
+          <AgainstAverage list={shown} />
 
           <Section title={curve === "networth" ? t.netWorthCurve : t.lastHitsCurve} hint={t.curveHint}>
             <Tabs
@@ -152,6 +160,23 @@ export function EconomyExplorer({
               baseline={{ value: Math.round(gpm!), label: t.averageLine(Math.round(gpm!)) }}
               matchHref={matchHref}
             />
+          </Section>
+
+          <Section title={t.spreadTitle} hint={t.spreadHint}>
+            <IncomeSpread list={f.anyHero} heroes={heroes} hero={f.hero} />
+          </Section>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Section title={t.gameStatesTitle} hint={t.gameStatesHint}>
+              <GameStates list={f.bothResults} />
+            </Section>
+            <Section title={t.laneTitle} hint={t.laneHint}>
+              <LaneOutcomes list={f.bothResults} />
+            </Section>
+          </div>
+
+          <Section title={t.swingsTitle} hint={t.swingsHint}>
+            <Swings list={f.bothResults} heroes={heroes} matchHref={matchHref} />
           </Section>
 
           <Section title={t.byPosition} hint={t.byPositionHint}>
@@ -198,7 +223,7 @@ export function EconomyExplorer({
             </div>
           </Section>
 
-          <Section title={t.items} hint={f.hero ? t.itemsHint : t.itemsPickHero}>
+          <Section title={t.items} hint={`${f.hero ? t.itemsHint : t.itemsPickHero} ${t.itemsBothResults}`}>
             {itemRows.length ? (
               <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-sm">
@@ -210,6 +235,8 @@ export function EconomyExplorer({
                       <th className="px-3 py-2 text-right font-normal">{t.inWins}</th>
                       <th className="px-3 py-2 text-right font-normal">{t.inLosses}</th>
                       <th className="px-3 py-2 text-right font-normal">{t.fastest}</th>
+                      <th className="px-3 py-2 text-right font-normal">{t.earlyWin}</th>
+                      <th className="px-3 py-2 text-right font-normal">{t.lateWin}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -242,6 +269,18 @@ export function EconomyExplorer({
                           {r.lost == null ? "–" : clock(Math.round(r.lost))}
                         </td>
                         <td className="px-3 py-1.5 text-right tabular-nums">{clock(r.fastest)}</td>
+                        <td
+                          className="px-3 py-1.5 text-right tabular-nums"
+                          title={t.splitAt(clock(r.median))}
+                        >
+                          {r.earlyWin == null ? "–" : `${Math.round(r.earlyWin * 100)}%`}
+                        </td>
+                        <td
+                          className="px-3 py-1.5 text-right tabular-nums"
+                          title={t.splitAt(clock(r.median))}
+                        >
+                          {r.lateWin == null ? "–" : `${Math.round(r.lateWin * 100)}%`}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
