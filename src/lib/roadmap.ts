@@ -440,6 +440,62 @@ export const ROADMAP: RoadmapItem[] = [
     started: "2026-10-21",
   },
   {
+    id: "dotahub-signature",
+    status: "testing",
+    area: "dotahub",
+    title: { zh: "DotaHub：绝活", en: "DotaHub: signature heroes" },
+    summary: {
+      zh: "从天梯历史找出真正拿手的英雄（要有证据，不是玩得多就算），加上 STRATZ 的英雄排行榜。",
+      en: "The heroes a player is really good at, from their ranked history (with evidence, not just the most played), and STRATZ's hero leaderboards.",
+    },
+    why: {
+      zh: "想知道自己和别人的绝活是什么，也想看每个英雄在各段位打得最好的人。",
+      en: "To know your and others' signature heroes, and who plays each hero best at each rank.",
+    },
+    steps: [
+      step(
+        "盘点资料：STRATZ 完整天梯历史（英雄、位置、胜负、IMP）",
+        "Data: the whole ranked history from STRATZ (hero, position, result, IMP)",
+        true,
+      ),
+      step(
+        "两条证据：优势型（比其他英雄好，按机率）与精通型（IMP 长期高于同英雄平均）",
+        "Two kinds of evidence: advantage (better than other heroes, by probability) and mastery (IMP steadily above the hero's average)",
+        true,
+      ),
+      step(
+        "标签：当前、历史、潜力绝活，高熟练候选与常玩英雄",
+        "Labels: current, former and rising, skilled candidates and heroes played a lot",
+        true,
+      ),
+      step(
+        "英雄排行榜：各段位平均 IMP 前 50 名，可点进去或对比",
+        "Hero leaderboards: the top 50 by average IMP at each rank, to open or compare",
+        true,
+      ),
+      step("时间外验证脚本与参数校准", "Out-of-time validation and calibrating the thresholds"),
+    ],
+    links: [{ label: { zh: "绝活", en: "Signature heroes" }, href: "/dotahub/signature" }],
+    added: "2026-10-21",
+    started: "2026-10-21",
+  },
+  {
+    id: "dotahub-research",
+    status: "considering",
+    area: "dotahub",
+    title: { zh: "DotaHub：局内科研", en: "DotaHub: the in-game lab" },
+    summary: {
+      zh: "更细地分析一场比赛里发生的事。",
+      en: "A closer look at what happens inside a match.",
+    },
+    why: {
+      zh: "小导航已经留了位置，内容还在规划。",
+      en: "It has a place in the navigation; what it does is still being planned.",
+    },
+    steps: [step("规划要分析的内容", "Plan what it analyses")],
+    added: "2026-10-21",
+  },
+  {
     id: "dotahub-next",
     status: "considering",
     area: "dotahub",

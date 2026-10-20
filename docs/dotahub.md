@@ -60,6 +60,17 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 - **选角**：禁用独立一排（天梯全英雄选择是十个人一起提名、随机生效，没有阵营），下面是选人时间轴，每一选放在自己顺序的那一格，天辉在上、夜魇在下，换边处留空，看得出 2-2-2-2-1-1。选人的顺序与阵营用 STRATZ `pickBans`（OpenDota 的选人顺序当备援）；禁用用 OpenDota 的 `picks_bans`（Valve 的生效名单，但全部记在天辉，旧版就是因此天辉显示太多英雄），STRATZ 会把每个提名都标成成功（实测 16 个），只当备援。
 - **每分钟 IMP**（`match-imp.tsx`）：STRATZ `impPerMinute`，颜色是 Dota 的玩家槽颜色，预设只显示那位玩家，点头像加其他人；每次阵亡在那一分钟画一个玩家颜色的 ✕ 圆点（ECharts markPoint，已在 `echart.tsx` 注册），滑过显示被哪个英雄击杀。「叠上同段位的某英雄」才开始读段位样本（`actions.ts` 的 server action `rankImp`，跟经济页对比共用 admin 的 `/samples/{英雄}/{牌位}`），画平均（虚线）与中间 50%（色带，`stackStrategy: "all"`，因为 IMP 有负数）；预设牌位是这场的平均段位（STRATZ `rank`），可以换八个牌位；样本收集中每 20 秒自动再问一次。
 
+### 绝活
+
+方案与理由见 `docs/dota-signature-heroes-v2.md`（第一版）；参数集中在 `src/lib/dota/signature.ts` 的 `SIGNATURE`，都还没校准。
+
+- **字段盘点（方案 1.2 节）**：全部用 STRATZ。`getRankedHistory` 抓玩家所有天梯（每次请求 20 页 × 100 场，用别名，抓到短页为止，快取数小时），每场取时间、英雄、胜负、IMP、位置。实测 968 场一次请求 0.7 秒，93% 有 IMP、96% 有位置，最早到 2020 年。IMP 本身就是「跟同英雄同位置的平均比」，直接当精通型的外部基准；OpenDota benchmarks 不用。分段与组排第一版没用。
+- **算法**：单位是「英雄 × 位置」（位置不明另成一组）。优势型拿同一段历史里的「其他英雄」当个人基准（合计 < 50 场就不判）：胜率用 Beta 后验（向基准收缩 k=30）算 P(差 > 3 个百分点)，IMP 用收缩后的平均与标准误算 P(差 > 2)，任一 ≥ 0.8。精通型：IMP 向 0 收缩（k=20）后 P(> 0) ≥ 0.8，而且有 IMP 的场次 ≥ 50%，并至少 2 个半年（每个 ≥ 10 场）、其中 ≥ 60% 平均 IMP 为正。近期是最近 180 天 ≥ 20 场；近期 IMP（向 0 收缩）> 0 才算当前。近期与较早的平均 IMP 相差 ≥ 5 标上升 / 下降。
+- **标签**：≥ 50 场且有证据 → 当前 / 历史绝活；不到 50 场但近 180 天 ≥ 20 场且有证据 → 潜力绝活；≥ 50 场没证据 → 高熟练候选（差一点：机率 ≥ 0.6，或 IMP 资料不到一半）或常玩英雄。只按证据挑，不凑数量。
+- **英雄排行榜**：STRATZ `leaderboard.hero(heroIds, bracketIds)`（stratz.com 英雄页的排行榜），必须指定段位，按最近这个英雄的平均 IMP 排名，取前 50（`getHeroLeaderboard`，快取数小时）。Dota Plus 的英雄等级榜（`leaderboard.dotaPlus`）不是同一个。
+- 页面：`signature/`（`body.tsx` 卡片与高熟练表、`leaderboard.tsx` 排行榜与 server action `actions.ts`），别人的在 `players/[id]/signature`。时间外验证脚本还没做（方案 8.2）。
+- 小导航另有「局内科研」（`research/`，规划中）。
+
 ### 死亡热力图
 
 - 地图：OpenDota 的 `detailed_740` 底图；STRATZ 的位置是地图格子，64–192，y 往北增加：`left = (x − 64) / 128`、`top = (192 − y) / 128`。

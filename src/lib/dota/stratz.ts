@@ -675,3 +675,184 @@ export async function getStratzProfile(
   const account = body.data?.player?.steamAccount;
   return account ? { name: account.name, avatar: account.avatar, tier: account.seasonRank } : null;
 }
+
+// A player's whole ranked history as STRATZ has it, lean (the 绝活 page): when, hero, won, IMP and
+// position of each match, newest first. HISTORY_PAGES pages of 100 per request (aliases), until a
+// page comes back short. Kept for hours.
+export type HistoryMatch = {
+  start: number;
+  hero: number;
+  won: boolean;
+  imp: number | null;
+  pos: number | null;
+};
+
+const HISTORY_PAGE = 100;
+const HISTORY_PAGES = 20;
+const HISTORY_REQUESTS = 5;
+
+type RawHistory = {
+  errors?: unknown[];
+  data?: Record<
+    string,
+    {
+      matches:
+        | {
+            startDateTime: number | null;
+            players:
+              { heroId: number; isVictory: boolean; imp: number | null; position: string | null }[] | null;
+          }[]
+        | null;
+    } | null
+  >;
+};
+
+export async function getRankedHistory(accountId: number): Promise<HistoryMatch[]> {
+  "use cache";
+  cacheLife("hours");
+  const token = process.env.STRATZ_API_TOKEN;
+  if (!token) throw new Error("STRATZ_API_TOKEN is not set");
+  const id = Math.trunc(accountId);
+  const out: HistoryMatch[] = [];
+  for (let request = 0; request < HISTORY_REQUESTS; request++) {
+    const first = request * HISTORY_PAGES;
+    const query = Array.from(
+      { length: HISTORY_PAGES },
+      (_, i) =>
+        `p${i}: player(steamAccountId: ${id}) { matches(request: { take: ${HISTORY_PAGE}, skip: ${(first + i) * HISTORY_PAGE}, lobbyTypeIds: [7] }) { startDateTime players(steamAccountId: ${id}) { heroId isVictory imp position } } }`,
+    ).join(" ");
+    const started = Date.now();
+    const response = await fetch("https://api.stratz.com/graphql", {
+      method: "POST",
+      // STRATZ asks API clients to send this exact user agent.
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "STRATZ_API",
+      },
+      body: JSON.stringify({ query: `{ ${query} }` }),
+      signal: AbortSignal.timeout(45_000),
+    }).catch((error) => {
+      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      throw error;
+    });
+    recordCall("stratz", started, {
+      ok: response.ok,
+      error: response.ok ? null : `HTTP ${response.status}`,
+      headers: response.headers,
+    });
+    if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+    const body = (await response.json()) as RawHistory;
+    if (body.errors?.length) throw new Error("STRATZ query failed");
+    let short = false;
+    for (let i = 0; i < HISTORY_PAGES; i++) {
+      const matches = body.data?.[`p${i}`]?.matches ?? [];
+      for (const m of matches) {
+        const p = m.players?.[0];
+        if (!p || !m.startDateTime) continue;
+        const position = p.position?.startsWith("POSITION_") ? Number(p.position.slice(9)) : null;
+        out.push({
+          start: m.startDateTime,
+          hero: p.heroId,
+          won: p.isVictory,
+          imp: typeof p.imp === "number" ? p.imp : null,
+          pos: position && position >= 1 && position <= 5 ? position : null,
+        });
+      }
+      if (matches.length < HISTORY_PAGE) {
+        short = true;
+        break;
+      }
+    }
+    if (short) break;
+  }
+  return out;
+}
+
+// A hero's leaderboard at a rank (STRATZ's, as on its hero pages): the players with the best
+// average IMP over their recent matches of the hero, with wins and losses. Kept for hours.
+export type LeaderboardRow = {
+  account: number;
+  name: string | null;
+  avatar: string | null;
+  tier: number | null;
+  pos: number | null;
+  wins: number;
+  losses: number;
+  imp: number;
+  change: number | null;
+};
+
+const RANK_BRACKETS = [
+  "",
+  "HERALD",
+  "GUARDIAN",
+  "CRUSADER",
+  "ARCHON",
+  "LEGEND",
+  "ANCIENT",
+  "DIVINE",
+  "IMMORTAL",
+];
+const LEADERBOARD_TAKE = 50;
+
+export async function getHeroLeaderboard(heroId: number, tier: number): Promise<LeaderboardRow[]> {
+  "use cache";
+  cacheLife("hours");
+  const token = process.env.STRATZ_API_TOKEN;
+  const bracket = RANK_BRACKETS[Math.trunc(tier)];
+  if (!token || !bracket) return [];
+  const started = Date.now();
+  const response = await fetch("https://api.stratz.com/graphql", {
+    method: "POST",
+    // STRATZ asks API clients to send this exact user agent.
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "STRATZ_API",
+    },
+    body: JSON.stringify({
+      query: `{ leaderboard { hero(request: { heroIds: [${Math.trunc(heroId)}], bracketIds: [${bracket}], take: ${LEADERBOARD_TAKE} }) { steamAccountId impAverage wins losses position changeInRanking steamAccount { name avatar seasonRank } } } }`,
+    }),
+    signal: AbortSignal.timeout(20_000),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
+  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+  const body = (await response.json()) as {
+    errors?: unknown[];
+    data?: {
+      leaderboard?: {
+        hero:
+          | {
+              steamAccountId: number;
+              impAverage: number | null;
+              wins: number | null;
+              losses: number | null;
+              position: string | null;
+              changeInRanking: number | null;
+              steamAccount: { name: string | null; avatar: string | null; seasonRank: number | null } | null;
+            }[]
+          | null;
+      };
+    };
+  };
+  if (body.errors?.length) throw new Error("STRATZ query failed");
+  return (body.data?.leaderboard?.hero ?? []).map((p) => ({
+    account: p.steamAccountId,
+    name: p.steamAccount?.name ?? null,
+    avatar: p.steamAccount?.avatar ?? null,
+    tier: p.steamAccount?.seasonRank ?? null,
+    pos: p.position?.startsWith("POSITION_") ? Number(p.position.slice(9)) : null,
+    wins: p.wins ?? 0,
+    losses: p.losses ?? 0,
+    imp: p.impAverage ?? 0,
+    change: p.changeInRanking,
+  }));
+}

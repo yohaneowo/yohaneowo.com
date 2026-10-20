@@ -12,6 +12,9 @@ const dotahubEn: typeof dotahubZh = {
     peers: "Peers",
     economy: "Economy",
     imp: "IMP",
+    signature: "Signature",
+    research: "In-game lab",
+    planned: "Planned",
   },
   sources: "Data from OpenDota and Valve (Steam, Dota 2). This site is not affiliated with Valve.",
   connect: {
@@ -256,6 +259,70 @@ const dotahubEn: typeof dotahubZh = {
     average: (who: string) => `${who} average`,
     band: "Middle 50%",
     died: (minute: number, killer: string | null) => `died at ${minute}:00${killer ? ` (${killer})` : ""}`,
+  },
+  signature: {
+    title: "Signature heroes",
+    description:
+      "The heroes you're really good at in ranked, with evidence (better than on your other heroes, or steadily above the hero's average), not just the ones you play most.",
+    playerDescription:
+      "The heroes this player is really good at in ranked, with evidence, not just the ones they play most.",
+    found: "Signature heroes",
+    foundHint:
+      "One of two kinds of evidence: advantage (wins more, or higher IMP, than on their other heroes), or mastery (IMP steadily above the same hero and position's average, over several half-years). Both by probability: at least 80% sure.",
+    none: "No signature hero with enough evidence yet. The heroes played a lot are under Skilled below.",
+    labels: {
+      current: "Current",
+      historic: "Former",
+      potential: "Rising",
+      skilled: "Skilled candidate",
+      frequent: "Played a lot",
+    },
+    paths: { advantage: "Advantage", mastery: "Mastery" },
+    trend: { up: "rising lately", down: "falling lately" },
+    unknownPosition: "position unknown",
+    matches: "Matches",
+    recentMatches: (n: number) => `${n} in 180 days`,
+    winRate: "Win rate",
+    imp: "Average IMP",
+    versus: (base: string) => `others ${base}`,
+    byWinRate: "win rate",
+    byImp: "IMP",
+    advantageEvidence: (pct: number, by: string) => `${pct}% likely better than their other heroes (${by})`,
+    masteryEvidence: (pct: number, positive: number, total: number) =>
+      `${pct}% likely above the hero's average, positive in ${positive} of ${total} half-years`,
+    noEvidence: "Not enough evidence",
+    span: (from: string, to: string) => `${from} to ${to}`,
+    toLeaderboard: "Leaderboard →",
+    skilledTitle: "Skilled",
+    skilledHint:
+      "Heroes with at least 50 matches but not enough evidence yet. Skilled candidates are close, or have too little IMP to tell; played a lot is many matches with an ordinary showing.",
+    leaderboard: "Hero leaderboard",
+    leaderboardHint:
+      "STRATZ's leaderboard: the players at this rank with the best average IMP on the hero lately, top 50. Click a name for their DotaHub; Compare opens the economy page against them.",
+    rank: "Rank",
+    yourRank: "your rank",
+    loading: "Loading…",
+    unavailable: "Couldn't load the leaderboard.",
+    emptyBoard: "No leaderboard at this rank yet.",
+    yourImp: (own: boolean, hero: string, n: number, imp: string) =>
+      `${own ? "Your" : "This player's"} average IMP over the last ${n} ${hero} matches is ${imp}.`,
+    cutoff: (n: number, imp: string) => `Number ${n} on the board has ${imp}.`,
+    player: "Player",
+    position: "Position",
+    record: "W–L",
+    you: "you",
+    thisPlayer: "this player",
+    compare: "Compare",
+    coverage: (matches: number, since: string, withImp: string) =>
+      `Data: ${matches} ranked matches STRATZ has (since ${since}), ${withImp} with IMP.`,
+    method:
+      "By hero and position; 50 matches to be considered, 20 in the last 180 days to judge recent form. Win rate and IMP are shrunk toward a baseline so few matches can't look extreme. All thresholds are still being calibrated.",
+  },
+  research: {
+    title: "In-game lab",
+    badge: "Planned",
+    description: "A feature still being planned, looking deeper into what happens inside a match.",
+    vote: "Vote on the roadmap",
   },
   matchDeaths: { title: "Death map", player: "Player" },
   settings: {

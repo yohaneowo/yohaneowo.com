@@ -7,7 +7,9 @@ import {
   ArrowLeftIcon,
   CoinsIcon,
   FlameIcon,
+  FlaskConicalIcon,
   ListIcon,
+  StarIcon,
   SwordsIcon,
   UsersIcon,
 } from "lucide-react";
@@ -33,6 +35,13 @@ export function DotaSubNav() {
         { href: `${base}/deaths`, label: t.nav.deaths, icon: <FlameIcon aria-hidden /> },
         { href: `${base}/economy`, label: t.nav.economy, icon: <CoinsIcon aria-hidden /> },
         { href: `${base}/imp`, label: t.nav.imp, icon: <ActivityIcon aria-hidden /> },
+        { href: `${base}/signature`, label: t.nav.signature, icon: <StarIcon aria-hidden /> },
+        {
+          href: `${base}/research`,
+          label: t.nav.research,
+          icon: <FlaskConicalIcon aria-hidden />,
+          badge: t.nav.planned,
+        },
         { href: `${base}/peers`, label: t.nav.peers, icon: <UsersIcon aria-hidden /> },
       ]}
       end={
