@@ -220,11 +220,11 @@ export function applyFilters(
 
 export type Filtered = ReturnType<typeof applyFilters>;
 
-export function useFilterState(ranges: number[]) {
+export function useFilterState(ranges: number[], initialHero = 0) {
   const [n, setN] = useState(ranges.includes(50) ? 50 : ranges[ranges.length - 1]);
   const [pos, setPos] = useState(0);
   const [side, setSide] = useState<Side>("all");
-  const [hero, setHero] = useState(0);
+  const [hero, setHero] = useState(initialHero);
   const [result, setResult] = useState<Result>("all");
   return { n, setN, pos, setPos, side, setSide, hero, setHero, result, setResult };
 }

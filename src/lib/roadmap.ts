@@ -346,6 +346,11 @@ export const ROADMAP: RoadmapItem[] = [
         "Compare on the economy page: with one or two players or the bracket (the other nine in your matches), side-by-side boxes and a volatility forest plot",
         true,
       ),
+      step(
+        "对比选单改成「你 VS 头像」，分好友与段位；可以跟任何段位（八个牌位）玩同一个英雄的人比：STRATZ 的段位平均加上后台收集的约 100 场样本",
+        "The compare menu as you VS avatars, friends and ranks; compare with a hero's players at any of the eight ranks: STRATZ's averages plus about 100 matches collected in the background",
+        true,
+      ),
       step("IMP 页对比模式", "Compare on the IMP page"),
       step(
         "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",

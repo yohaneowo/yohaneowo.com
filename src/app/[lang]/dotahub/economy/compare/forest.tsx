@@ -3,7 +3,7 @@
 import { useLocale } from "@/i18n/locale-provider";
 import type { DetailMatch } from "@/lib/dota/admin";
 import type { HeroInfo } from "@/lib/dota/data";
-import type { FilteredSeries } from "./series";
+import { type FilteredSeries, isCrowd } from "./series";
 
 // The forest chart: is one player's GPM steadier from match to match than another's, and can the
 // numbers tell? Volatility is the coefficient of variation of the per-match GPM; its standard error
@@ -39,27 +39,29 @@ const steadierThan = (cv: number, others: number[]) => others.filter((o) => o > 
 export function Forest({
   series,
   heroes,
-  bracketCv,
+  crowdCv,
+  crowdLabel,
 }: {
   series: FilteredSeries[];
   heroes: Record<number, HeroInfo>;
-  // Per hero, the volatility of sampled bracket players (empty without the bracket).
-  bracketCv: Record<number, number[]>;
+  // Per hero, the volatility of a crowd's sampled players (empty without a crowd), and its name.
+  crowdCv: Record<number, number[]>;
+  crowdLabel: string;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.compare;
   const name = (id: number) => heroes[id]?.[lang] ?? String(id);
   // Heroes are compared side by side, so the hero filter doesn't apply here.
   const people: Person[] = series
-    .filter((s) => s.kind !== "bracket")
+    .filter((s) => !isCrowd(s))
     .map((s) => ({ key: s.key, label: short(s.label), color: s.color, byHero: gpmByHero(s.lists.anyHero) }));
-  const withBracket = series.some((s) => s.kind === "bracket");
+  const withBracket = series.some(isCrowd);
   const [me, ...rest] = people;
   if (!me) return null;
 
   // Heroes the page player and at least one other side played.
   const heroIds = [...me.byHero.keys()].filter(
-    (h) => rest.some((p) => p.byHero.has(h)) || (withBracket && (bracketCv[h]?.length ?? 0) > 0),
+    (h) => rest.some((p) => p.byHero.has(h)) || (withBracket && (crowdCv[h]?.length ?? 0) > 0),
   );
   const rows = heroIds
     .map((hero) => {
@@ -80,7 +82,8 @@ export function Forest({
         <SpreadForest
           rows={usable}
           people={people}
-          bracketCv={bracketCv}
+          crowdCv={crowdCv}
+          crowdLabel={crowdLabel}
           withBracket={withBracket}
           name={name}
         />
@@ -259,18 +262,20 @@ function DiffForest({
   );
 }
 
-// Three sides, or the bracket: each player's volatility with its 95% interval on one axis, the
-// bracket's sampled players behind as grey dots, and where each player stands.
+// Three sides, or a crowd: each player's volatility with its 95% interval on one axis, the crowd's
+// sampled players behind as grey dots, and where each player stands.
 function SpreadForest({
   rows,
   people,
-  bracketCv,
+  crowdCv,
+  crowdLabel,
   withBracket,
   name,
 }: {
   rows: Row[];
   people: Person[];
-  bracketCv: Record<number, number[]>;
+  crowdCv: Record<number, number[]>;
+  crowdLabel: string;
   withBracket: boolean;
   name: (id: number) => string;
 }) {
@@ -287,7 +292,7 @@ function SpreadForest({
       const c = g.length >= 2 ? cvOf(g) : null;
       return c == null ? [] : [c + Z * stdErr(c, g.length)];
     }),
-    ...(bracketCv[r.hero] ?? []),
+    ...(crowdCv[r.hero] ?? []),
   ]);
   const max = Math.min(1, Math.max(0.2, ...all));
   const M = Math.ceil(max * 10) / 10;
@@ -307,13 +312,15 @@ function SpreadForest({
         ))}
         {rows.map((r, i) => {
           const top = 28 + i * rowH;
-          const crowd = bracketCv[r.hero] ?? [];
+          const crowd = crowdCv[r.hero] ?? [];
           const cvs = r.games.map((g) => (g.length >= MIN_GAMES ? cvOf(g) : null));
           const notes: string[] = [];
           if (withBracket && crowd.length)
             people.forEach((p, k) => {
               if (cvs[k] != null)
-                notes.push(t.steadierThanBracket(p.label, Math.round(steadierThan(cvs[k]!, crowd) * 100)));
+                notes.push(
+                  t.steadierThanCrowd(p.label, Math.round(steadierThan(cvs[k]!, crowd) * 100), crowdLabel),
+                );
             });
           // The page player against each other player: the difference rule.
           people.slice(1).forEach((p, k) => {
@@ -348,7 +355,7 @@ function SpreadForest({
                   </tspan>
                 ))}
                 {` ${t.matchesUnit}`}
-                {crowd.length ? ` · ${t.bracketSampled(crowd.length)}` : ""}
+                {crowd.length ? ` · ${t.crowdSampled(crowd.length)}` : ""}
                 {r.games.some((g) => g.length && g.length < LOW_GAMES) ? ` · ${t.rough}` : ""}
               </text>
               {crowd.map((v, k) => (

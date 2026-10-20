@@ -407,3 +407,112 @@ export async function getHeroCvSample(heroId: number, accounts: number[]): Promi
   }
   return cvs;
 }
+
+// A hero's averages at a rank: STRATZ's statistics over its recent ranked matches, by its four
+// brackets (two medals each) and optionally one position. Per minute the net worth, last hits and
+// experience (of the matches still going at that minute); each item's average first-purchase
+// time and how often it's bought. Kept for a day.
+export type RankAverages = {
+  matches: number;
+  wins: number;
+  networth: (number | null)[];
+  lastHits: (number | null)[];
+  xp: (number | null)[];
+  items: Record<number, { time: number; rate: number }>;
+};
+
+// STRATZ's brackets by medal (1 Herald … 8 Immortal).
+const BRACKETS = [
+  "",
+  "HERALD_GUARDIAN",
+  "HERALD_GUARDIAN",
+  "CRUSADER_ARCHON",
+  "CRUSADER_ARCHON",
+  "LEGEND_ANCIENT",
+  "LEGEND_ANCIENT",
+  "DIVINE_IMMORTAL",
+  "DIVINE_IMMORTAL",
+];
+
+type RawAverages = {
+  errors?: unknown[];
+  data?: {
+    heroStats?: {
+      t:
+        | { time: number; matchCount: number; winCount: number; networth: number; cs: number; xp: number }[]
+        | null;
+      i: { itemId: number; instance: number | null; time: number; matchCount: number }[] | null;
+    };
+  };
+};
+
+export async function getRankAverages(
+  heroId: number,
+  tier: number,
+  position: number | null,
+): Promise<RankAverages | null> {
+  "use cache";
+  cacheLife("days");
+  const token = process.env.STRATZ_API_TOKEN;
+  const bracket = BRACKETS[Math.trunc(tier)];
+  if (!token || !bracket) return null;
+  const hero = Math.trunc(heroId);
+  const where = `bracketBasicIds: [${bracket}]${position ? `, positionIds: [POSITION_${Math.trunc(position)}]` : ""}`;
+  const started = Date.now();
+  const response = await fetch("https://api.stratz.com/graphql", {
+    method: "POST",
+    // STRATZ asks API clients to send this exact user agent.
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "STRATZ_API",
+    },
+    body: JSON.stringify({
+      query: `{ heroStats { t: stats(heroIds: [${hero}], ${where}, groupByTime: true) { time matchCount winCount networth cs xp } i: itemFullPurchase(heroId: ${hero}, ${where}) { itemId instance time matchCount } } }`,
+    }),
+    signal: AbortSignal.timeout(30_000),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
+  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+  const body = (await response.json()) as RawAverages;
+  if (body.errors?.length) throw new Error("STRATZ query failed");
+  const times = [...(body.data?.heroStats?.t ?? [])].sort((a, b) => a.time - b.time);
+  // Minute 0 counts every match (later minutes only those still going).
+  const start = times.find((x) => x.time === 0) ?? times[0];
+  if (!start?.matchCount) return null;
+  const byMinute = (pick: (x: (typeof times)[number]) => number) => {
+    const out: (number | null)[] = [];
+    for (const x of times) out[x.time] = pick(x);
+    return Array.from(out, (v) => v ?? null);
+  };
+  // Purchases by minute; later copies of an item (instance 2 and on) are not its first purchase.
+  const buys = new Map<number, { count: number; minutes: number }>();
+  for (const row of body.data?.heroStats?.i ?? []) {
+    if ((row.instance ?? 1) > 1) continue;
+    const item = buys.get(row.itemId) ?? { count: 0, minutes: 0 };
+    item.count += row.matchCount;
+    item.minutes += row.time * row.matchCount;
+    buys.set(row.itemId, item);
+  }
+  const items: RankAverages["items"] = {};
+  for (const [id, { count, minutes }] of buys)
+    items[id] = {
+      time: Math.round((minutes / count) * 60 + 30),
+      rate: Math.min(1, count / start.matchCount),
+    };
+  return {
+    matches: start.matchCount,
+    wins: start.winCount,
+    networth: byMinute((x) => x.networth),
+    lastHits: byMinute((x) => x.cs),
+    xp: byMinute((x) => x.xp),
+    items,
+  };
+}

@@ -465,26 +465,21 @@ const dotahubEn: typeof dotahubZh = {
   compare: {
     withMe: "Compare with me →",
     label: "Compare",
-    none: "Nobody picked yet",
     remove: (who: string) => `Remove ${who}`,
-    addPlayer: "Add a player",
     placeholder: "Dota account id, SteamID or profile address",
     add: "Add",
     badId: "That isn't an account id (or it's you).",
     peers: "People you play with",
-    addBracket: "Add the bracket",
     full: "Two at most",
     you: "You",
-    bracket: "Bracket",
     couldNotLoad: "Couldn't load who to compare with; showing yours only.",
     how: "Every chart uses the same filters; each player their own newest matches.",
-    howBracket:
-      "Every chart uses the same filters. The bracket is the other nine players of these matches (matchmaking puts them in your bracket), over the same range of your matches.",
     numbers: "Numbers",
     matches: "Matches",
     matchesUnit: "matches",
     winRate: "Win rate",
-    curveHint: "The average per minute, one line each; the bracket dashed.",
+    curveHint:
+      "The average per minute, one line each; my matches and ranks dashed (a rank is STRATZ's average).",
     boxesTitle: "Side-by-side boxes",
     boxesHint:
       "Gold per minute in the same game state (from minute 10): the thick line is the median, the box 25–75%, whiskers 10% and 90%. Shorter boxes are steadier. Faded with under 5 matches. Heroes you played and at least one other side did too; ignores the hero filter.",
@@ -492,14 +487,13 @@ const dotahubEn: typeof dotahubZh = {
     noCommon: "No hero both of you played.",
     forest: "Forest",
     peopleOnly:
-      "The bracket mixes many players and has no volatility of its own, so this chart shows people only.",
+      "My matches and ranks mix many players and have no volatility of their own, so this chart shows people only.",
     tableHint: "Each cell is the win rate, with GPM and matches below; ignores the result filter.",
     itemsHint:
       "Your most built big items: each side's average first-purchase time, with how often it was built; the fastest in bold.",
     minGames: (n: number) =>
       `Heroes with under ${n} matches aren't compared for volatility; under 5 are marked rough.`,
     matchOrder: "Match order",
-    bracketBand: (mean: string) => `Bracket ${mean} ±2σ`,
     forestEmpty: "No hero both sides played at least 3 times.",
     notCompared: (min: number, list: string) => `Under ${min} matches, not compared: ${list}`,
     forestHowTo:
@@ -517,8 +511,27 @@ const dotahubEn: typeof dotahubZh = {
     diff: "diff",
     rough: "rough",
     spreadLabel: "Volatility per hero against the bracket's players",
-    steadierThanBracket: (who: string, pct: number) => `${who}: steadier than ${pct}% of the bracket`,
-    bracketSampled: (n: number) => `${n} bracket players`,
+    pick: "Compare with…",
+    addAnother: "Add another",
+    friends: "Friends",
+    ranks: "Ranks",
+    gamesTogether: (n: number) => `${n} together`,
+    noPeers: "Nobody you play with often yet; paste an id.",
+    mine: "My matches",
+    mineHint: "The other nine players of your matches (matchmaking puts them in your bracket)",
+    rankHero: "Hero",
+    rankHint: (hero: string) =>
+      `Pick a rank to compare with its ${hero} players: averages (win rate, net worth and last hits by minute, item timings) from STRATZ's tens of thousands of recent matches; box plots, volatility and game states from about 100 matches collected in the background, which takes a few minutes the first time.`,
+    rankLabel: (medal: string, hero: string, position: string | null) =>
+      [medal, hero, position].filter(Boolean).join(" · "),
+    howCrowd:
+      "Every chart uses the same filters. My matches are the other nine players of your matches, over your range; a rank is that rank's players of the hero: win rate, curves and item timings are STRATZ's averages, the rest the collected sample (whatever your range).",
+    collecting: (who: string, count: number, target: number) =>
+      `Collecting ${who}: ${count} / ${target} matches (a few more every minute; box plots and volatility fill in later).`,
+    crowdBand: (who: string, mean: string) => `${who} ${mean} ±2σ`,
+    steadierThanCrowd: (who: string, pct: number, crowd: string) =>
+      `${who}: steadier than ${pct}% of ${crowd}`,
+    crowdSampled: (n: number) => `${n} sampled`,
   },
   fresh: {
     justNow: "just now",

@@ -15,7 +15,7 @@ import { avg, FILTER_PAGE, FilterBar, perMinute, Section, Tabs, useFilterState }
 import { byHero, funnel, mean, rolling, sd } from "../../stats/volatility";
 import type { KeyItem } from "../economy-explorer";
 import { Forest, LOW_GAMES, MIN_GAMES } from "./forest";
-import { type FilteredSeries, filterSeries, type Series } from "./series";
+import { type FilteredSeries, filterSeries, isCrowd, type Series } from "./series";
 
 const thousands = (n: number) => Math.round(n).toLocaleString("en-US");
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -46,8 +46,8 @@ function SideTable({
               <th key={s.key} className="px-3 py-2 text-right font-normal whitespace-nowrap">
                 <span className="inline-flex items-center gap-1.5">
                   <span
-                    className={cn("size-2 rounded-full", s.kind === "bracket" && "border bg-transparent")}
-                    style={s.kind === "bracket" ? { borderColor: s.color } : { background: s.color }}
+                    className={cn("size-2 rounded-full", isCrowd(s) && "border bg-transparent")}
+                    style={isCrowd(s) ? { borderColor: s.color } : { background: s.color }}
                     aria-hidden
                   />
                   {s.label}
@@ -89,26 +89,32 @@ function bestOf(values: (number | null)[], lowest = false) {
   return best < 0 ? undefined : best;
 }
 
-// The economy page compared: the page's player against up to two others and / or the bracket,
-// all under the same filters. series[0] is the page's player.
+// The economy page compared: the page's player against up to two others: players, 我的对局 and a
+// hero's players at a rank tier, all under the same filters. series[0] is the page's player. A rank
+// shows STRATZ's averages where they exist (win rate, net worth and last hits by minute, items) and
+// admin's sample of matches for everything else.
 export function CompareView({
   series,
   heroes,
   items,
   ranges,
-  bracketCv,
+  crowdCv,
+  crowdLabel,
 }: {
   series: Series[];
   heroes: Record<number, HeroInfo>;
   items: Record<number, KeyItem>;
   ranges: number[];
-  bracketCv: Record<number, number[]>;
+  // Per hero, the volatility of a crowd's sampled players (the forest chart's background).
+  crowdCv: Record<number, number[]>;
+  crowdLabel: string;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.compare;
   const e = dict.dotahub.economy;
   const s = dict.dotahub.stats;
-  const state = useFilterState(ranges);
+  // A rank compares one hero: start on it.
+  const state = useFilterState(ranges, series.find((x) => x.kind === "rank")?.heroId ?? 0);
   const { n, pos, side, hero, result } = state;
   const sides = useMemo(
     () => filterSeries(series, { n, pos, side, hero, result }),
@@ -119,14 +125,29 @@ export function CompareView({
   const [leadState, setLeadState] = useState<LeadState>("ahead");
   const [view, setView] = useState<"forest" | "riskReturn" | "funnel" | "control" | "rolling">("forest");
   const name = (id: number) => heroes[id]?.[lang] ?? String(id);
-  const people = sides.filter((x) => x.kind !== "bracket");
-  const bracket = sides.find((x) => x.kind === "bracket");
+  const people = sides.filter((x) => !isCrowd(x));
+  const crowd = sides.find(isCrowd);
+  // STRATZ's averages at a minute (rank series only).
+  const averageAt = (x: FilteredSeries, values: "networth" | "lastHits", minute: number) =>
+    x.averages?.[values][minute] ?? null;
 
   // The numbers.
   const metrics: { key: string; label: string; values: (number | null)[]; format: (v: number) => string }[] =
     [
-      { key: "n", label: t.matches, values: sides.map((x) => x.lists.shown.length), format: String },
-      { key: "win", label: t.winRate, values: sides.map((x) => winRate(x.lists.bothResults)), format: pct },
+      {
+        key: "n",
+        label: t.matches,
+        values: sides.map((x) => x.averages?.matches ?? x.lists.shown.length),
+        format: thousands,
+      },
+      {
+        key: "win",
+        label: t.winRate,
+        values: sides.map((x) =>
+          x.averages ? x.averages.wins / x.averages.matches : winRate(x.lists.bothResults),
+        ),
+        format: pct,
+      },
       {
         key: "gpm",
         label: "GPM",
@@ -142,19 +163,31 @@ export function CompareView({
       {
         key: "lh10",
         label: e.lastHits10,
-        values: sides.map((x) => avg(present(x.lists.shown.map((m) => lastHitsBy(m, 10))))),
+        values: sides.map((x) =>
+          x.averages
+            ? averageAt(x, "lastHits", 10)
+            : avg(present(x.lists.shown.map((m) => lastHitsBy(m, 10)))),
+        ),
         format: (v) => String(Math.round(v)),
       },
       {
         key: "nw10",
         label: e.netWorth10,
-        values: sides.map((x) => avg(present(x.lists.shown.map((m) => m.details.nwm[10] ?? null)))),
+        values: sides.map((x) =>
+          x.averages
+            ? averageAt(x, "networth", 10)
+            : avg(present(x.lists.shown.map((m) => m.details.nwm[10] ?? null))),
+        ),
         format: thousands,
       },
       {
         key: "nw20",
         label: e.netWorth20,
-        values: sides.map((x) => avg(present(x.lists.shown.map((m) => m.details.nwm[20] ?? null)))),
+        values: sides.map((x) =>
+          x.averages
+            ? averageAt(x, "networth", 20)
+            : avg(present(x.lists.shown.map((m) => m.details.nwm[20] ?? null))),
+        ),
         format: thousands,
       },
     ];
@@ -162,9 +195,16 @@ export function CompareView({
   // Net worth or last hits by minute, one line each.
   const curves = sides
     .map((x) => {
+      if (x.averages)
+        return {
+          name: x.label,
+          color: x.color,
+          values: curve === "networth" ? x.averages.networth : x.averages.lastHits,
+          dashed: true,
+        };
       const list = x.lists.shown.map((m) => (curve === "networth" ? m.details.nwm : running(m.details.lhm)));
       return list.length
-        ? { name: x.label, color: x.color, values: perMinute(list), dashed: x.kind === "bracket" }
+        ? { name: x.label, color: x.color, values: perMinute(list), dashed: isCrowd(x) }
         : null;
     })
     .filter((c) => c != null);
@@ -214,7 +254,14 @@ export function CompareView({
   return (
     <div className={FILTER_PAGE}>
       <FilterBar f={{ ...state, ...me.lists }} heroes={heroes} ranges={ranges} />
-      <p className="text-xs text-muted-foreground">{bracket ? t.howBracket : t.how}</p>
+      <p className="text-xs text-muted-foreground">{crowd ? t.howCrowd : t.how}</p>
+      {sides
+        .filter((x) => x.progress && x.progress.count < x.progress.target)
+        .map((x) => (
+          <p key={x.key} className="text-xs text-muted-foreground">
+            {t.collecting(x.label, x.progress!.count, x.progress!.target)}
+          </p>
+        ))}
 
       <Section title={t.numbers}>
         <SideTable
@@ -260,9 +307,9 @@ export function CompareView({
               return {
                 name: x.label,
                 color: x.color,
-                dashed: x.kind === "bracket",
+                dashed: isCrowd(x),
                 boxes: per.map(({ sp }) => (sp ? [sp.p10!, sp.p25!, sp.median!, sp.p75!, sp.p90!] : null)),
-                faded: per.map(({ list }) => x.kind !== "bracket" && list.length < LOW_GAMES),
+                faded: per.map(({ list }) => !isCrowd(x) && list.length < LOW_GAMES),
                 notes: per.map(({ list, income }) => t.boxNote(list.length, income.length)),
               };
             })}
@@ -296,13 +343,13 @@ export function CompareView({
           ))}
         </div>
         {view === "forest" ? (
-          <Forest series={sides} heroes={heroes} bracketCv={bracketCv} />
+          <Forest series={sides} heroes={heroes} crowdCv={crowdCv} crowdLabel={crowdLabel} />
         ) : (
           <>
             <p className="text-xs text-muted-foreground">
-              {dict.dotahub.volatility.explain[view]} {bracket ? t.peopleOnly : ""}
+              {dict.dotahub.volatility.explain[view]} {crowd ? t.peopleOnly : ""}
             </p>
-            <VolatilityLines view={view} people={people} bracket={bracket} name={name} />
+            <VolatilityLines view={view} people={people} crowd={crowd} name={name} />
           </>
         )}
       </Section>
@@ -346,7 +393,9 @@ export function CompareView({
           <SideTable
             sides={sides}
             rows={itemIds.map((id) => {
-              const values = itemTimes.map((map) => avg(map.get(id) ?? []));
+              const values = itemTimes.map((map, k) =>
+                sides[k].averages ? (sides[k].averages.items[id]?.time ?? null) : avg(map.get(id) ?? []),
+              );
               return {
                 key: String(id),
                 label: (
@@ -364,7 +413,20 @@ export function CompareView({
                 ),
                 best: bestOf(values, true),
                 cells: values.map((v, k) =>
-                  v == null ? (
+                  sides[k].averages ? (
+                    sides[k].averages.items[id] ? (
+                      <span key={k} className="flex flex-col items-end leading-tight">
+                        <span>{clock(sides[k].averages.items[id].time)}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {pct(sides[k].averages.items[id].rate)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span key={k} className="text-muted-foreground">
+                        –
+                      </span>
+                    )
+                  ) : v == null ? (
                     <span key={k} className="text-muted-foreground">
                       –
                     </span>
@@ -390,17 +452,17 @@ export function CompareView({
 }
 
 // Income × volatility, the funnel, the control chart and rolling volatility with one colour per
-// player. The bracket mixes many players, so it has no volatility of its own; the control chart
-// shows its average as a band.
+// player. A crowd mixes many players, so it has no volatility of its own; the control chart shows
+// its average as a band.
 function VolatilityLines({
   view,
   people,
-  bracket,
+  crowd,
   name,
 }: {
   view: "riskReturn" | "funnel" | "control" | "rolling";
   people: FilteredSeries[];
-  bracket: FilteredSeries | undefined;
+  crowd: FilteredSeries | undefined;
   name: (id: number) => string;
 }) {
   const { t: dict } = useLocale();
@@ -510,9 +572,9 @@ function VolatilityLines({
     });
     const length = Math.max(0, ...lines.map((l) => l.gpm.length));
     if (!length) return null;
-    const bracketGpm = bracket?.lists.shown.map((m) => m.details.gpm) ?? [];
+    const crowdGpm = crowd?.lists.shown.map((m) => m.details.gpm) ?? [];
     const band =
-      view === "control" && bracketGpm.length >= 10 ? { mean: mean(bracketGpm), sd: sd(bracketGpm) } : null;
+      view === "control" && crowdGpm.length >= 10 ? { mean: mean(crowdGpm), sd: sd(crowdGpm) } : null;
     return {
       grid: { left: 48, right: 24, top: 32, bottom: 32 },
       legend: { top: 0, data: people.map((p) => p.label), textStyle: { fontSize: 11 } },
@@ -546,11 +608,11 @@ function VolatilityLines({
           band && k === 0
             ? {
                 silent: true,
-                itemStyle: { color: `${bracket!.color}22` },
+                itemStyle: { color: `${crowd!.color}22` },
                 label: {
                   show: true,
                   position: "insideTopRight" as const,
-                  formatter: c.bracketBand(thousands(band.mean)),
+                  formatter: c.crowdBand(crowd!.label, thousands(band.mean)),
                   fontSize: 10,
                 },
                 data: [[{ yAxis: band.mean - 2 * band.sd }, { yAxis: band.mean + 2 * band.sd }]],
@@ -558,7 +620,7 @@ function VolatilityLines({
             : undefined,
       })),
     } as EChartsOption;
-  }, [view, people, bracket, name, t, c, e]);
+  }, [view, people, crowd, name, t, c, e]);
   if (!option) return <p className="text-sm text-muted-foreground">{t.notEnough}</p>;
   return (
     <div style={{ height: view === "riskReturn" || view === "funnel" ? 380 : 300 }}>

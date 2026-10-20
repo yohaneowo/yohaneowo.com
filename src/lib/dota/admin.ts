@@ -209,3 +209,31 @@ export async function getStoredDeaths(userId: string, limit: number) {
     .nullable()
     .parse(await call(`/users/${encodeURIComponent(userId)}/deaths?limit=${limit}`));
 }
+
+const sampleSchema = z.object({
+  count: z.number(),
+  target: z.number(),
+  filledAt: z.number().nullable(),
+  matches: z.array(
+    z.object({
+      matchId: z.number(),
+      heroId: z.number(),
+      startTime: z.number(),
+      duration: z.number(),
+      won: z.boolean(),
+      acc: z.number().nullable(),
+      imp: z.number().nullable(),
+      details: matchDetailsSchema,
+    }),
+  ),
+});
+export type RankSample = z.infer<typeof sampleSchema>;
+
+// A hero's ranked matches at a rank tier (medal 1–8), newest first: admin collects them in the
+// background while they're asked for, so this also keeps them collected. Short of target while
+// it's still collecting.
+export async function getRankSample(heroId: number, tier: number) {
+  return sampleSchema
+    .nullable()
+    .parse(await call(`/samples/${Math.trunc(heroId)}/${Math.trunc(tier)}?limit=200`));
+}

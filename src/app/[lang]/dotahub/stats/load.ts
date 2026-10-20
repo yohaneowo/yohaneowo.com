@@ -1,5 +1,11 @@
 import "server-only";
-import { type BracketMatch, type DetailMatch, getStoredBracket, getStoredDetails } from "@/lib/dota/admin";
+import {
+  type BracketMatch,
+  type DetailMatch,
+  getRankSample,
+  getStoredBracket,
+  getStoredDetails,
+} from "@/lib/dota/admin";
 import { getHeroes, getRankedSides } from "@/lib/dota/data";
 import { getHeroCvSample, getStratzRanked } from "@/lib/dota/stratz";
 import type { DeathsSource } from "../deaths/deaths-view";
@@ -116,4 +122,37 @@ export async function bracketVolatility(
     }),
   );
   return Object.fromEntries(entries.filter(([, cvs]) => cvs.length));
+}
+
+// A hero's players at a rank tier (medal 1–8): admin's sample of their ranked matches
+// (still being collected while count is short of target) as pseudo matches, and the volatility of
+// each sampled player with enough matches (the forest chart's background).
+const CROWD_MIN_GAMES = 5;
+
+export async function loadRank(heroId: number, tier: number) {
+  const data = await getRankSample(heroId, tier);
+  if (!data) return null;
+  const matches = data.matches.map((m): DetailMatch => ({
+    matchId: m.matchId,
+    heroId: m.heroId,
+    won: m.won,
+    startTime: m.startTime,
+    duration: m.duration,
+    kills: 0,
+    deaths: 0,
+    assists: 0,
+    imp: m.imp,
+    details: m.details,
+  }));
+  const byPlayer = new Map<number, number[]>();
+  for (const m of data.matches)
+    if (m.acc && m.details.gpm > 0) byPlayer.set(m.acc, [...(byPlayer.get(m.acc) ?? []), m.details.gpm]);
+  const cv: number[] = [];
+  for (const gpm of byPlayer.values()) {
+    if (gpm.length < CROWD_MIN_GAMES) continue;
+    const mean = gpm.reduce((a, b) => a + b, 0) / gpm.length;
+    const sd = Math.sqrt(gpm.reduce((a, g) => a + (g - mean) ** 2, 0) / (gpm.length - 1));
+    cv.push(sd / mean);
+  }
+  return { matches, cv, progress: { count: data.count, target: data.target } };
 }
