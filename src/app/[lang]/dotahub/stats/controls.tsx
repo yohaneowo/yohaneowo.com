@@ -270,7 +270,7 @@ export function FilterBar({
     <>
       {/* In the empty space left of the content (the page makes room, SIDE_PANEL_PAGE). The parent
           (FILTER_PAGE) is positioned and spans the page's content, so the panel sticks all the way down. */}
-      <aside className="absolute top-0 right-full bottom-0 mr-6 hidden w-56 min-[1520px]:block">
+      <aside className="absolute top-0 right-full bottom-0 mr-6 hidden w-48 min-[1520px]:block">
         <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-3 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t.range}</span>
@@ -279,7 +279,7 @@ export function FilterBar({
               value={f.n}
               onChange={f.setN}
               options={range}
-              className="grid w-full grid-cols-2 text-xs whitespace-nowrap"
+              className="grid w-full grid-cols-2 text-xs whitespace-nowrap [&>button]:px-1"
             />
           </div>
           <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} stacked />
