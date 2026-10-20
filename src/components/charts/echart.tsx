@@ -16,6 +16,7 @@ import {
   TitleComponent,
   TooltipComponent,
   MarkLineComponent,
+  MarkPointComponent,
   GraphicComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
@@ -34,6 +35,7 @@ echarts.use([
   ScatterChart,
   SunburstChart,
   MarkLineComponent,
+  MarkPointComponent,
   GraphicComponent,
   GridComponent,
   LegendComponent,

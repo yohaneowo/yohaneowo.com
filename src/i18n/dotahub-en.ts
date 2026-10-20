@@ -243,7 +243,7 @@ const dotahubEn: typeof dotahubZh = {
   },
   matchImp: {
     title: "IMP by minute",
-    hint: "STRATZ's IMP: how much better than the average of the same hero and position the player was doing at each minute; 0 is average. Click a face above to add a player.",
+    hint: "STRATZ's IMP: how much better than the average of the same hero and position the player was doing at each minute; 0 is average. Click a face above to add a player; a cross is a death in that minute.",
     players: "Players",
     overlay: (hero: string) => `Add ${hero} at a rank`,
     tier: "Rank",
@@ -255,6 +255,7 @@ const dotahubEn: typeof dotahubZh = {
     sample: (who: string, count: number) => `${who}: average and middle 50% of ${count} matches`,
     average: (who: string) => `${who} average`,
     band: "Middle 50%",
+    died: (minute: number, killer: string | null) => `died at ${minute}:00${killer ? ` (${killer})` : ""}`,
   },
   matchDeaths: { title: "Death map", player: "Player" },
   settings: {

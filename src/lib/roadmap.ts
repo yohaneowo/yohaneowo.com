@@ -421,6 +421,12 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step("死亡热力图的阵营与胜负改成图示", "The heat map's side and result as icons", true),
+      step(
+        "每分钟 IMP 图标出每次阵亡（滑过显示被谁击杀）",
+        "Deaths marked on the IMP chart (who killed them on hover)",
+        true,
+      ),
+      step("选角两排最左边加上天辉、夜魇的阵营图", "The sides' marks at the left of the draft", true),
     ],
     added: "2026-10-21",
     started: "2026-10-21",

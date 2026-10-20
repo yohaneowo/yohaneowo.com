@@ -18,6 +18,8 @@ export type ImpOf = {
   radiant: boolean;
   slot: number;
   impm: number[];
+  // When the player died (seconds) and the killer's hero (0: a tower or creeps).
+  deaths: { t: number; by: number }[];
 };
 
 // Dota's player colours by slot (Radiant 0–4, Dire 5–9): who's who across the game's own UI.
@@ -151,6 +153,25 @@ export function MatchImp({
         lineStyle: { width: p.key === focused.key ? 3 : 2 },
         showSymbol: false,
         smooth: true,
+        // Each death as a cross on the line at that minute; hovering says when and by whom.
+        markPoint: {
+          // A dot in the player's colour with a white cross.
+          symbol: "circle",
+          symbolSize: 15,
+          itemStyle: { color: SLOT_COLORS[p.slot] ?? "#3b82f6", borderColor: "#0a0a0a", borderWidth: 1.5 },
+          label: { show: true, formatter: "✕", color: "#fff", fontSize: 9, fontWeight: "bold" as const },
+          tooltip: { formatter: (x: unknown) => String((x as { name?: string }).name ?? "") },
+          data: p.deaths.map((d) => {
+            const minute = Math.min(Math.max(0, Math.floor(d.t / 60)), Math.max(0, p.impm.length - 1));
+            return {
+              name: `${heroes[p.heroId]?.[lang] ?? p.heroId} · ${t.died(
+                minute,
+                d.by ? (heroes[d.by]?.[lang] ?? null) : dict.dotahub.deaths.unknownKiller,
+              )}`,
+              coord: [minute, p.impm[minute] ?? 0],
+            };
+          }),
+        },
         markLine:
           p.key === visible[0]?.key
             ? {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ExternalLinkIcon } from "lucide-react";
@@ -201,6 +202,19 @@ function Draft({
       {picks.length > 0 && (
         <div className="overflow-x-auto">
           <div className="grid w-max grid-flow-col grid-rows-2 items-start gap-y-2">
+            {/* The sides' marks at the left of their rows. */}
+            {[true, false].map((radiant) => (
+              <div key={String(radiant)} className="flex h-9 w-9 items-center">
+                <Image
+                  src={`/dota/${radiant ? "radiant" : "dire"}.webp`}
+                  alt={radiant ? t.match.radiant : t.match.dire}
+                  title={radiant ? t.match.radiant : t.match.dire}
+                  width={28}
+                  height={28}
+                  className="size-7 rounded"
+                />
+              </div>
+            ))}
             {picks.map((x, i) =>
               [true, false].map((radiant) => (
                 <div
@@ -300,6 +314,7 @@ async function Detail({ params, searchParams }: { params: Params; searchParams: 
                 radiant: isRadiant(line.player_slot),
                 slot,
                 impm: p.impm,
+                deaths: p.deathEvents.map((e) => ({ t: e.t, by: e.by })),
               },
             ]
           : [];

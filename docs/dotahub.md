@@ -58,7 +58,7 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 
 - 网址可带 `?p=<帐号 ID>`（比赛列表、最近一场的连结会带上那页的玩家），每分钟 IMP 图先显示那个人；没带就是登录者自己。
 - **选角**：禁用独立一排（天梯全英雄选择是十个人一起提名、随机生效，没有阵营），下面是选人时间轴，每一选放在自己顺序的那一格，天辉在上、夜魇在下，换边处留空，看得出 2-2-2-2-1-1。选人的顺序与阵营用 STRATZ `pickBans`（OpenDota 的选人顺序当备援）；禁用用 OpenDota 的 `picks_bans`（Valve 的生效名单，但全部记在天辉，旧版就是因此天辉显示太多英雄），STRATZ 会把每个提名都标成成功（实测 16 个），只当备援。
-- **每分钟 IMP**（`match-imp.tsx`）：STRATZ `impPerMinute`，颜色是 Dota 的玩家槽颜色，预设只显示那位玩家，点头像加其他人。「叠上同段位的某英雄」才开始读段位样本（`actions.ts` 的 server action `rankImp`，跟经济页对比共用 admin 的 `/samples/{英雄}/{牌位}`），画平均（虚线）与中间 50%（色带，`stackStrategy: "all"`，因为 IMP 有负数）；预设牌位是这场的平均段位（STRATZ `rank`），可以换八个牌位；样本收集中每 20 秒自动再问一次。
+- **每分钟 IMP**（`match-imp.tsx`）：STRATZ `impPerMinute`，颜色是 Dota 的玩家槽颜色，预设只显示那位玩家，点头像加其他人；每次阵亡在那一分钟画一个玩家颜色的 ✕ 圆点（ECharts markPoint，已在 `echart.tsx` 注册），滑过显示被哪个英雄击杀。「叠上同段位的某英雄」才开始读段位样本（`actions.ts` 的 server action `rankImp`，跟经济页对比共用 admin 的 `/samples/{英雄}/{牌位}`），画平均（虚线）与中间 50%（色带，`stackStrategy: "all"`，因为 IMP 有负数）；预设牌位是这场的平均段位（STRATZ `rank`），可以换八个牌位；样本收集中每 20 秒自动再问一次。
 
 ### 死亡热力图
 

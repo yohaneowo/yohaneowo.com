@@ -231,7 +231,7 @@ const dotahubZh = {
   },
   matchImp: {
     title: "每分钟 IMP",
-    hint: "STRATZ 的 IMP：这个玩家每一分钟打得比同英雄同位置的平均好多少，0 是平均。点上面的头像加上其他玩家。",
+    hint: "STRATZ 的 IMP：这个玩家每一分钟打得比同英雄同位置的平均好多少，0 是平均。点上面的头像加上其他玩家；× 是那一分钟阵亡。",
     players: "玩家",
     overlay: (hero: string) => `叠上同段位的${hero}`,
     tier: "段位",
@@ -242,6 +242,7 @@ const dotahubZh = {
     sample: (who: string, count: number) => `${who}：${count} 场的平均与中间 50%`,
     average: (who: string) => `${who} 平均`,
     band: "中间 50%",
+    died: (minute: number, killer: string | null) => `第 ${minute} 分阵亡${killer ? `（${killer}）` : ""}`,
   },
   matchDeaths: { title: "死亡地图", player: "看谁的" },
   settings: {
