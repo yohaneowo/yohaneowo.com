@@ -26,7 +26,7 @@ export function Chips<V extends string | number>({
     <div
       role="group"
       aria-label={label}
-      className={cn("items-center gap-1.5", stacked ? "grid grid-cols-3" : "flex flex-wrap")}
+      className={cn("items-center gap-1.5", stacked ? "grid grid-cols-2" : "flex flex-wrap")}
     >
       <span className={cn("mr-1 text-xs text-muted-foreground", stacked && "col-span-full")}>{label}</span>
       {options.map(([v, text]) => (
@@ -37,7 +37,7 @@ export function Chips<V extends string | number>({
           onClick={() => onChange(v)}
           className={cn(
             "rounded-full border py-1 text-xs transition-colors",
-            stacked ? "px-1 whitespace-nowrap" : "px-3",
+            stacked ? "px-1 text-[11px] whitespace-nowrap" : "px-3",
             value === v
               ? "border-foreground/40 bg-muted font-medium"
               : "text-muted-foreground hover:text-foreground",
@@ -270,8 +270,8 @@ export function FilterBar({
     <>
       {/* In the empty space left of the content (the page makes room, SIDE_PANEL_PAGE). The parent
           (FILTER_PAGE) is positioned and spans the page's content, so the panel sticks all the way down. */}
-      <aside className="absolute top-0 right-full bottom-0 mr-6 hidden w-48 min-[1520px]:block">
-        <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-3 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
+      <aside className="absolute top-0 right-full bottom-0 mr-4 hidden w-32 min-[1520px]:block">
+        <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t.range}</span>
             <Tabs
@@ -279,7 +279,7 @@ export function FilterBar({
               value={f.n}
               onChange={f.setN}
               options={range}
-              className="grid w-full grid-cols-2 text-xs whitespace-nowrap [&>button]:px-1"
+              className="grid w-full grid-cols-1 text-[11px] whitespace-nowrap [&>button]:px-1"
             />
           </div>
           <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} stacked />
