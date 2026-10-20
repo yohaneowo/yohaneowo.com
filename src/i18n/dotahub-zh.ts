@@ -499,8 +499,9 @@ const dotahubZh = {
     steadierThanCrowd: (who: string, pct: number, crowd: string) => `${who} 比 ${pct}% ${crowd}稳`,
     crowdSampled: (n: number) => `抽 ${n} 人`,
     allPositions: "都算（按你的位置加权）",
-    followsFilters: "（跟着左边筛选）",
-    pickHeroFirst: "先在左边筛选选一个英雄，段位会跟那个英雄比。",
+    followsFilters: "（预选左边筛选的英雄）",
+    rankHero: "英雄",
+    pickHeroFirst: "先选一个英雄，段位会跟那个英雄比。",
     change: "更换",
   },
   fresh: {

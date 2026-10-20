@@ -226,7 +226,9 @@ export function useFilterState(ranges: number[], initialHero = 0, initialPositio
   const [side, setSide] = useState<Side>("all");
   const [hero, setHero] = useState(initialHero);
   const [result, setResult] = useState<Result>("all");
-  return { n, setN, pos, setPos, side, setSide, hero, setHero, result, setResult };
+  // Plain values only, so a page can wrap the setters (the compare view follows hero changes).
+  const pickHero = (value: number) => setHero(value);
+  return { n, setN, pos, setPos, side, setSide, hero, setHero: pickHero, result, setResult };
 }
 
 // The filters both stats pages share: how many of the newest matches (0: all), position, side,

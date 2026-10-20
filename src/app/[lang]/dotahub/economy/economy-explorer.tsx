@@ -132,7 +132,15 @@ export function EconomyExplorer({
         compare={
           compare
             ? (variant) => (
-                <CompareMenu {...compare} heroes={heroes} hero={f.hero} position={f.pos} variant={variant} />
+                <CompareMenu
+                  {...compare}
+                  heroes={heroes}
+                  hero={f.hero}
+                  position={f.pos}
+                  counts={f.counts}
+                  onHero={f.setHero}
+                  variant={variant}
+                />
               )
             : undefined
         }

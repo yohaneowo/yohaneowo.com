@@ -532,8 +532,9 @@ const dotahubEn: typeof dotahubZh = {
       `${who}: steadier than ${pct}% of ${crowd}`,
     crowdSampled: (n: number) => `${n} sampled`,
     allPositions: "every position (mixed like yours)",
-    followsFilters: "(following the filters)",
-    pickHeroFirst: "Pick a hero in the filters first: a rank compares that hero.",
+    followsFilters: "(starts on the filtered hero)",
+    rankHero: "Hero",
+    pickHeroFirst: "Pick a hero first: a rank compares that hero.",
     change: "Change",
   },
   fresh: {

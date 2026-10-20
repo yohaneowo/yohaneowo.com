@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useLocale } from "@/i18n/locale-provider";
 import type { HeroInfo } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
+import { HeroPicker } from "../../deaths/hero-picker";
 import { Medal, medalName } from "../../parts";
 import { MAX_TARGETS, ME_COLOR, parseAccount, parseRankKey, rankKey, type SeriesKind } from "./series";
 
@@ -98,21 +99,30 @@ export function CompareMenu({
   heroes,
   hero,
   position,
+  counts,
+  onHero,
   variant,
 }: CompareProps & {
   heroes: Record<number, HeroInfo>;
-  // The page's hero and position filters (0: all): a rank compares that hero.
+  // The page's hero and position filters (0: all): the rank's hero starts on the filter's.
   hero: number;
   position: number;
+  // Matches per hero in the page's range (for the hero picker).
+  counts: Map<number, number>;
+  // Picking a rank sets the page's hero filter to its hero.
+  onHero: (hero: number) => void;
   variant: "panel" | "top";
 }) {
-  const { t: dict, lang } = useLocale();
+  const { t: dict } = useLocale();
   const t = dict.dotahub.compare;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"friends" | "ranks">("friends");
   const [input, setInput] = useState("");
   const [error, setError] = useState(false);
+  // The rank's hero: the filter's until another is picked here (again each time the menu opens).
+  const [picked, setPicked] = useState<number | null>(null);
+  const rankHero = picked ?? hero;
   const keys = targets.map((x) => x.key);
   const full = keys.length >= MAX_TARGETS;
   const myMedal = myTier ? Math.floor(myTier / 10) : null;
@@ -134,7 +144,13 @@ export function CompareMenu({
   };
   const remove = (key: string) => go(keys.filter((k) => k !== key));
   const rankTargets = targets.filter((x) => x.kind === "rank");
-  const chosenTier = (medal: number) => rankTargets.find((x) => parseRankKey(x.key)?.tier === medal);
+  const chosenTier = (medal: number) =>
+    rankTargets.find((x) => x.key === rankKey(medal, rankHero)) ??
+    (rankHero ? undefined : rankTargets.find((x) => parseRankKey(x.key)?.tier === medal));
+  const openMenu = (next: boolean) => {
+    setOpen(next);
+    if (next) setPicked(null);
+  };
 
   const menu = (
     <PopoverContent
@@ -249,19 +265,26 @@ export function CompareMenu({
                 </button>
               );
             })()}
-          <p className="text-sm">
-            {hero ? (
-              <>
-                <span className="font-medium">
-                  {heroes[hero]?.[lang] ?? hero} ·{" "}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-muted-foreground">
+              {t.rankHero} {t.followsFilters}
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <HeroPicker
+                value={rankHero}
+                onChange={(id) => setPicked(id)}
+                heroes={heroes}
+                counts={counts}
+                showCount={false}
+              />
+              {rankHero ? (
+                <span className="text-xs text-muted-foreground">
                   {position ? dict.dotahub.stats.positions[position - 1] : t.allPositions}
                 </span>
-                <span className="text-xs text-muted-foreground"> {t.followsFilters}</span>
-              </>
-            ) : (
-              <span className="text-xs text-muted-foreground">{t.pickHeroFirst}</span>
-            )}
-          </p>
+              ) : null}
+            </div>
+            {!rankHero && <span className="text-xs text-muted-foreground">{t.pickHeroFirst}</span>}
+          </div>
           <div className="grid grid-cols-4 gap-1.5">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((medal) => {
               const chosen = chosenTier(medal);
@@ -269,9 +292,13 @@ export function CompareMenu({
                 <button
                   key={medal}
                   type="button"
-                  disabled={!chosen && (!hero || full)}
+                  disabled={!chosen && (!rankHero || full)}
                   aria-pressed={Boolean(chosen)}
-                  onClick={() => (chosen ? remove(chosen.key) : toggle(rankKey(medal, hero)))}
+                  onClick={() => {
+                    if (chosen) return remove(chosen.key);
+                    onHero(rankHero);
+                    toggle(rankKey(medal, rankHero));
+                  }}
                   className={cn(
                     "relative flex flex-col items-center gap-0.5 rounded-md border px-1 py-1.5 text-xs hover:bg-muted disabled:opacity-40",
                     chosen && "bg-muted",
@@ -324,7 +351,7 @@ export function CompareMenu({
               </button>
             </span>
           ))}
-          <Popover open={open} onOpenChange={setOpen}>
+          <Popover open={open} onOpenChange={openMenu}>
             <PopoverTrigger
               aria-label={t.pick}
               title={t.pick}
@@ -362,7 +389,7 @@ export function CompareMenu({
           </button>
         </span>
       ))}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={openMenu}>
         <PopoverTrigger
           aria-label={t.pick}
           className="flex items-center gap-2 rounded-full py-0.5 pr-3 pl-0.5 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground"
