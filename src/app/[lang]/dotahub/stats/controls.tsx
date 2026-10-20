@@ -135,46 +135,62 @@ type Side = "all" | "radiant" | "dire";
 type Result = "all" | "win" | "loss";
 const POSITIONS = [0, 1, 2, 3, 4, 5];
 
-// The filters both stats pages share: how many of the newest matches (0: all), position, side,
-// hero and result. Each list leaves one filter out where a chart compares across it.
-export function useMatchFilters(matches: DetailMatch[], sides: Record<number, boolean>, ranges: number[]) {
+export type FilterState = { n: number; pos: number; side: Side; hero: number; result: Result };
+
+// The filters applied to one list of matches (a player's, newest first, or the bracket's).
+// since: instead of the newest n, the matches from this time on (the bracket follows the player's
+// own range). The side comes from the match itself when it's known, else from sides.
+export function applyFilters(
+  matches: DetailMatch[],
+  sides: Record<number, boolean>,
+  { n, pos, side, hero, result }: FilterState,
+  since?: number,
+) {
+  const radiant = (m: DetailMatch) => m.details.rad ?? sides[m.matchId];
+  const keepSide = (m: DetailMatch) => side === "all" || radiant(m) === (side === "radiant");
+  const keepPos = (m: DetailMatch) => pos === 0 || m.details.pos === pos;
+  const keepHero = (m: DetailMatch) => hero === 0 || m.heroId === hero;
+  const keepResult = (m: DetailMatch) => result === "all" || (result === "win") === m.won;
+  const inRange = (
+    since != null ? matches.filter((m) => m.startTime >= since) : n ? matches.slice(0, n) : matches
+  ).filter(keepSide);
+  const counts = new Map<number, number>();
+  for (const m of inRange)
+    if (keepPos(m) && keepResult(m)) counts.set(m.heroId, (counts.get(m.heroId) ?? 0) + 1);
+  return {
+    counts,
+    // Everything applied.
+    shown: inRange.filter((m) => keepPos(m) && keepHero(m) && keepResult(m)),
+    // All but the result (win rates, wins against losses).
+    bothResults: inRange.filter((m) => keepPos(m) && keepHero(m)),
+    // All but the position (the per-position comparison).
+    anyPosition: inRange.filter((m) => keepHero(m) && keepResult(m)),
+    // All but the hero (the per-hero table).
+    anyHero: inRange.filter((m) => keepPos(m) && keepResult(m)),
+  };
+}
+
+export type Filtered = ReturnType<typeof applyFilters>;
+
+export function useFilterState(ranges: number[]) {
   const [n, setN] = useState(ranges.includes(50) ? 50 : ranges[ranges.length - 1]);
   const [pos, setPos] = useState(0);
   const [side, setSide] = useState<Side>("all");
   const [hero, setHero] = useState(0);
   const [result, setResult] = useState<Result>("all");
+  return { n, setN, pos, setPos, side, setSide, hero, setHero, result, setResult };
+}
 
-  return useMemo(() => {
-    const keepSide = (m: DetailMatch) => side === "all" || sides[m.matchId] === (side === "radiant");
-    const keepPos = (m: DetailMatch) => pos === 0 || m.details.pos === pos;
-    const keepHero = (m: DetailMatch) => hero === 0 || m.heroId === hero;
-    const keepResult = (m: DetailMatch) => result === "all" || (result === "win") === m.won;
-    const inRange = (n ? matches.slice(0, n) : matches).filter(keepSide);
-    const counts = new Map<number, number>();
-    for (const m of inRange)
-      if (keepPos(m) && keepResult(m)) counts.set(m.heroId, (counts.get(m.heroId) ?? 0) + 1);
-    return {
-      n,
-      setN,
-      pos,
-      setPos,
-      side,
-      setSide,
-      hero,
-      setHero,
-      result,
-      setResult,
-      counts,
-      // Everything applied.
-      shown: inRange.filter((m) => keepPos(m) && keepHero(m) && keepResult(m)),
-      // All but the result (win rates, wins against losses).
-      bothResults: inRange.filter((m) => keepPos(m) && keepHero(m)),
-      // All but the position (the per-position comparison).
-      anyPosition: inRange.filter((m) => keepHero(m) && keepResult(m)),
-      // All but the hero (the per-hero table).
-      anyHero: inRange.filter((m) => keepPos(m) && keepResult(m)),
-    };
-  }, [matches, sides, n, pos, side, hero, result]);
+// The filters both stats pages share: how many of the newest matches (0: all), position, side,
+// hero and result. Each list leaves one filter out where a chart compares across it.
+export function useMatchFilters(matches: DetailMatch[], sides: Record<number, boolean>, ranges: number[]) {
+  const state = useFilterState(ranges);
+  const { n, pos, side, hero, result } = state;
+  const lists = useMemo(
+    () => applyFilters(matches, sides, { n, pos, side, hero, result }),
+    [matches, sides, n, pos, side, hero, result],
+  );
+  return { ...state, ...lists };
 }
 
 export type MatchFilters = ReturnType<typeof useMatchFilters>;

@@ -51,12 +51,7 @@ async function WinRate({ t, accountId }: Omit<Props, "lang">) {
 }
 
 // Name, links and rank (fast on OpenDota), with the win rate (often slow) loading on its own.
-async function Profile({
-  t,
-  accountId,
-  steamId,
-  own,
-}: Omit<Props, "lang"> & { steamId: string; own: boolean }) {
+async function Profile({ t, lang, accountId, steamId, own }: Props & { steamId: string; own: boolean }) {
   const player = await getPlayer(accountId).catch(() => null);
   if (!player) return <Notice>{t.unavailable}</Notice>;
   const profile = player.data.profile;
@@ -105,6 +100,14 @@ async function Profile({
               {t.overview.openDota}
               <ExternalLinkIcon className="size-3" aria-hidden />
             </a>
+            {!own && (
+              <Link
+                href={localePath(lang, `/dotahub/economy?vs=${accountId}`)}
+                className="text-foreground underline-offset-2 hover:underline"
+              >
+                {t.compare.withMe}
+              </Link>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">

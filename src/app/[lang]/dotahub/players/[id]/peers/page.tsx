@@ -20,7 +20,7 @@ async function Peers({ params }: { params: Params }) {
   const id = accountParam((await params).id);
   if (!id) return <Notice>{t.player.notFound}</Notice>;
   await redirectIfOwn(id, lang, "/dotahub/peers");
-  return <PeerList t={t} lang={lang} accountId={id} />;
+  return <PeerList t={t} lang={lang} accountId={id} economyPath={`/dotahub/players/${id}/economy`} />;
 }
 
 // The people someone plays with most.

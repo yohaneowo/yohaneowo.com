@@ -167,6 +167,43 @@ export async function getStoredDetails(userId: string, limit: number) {
   };
 }
 
+const otherSchema = z.object({
+  acc: z.number().nullable(),
+  hero: z.number(),
+  won: z.boolean(),
+  rad: z.boolean(),
+  pos: z.number().nullable(),
+  laneOut: z.number().nullable(),
+  gpm: z.number(),
+  xpm: z.number(),
+  lh: z.number(),
+  imp: z.number().nullable(),
+  nwm: z.array(z.number()),
+  lhm: z.array(z.number()),
+  items: z.array(z.tuple([z.number(), z.number()])),
+});
+const bracketSchema = z.object({
+  matches: z.array(
+    z.object({
+      matchId: z.number(),
+      startTime: z.number(),
+      duration: z.number(),
+      rad: z.boolean().nullable(),
+      lead: z.array(z.number()),
+      others: z.array(otherSchema),
+    }),
+  ),
+});
+export type BracketMatch = z.infer<typeof bracketSchema>["matches"][number];
+
+// The other nine players of the stored ranked matches (the player's bracket), newest first
+// (limit 0: all); null when admin doesn't know the account.
+export async function getStoredBracket(userId: string, limit: number) {
+  return bracketSchema
+    .nullable()
+    .parse(await call(`/users/${encodeURIComponent(userId)}/bracket?limit=${limit}`));
+}
+
 export async function getStoredDeaths(userId: string, limit: number) {
   return deathsSchema
     .nullable()

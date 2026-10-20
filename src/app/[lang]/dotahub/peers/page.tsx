@@ -23,7 +23,7 @@ async function Peers() {
         </Link>
       </Notice>
     );
-  return <PeerList t={t} lang={lang} accountId={viewer.accountId} />;
+  return <PeerList t={t} lang={lang} accountId={viewer.accountId} economyPath="/dotahub/economy" />;
 }
 
 export default async function PeersPage() {

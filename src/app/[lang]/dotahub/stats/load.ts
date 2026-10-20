@@ -1,7 +1,7 @@
 import "server-only";
-import { type DetailMatch, getStoredDetails } from "@/lib/dota/admin";
+import { type BracketMatch, type DetailMatch, getStoredBracket, getStoredDetails } from "@/lib/dota/admin";
 import { getHeroes, getRankedSides } from "@/lib/dota/data";
-import { getStratzRanked } from "@/lib/dota/stratz";
+import { getHeroCvSample, getStratzRanked } from "@/lib/dota/stratz";
 import type { DeathsSource } from "../deaths/deaths-view";
 
 // The ranked matches with economy and IMP details for the 经济 and IMP pages, newest first: admin's
@@ -43,4 +43,77 @@ export async function loadDetailMatches(source: DeathsSource, accountId: number)
       data.matches.filter((m) => m.matchId in sides).map((m) => [m.matchId, sides[m.matchId]]),
     ),
   };
+}
+
+// Every other player of the player's stored matches as a match of their own (the same bracket,
+// by matchmaking): the lead flips sign for the other side. matchId repeats (nine per match).
+export function bracketMatches(matches: BracketMatch[]): DetailMatch[] {
+  return matches.flatMap((m) =>
+    m.others
+      .filter((o) => o.nwm.length)
+      .map((o): DetailMatch => ({
+        matchId: m.matchId,
+        heroId: o.hero,
+        won: o.won,
+        startTime: m.startTime,
+        duration: m.duration,
+        kills: 0,
+        deaths: 0,
+        assists: 0,
+        imp: o.imp,
+        details: {
+          pos: o.pos,
+          lane: null,
+          award: null,
+          gpm: o.gpm,
+          xpm: o.xpm,
+          nw: o.nwm[o.nwm.length - 1] ?? 0,
+          lh: o.lh,
+          dn: 0,
+          hd: 0,
+          nwm: o.nwm,
+          impm: [],
+          lhm: o.lhm,
+          items: o.items,
+          rad: o.rad,
+          lead: m.rad == null ? [] : o.rad === m.rad ? m.lead : m.lead.map((v) => -v),
+          wp: [],
+          laneOut: o.laneOut,
+          outcome: null,
+          bench: null,
+        },
+      })),
+  );
+}
+
+// The bracket of a player linked here, with who played which hero (for sampling).
+export async function loadBracket(userId: string) {
+  const data = await getStoredBracket(userId, 0);
+  if (!data) return null;
+  const accounts = new Map<number, Set<number>>();
+  for (const m of data.matches)
+    for (const o of m.others) if (o.acc) accounts.set(o.hero, (accounts.get(o.hero) ?? new Set()).add(o.acc));
+  return { matches: bracketMatches(data.matches), accounts };
+}
+
+const SAMPLED_PLAYERS = 20;
+
+// The forest chart's background: how steady other players of each hero in the bracket are.
+export async function bracketVolatility(
+  heroIds: number[],
+  accounts: Map<number, Set<number>>,
+  exclude: number[],
+) {
+  const entries = await Promise.all(
+    heroIds.map(async (hero) => {
+      // A steady, sorted pick, so the cached sample is reused.
+      const pool = [...(accounts.get(hero) ?? [])]
+        .filter((a) => !exclude.includes(a))
+        .sort((a, b) => a - b)
+        .slice(0, SAMPLED_PLAYERS);
+      const cvs = pool.length ? await getHeroCvSample(hero, pool).catch(() => []) : [];
+      return [hero, cvs] as const;
+    }),
+  );
+  return Object.fromEntries(entries.filter(([, cvs]) => cvs.length));
 }

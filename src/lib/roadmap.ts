@@ -342,6 +342,12 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
+        "经济页对比模式：跟一两位玩家或同段位（同场其他 9 人）比，并排箱线图与波动率森林图",
+        "Compare on the economy page: with one or two players or the bracket (the other nine in your matches), side-by-side boxes and a volatility forest plot",
+        true,
+      ),
+      step("IMP 页对比模式", "Compare on the IMP page"),
+      step(
         "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
         "How you died (burst, walked into wards, unused heals…)",
       ),

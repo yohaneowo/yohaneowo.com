@@ -12,7 +12,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.economy.title };
 }
 
-async function Body() {
+type SearchParams = Promise<{ vs?: string | string[] }>;
+
+async function Body({ searchParams }: { searchParams: SearchParams }) {
   const lang = await getLocale();
   const t = (await getDictionary()).dotahub;
   const viewer = await dotaViewer();
@@ -26,11 +28,14 @@ async function Body() {
     );
   // Make sure admin tracks this account (it fills in the details).
   await syncDotaLink(viewer);
+  const vs = (await searchParams).vs;
   return (
     <StatsBody
       kind="economy"
       source={{ kind: "stored", userId: viewer.userId }}
       accountId={viewer.accountId}
+      vs={Array.isArray(vs) ? vs[0] : vs}
+      own
     />
   );
 }
@@ -39,7 +44,7 @@ async function Chip() {
   return <ViewerChip lang={await getLocale()} />;
 }
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: SearchParams }) {
   const t = (await getDictionary()).dotahub.economy;
   return (
     <div className="flex flex-col gap-6">
@@ -51,7 +56,7 @@ export default async function Page() {
         <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
       </div>
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
-        <Body />
+        <Body searchParams={searchParams} />
       </Suspense>
     </div>
   );

@@ -226,11 +226,24 @@ export function SpreadChart({
   series,
   format = String,
   unit = "",
+  fromZero = false,
+  minWidthPerCategory = 0,
 }: {
   categories: string[];
-  series: { name: string; color: string; boxes: ([number, number, number, number, number] | null)[] }[];
+  series: {
+    name: string;
+    color: string;
+    boxes: ([number, number, number, number, number] | null)[];
+    // Per box: drawn faint (too few matches), and an extra tooltip line.
+    faded?: boolean[];
+    notes?: (string | null)[];
+    dashed?: boolean;
+  }[];
   format?: (value: number) => string;
   unit?: string;
+  fromZero?: boolean;
+  // Lets many categories scroll sideways instead of squeezing.
+  minWidthPerCategory?: number;
 }) {
   const option: EChartsOption = {
     grid: { left: 8, right: 16, top: 32, bottom: 8, containLabel: true },
@@ -238,9 +251,16 @@ export function SpreadChart({
     tooltip: {
       trigger: "item",
       formatter: (params) => {
-        const p = params as { seriesName: string; name: string; data: number[] };
-        const [, low, q1, median, q3, high] = p.data;
-        return `${p.name} · ${p.seriesName}<br/>${format(low)} – ${format(high)}${unit}<br/>${format(q1)} – <b>${format(median)}</b> – ${format(q3)}`;
+        const p = params as {
+          seriesIndex: number;
+          dataIndex: number;
+          seriesName: string;
+          name: string;
+          value: number[];
+        };
+        const [, low, q1, median, q3, high] = p.value;
+        const note = series[p.seriesIndex]?.notes?.[p.dataIndex];
+        return `${p.name} · ${p.seriesName}<br/>${format(low)} – ${format(high)}${unit}<br/>${format(q1)} – <b>${format(median)}</b> – ${format(q3)}${note ? `<br/>${note}` : ""}`;
       },
     },
     xAxis: {
@@ -251,20 +271,30 @@ export function SpreadChart({
     },
     yAxis: {
       type: "value",
+      min: fromZero ? 0 : undefined,
       splitLine: { lineStyle: { opacity: 0.25 } },
       axisLabel: { fontSize: 10, formatter: (v: number) => format(v) },
     },
     series: series.map((s) => ({
       name: s.name,
       type: "boxplot" as const,
-      itemStyle: { color: `${s.color}33`, borderColor: s.color },
+      itemStyle: {
+        color: `${s.color}33`,
+        borderColor: s.color,
+        borderType: s.dashed ? ("dashed" as const) : ("solid" as const),
+      },
       boxWidth: [6, 18],
-      data: s.boxes.map((b) => b ?? [NaN, NaN, NaN, NaN, NaN]),
+      data: s.boxes.map((b, i) => ({
+        value: b ?? [NaN, NaN, NaN, NaN, NaN],
+        itemStyle: s.faded?.[i] ? { opacity: 0.4 } : undefined,
+      })),
     })),
   };
   return (
-    <div style={{ height: 300 }}>
-      <EChart option={option} />
+    <div className="overflow-x-auto">
+      <div style={{ height: 300, minWidth: categories.length * minWidthPerCategory }}>
+        <EChart option={option} />
+      </div>
     </div>
   );
 }

@@ -10,10 +10,13 @@ export async function PeerList({
   t,
   lang,
   accountId,
+  economyPath,
 }: {
   t: Dictionary["dotahub"];
   lang: Locale;
   accountId: number;
+  // The economy page of whoever the list belongs to: each row compares that player with the peer.
+  economyPath: string;
 }) {
   let peers;
   try {
@@ -35,6 +38,7 @@ export async function PeerList({
             <th className="px-3 py-2 text-right font-normal">{t.peers.games}</th>
             <th className="px-3 py-2 text-right font-normal">{t.peers.winRate}</th>
             <th className="hidden px-3 py-2 text-right font-normal sm:table-cell">{t.peers.lastPlayed}</th>
+            <th className="px-3 py-2" />
           </tr>
         </thead>
         <tbody>
@@ -66,6 +70,14 @@ export async function PeerList({
                 <td className="px-3 py-1.5 text-right tabular-nums">{rate.toFixed(0)}%</td>
                 <td className="hidden px-3 py-1.5 text-right text-muted-foreground sm:table-cell">
                   {ago(p.last_played, t)}
+                </td>
+                <td className="px-3 py-1.5 text-right">
+                  <Link
+                    href={localePath(lang, `${economyPath}?vs=${p.account_id}`)}
+                    className="rounded-md border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {t.compare.label}
+                  </Link>
                 </td>
               </tr>
             );

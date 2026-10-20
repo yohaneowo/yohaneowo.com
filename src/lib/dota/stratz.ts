@@ -349,3 +349,61 @@ export async function requestStratzParse(matchId: number): Promise<"sent" | "thr
   reparsed.delete(id);
   return "failed";
 }
+
+// How steady other players of a hero are, for the forest chart's background: each account's GPM
+// over its newest ranked matches on the hero, as a coefficient of variation (accounts with at
+// least MIN_SAMPLE_GAMES). One request (aliases) per hero; kept for days.
+const SAMPLE_GAMES = 10;
+const MIN_SAMPLE_GAMES = 5;
+
+export async function getHeroCvSample(heroId: number, accounts: number[]): Promise<number[]> {
+  "use cache";
+  cacheLife("days");
+  const token = process.env.STRATZ_API_TOKEN;
+  if (!token || !accounts.length) return [];
+  const hero = Math.trunc(heroId);
+  const query = accounts
+    .map((a, i) => {
+      const id = Math.trunc(a);
+      return `p${i}: player(steamAccountId: ${id}) { matches(request: { heroIds: [${hero}], take: ${SAMPLE_GAMES}, lobbyTypeIds: [7] }) { players(steamAccountId: ${id}) { goldPerMinute } } }`;
+    })
+    .join(" ");
+  const started = Date.now();
+  const response = await fetch("https://api.stratz.com/graphql", {
+    method: "POST",
+    // STRATZ asks API clients to send this exact user agent.
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "STRATZ_API",
+    },
+    body: JSON.stringify({ query: `{ ${query} }` }),
+    signal: AbortSignal.timeout(30_000),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
+  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+  const body = (await response.json()) as {
+    data?: Record<
+      string,
+      { matches: { players: { goldPerMinute: number | null }[] | null }[] | null } | null
+    >;
+  };
+  const cvs: number[] = [];
+  for (const player of Object.values(body.data ?? {})) {
+    const gpm = (player?.matches ?? [])
+      .map((m) => m.players?.[0]?.goldPerMinute)
+      .filter((g): g is number => typeof g === "number" && g > 0);
+    if (gpm.length < MIN_SAMPLE_GAMES) continue;
+    const mean = gpm.reduce((a, b) => a + b, 0) / gpm.length;
+    const sd = Math.sqrt(gpm.reduce((a, g) => a + (g - mean) ** 2, 0) / (gpm.length - 1));
+    cvs.push(sd / mean);
+  }
+  return cvs;
+}
