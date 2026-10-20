@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
 import { askStratzToParse, askToParse, disconnectSteam } from "./actions";
@@ -80,5 +81,35 @@ export function RequestParse({ matchId }: { matchId: number }) {
       </Button>
       {state === "failed" && <p className="text-sm text-destructive">{t.dotahub.match.parseFailed}</p>}
     </div>
+  );
+}
+
+// Copies the match ID (to paste into the Dota client's watch search or elsewhere).
+export function CopyMatchId({ matchId }: { matchId: number }) {
+  const { t } = useLocale();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  return (
+    <button
+      type="button"
+      className="inline-flex cursor-pointer items-center gap-1 text-muted-foreground hover:text-foreground"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(String(matchId));
+          setCopied(true);
+        } catch {
+          window.prompt(t.dotahub.match.copyId, String(matchId));
+        }
+      }}
+    >
+      {copied ? t.dotahub.match.copied : t.dotahub.match.copyId}
+      {copied ? <CheckIcon className="size-3" aria-hidden /> : <CopyIcon className="size-3" aria-hidden />}
+    </button>
   );
 }

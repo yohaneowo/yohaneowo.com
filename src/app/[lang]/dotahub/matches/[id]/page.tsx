@@ -19,7 +19,7 @@ import {
 import { getStratzMatch, type StratzMatch } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { dotaViewer } from "../../account";
-import { RequestParse, RequestStratzParse } from "../../buttons";
+import { CopyMatchId, RequestParse, RequestStratzParse } from "../../buttons";
 import { duration, HeroImage, ItemImage, modeName, Notice } from "../../parts";
 import { AdvantageChart } from "./advantage-chart";
 import { type DeathsOf, MatchDeaths } from "./match-deaths";
@@ -358,10 +358,11 @@ async function Detail({ params, searchParams }: { params: Params; searchParams: 
             </span>
           </p>
         </div>
-        <div className="flex gap-4 text-sm">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <Link href={localePath(lang, "/dotahub/matches")} className="text-muted-foreground hover:underline">
             {t.match.back}
           </Link>
+          <CopyMatchId matchId={id} />
           <a
             href={`https://www.opendota.com/matches/${id}`}
             target="_blank"

@@ -92,6 +92,8 @@ const dotahubEn: typeof dotahubZh = {
     notFound: "Match not found.",
     back: "Back to matches",
     openOn: "Open on OpenDota",
+    copyId: "Copy match ID",
+    copied: "Copied",
     banPhase: "Bans",
     pickNumber: (n: number) => `Pick ${n}`,
     draftNote:

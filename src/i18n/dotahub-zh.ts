@@ -88,6 +88,8 @@ const dotahubZh = {
     notFound: "找不到这场比赛。",
     back: "回到比赛列表",
     openOn: "在 OpenDota 看",
+    copyId: "复制比赛编号",
+    copied: "已复制",
     banPhase: "禁用",
     pickNumber: (n: number) => `第 ${n} 选`,
     draftNote:
