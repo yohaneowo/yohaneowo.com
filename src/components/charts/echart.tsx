@@ -3,6 +3,7 @@
 import {
   BarChart,
   BoxplotChart,
+  CustomChart,
   LineChart,
   PieChart,
   RadarChart,
@@ -16,6 +17,7 @@ import {
   TitleComponent,
   TooltipComponent,
   MarkLineComponent,
+  GraphicComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
@@ -27,12 +29,14 @@ import { useTheme } from "next-themes";
 echarts.use([
   BarChart,
   BoxplotChart,
+  CustomChart,
   LineChart,
   PieChart,
   RadarChart,
   ScatterChart,
   SunburstChart,
   MarkLineComponent,
+  GraphicComponent,
   GridComponent,
   LegendComponent,
   RadarComponent,

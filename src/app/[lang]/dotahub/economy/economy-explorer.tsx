@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { LOSS, MinuteChart, TrendChart, WIN } from "../stats/charts";
 import { avg, FilterBar, perMinute, Section, Stat, Tabs, useMatchFilters } from "../stats/controls";
 import { AgainstAverage, GameStates, IncomeSpread, LaneOutcomes, Swings } from "./more";
+import { VolatilityCharts } from "./volatility-charts";
 
 export type KeyItem = { name: string; img: string };
 
@@ -164,6 +165,10 @@ export function EconomyExplorer({
 
           <Section title={t.spreadTitle} hint={t.spreadHint}>
             <IncomeSpread list={f.anyHero} heroes={heroes} hero={f.hero} />
+          </Section>
+
+          <Section title={dict.dotahub.volatility.title} hint={dict.dotahub.volatility.hint}>
+            <VolatilityCharts list={f.anyHero} shown={shown} heroes={heroes} />
           </Section>
 
           <div className="grid gap-6 lg:grid-cols-2">

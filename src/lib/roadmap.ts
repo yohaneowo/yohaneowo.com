@@ -337,6 +337,11 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
+        "波动率：收入 × 波动率、排序、每场分布、误差线、漏斗图、信赖区间、控制图、小提琴图、顺逆风热力图、累积分布、顺逆风变化、滚动波动率",
+        "Volatility twelve ways: income vs volatility, ranked, every match, error bars, funnel, intervals, control chart, violins, ahead/behind heat map, cumulative, ahead vs behind, rolling",
+        true,
+      ),
+      step(
         "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
         "How you died (burst, walked into wards, unused heals…)",
       ),
