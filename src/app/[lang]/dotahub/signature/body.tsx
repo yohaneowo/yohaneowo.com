@@ -8,7 +8,7 @@ import { type Signature, signatures, type SignatureLabel } from "@/lib/dota/sign
 import { getHeroLevels, getRankedHistory, getStratzProfile } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { HeroImage, Notice, PlusBadge } from "../parts";
-import { LabelTabs } from "./label-tabs";
+import { LabelPillars } from "./label-pillars";
 import { HeroLeaderboard } from "./leaderboard";
 
 type T = Dictionary["dotahub"];
@@ -203,10 +203,20 @@ export async function SignatureBody({
           <p className="text-xs text-muted-foreground">{s.foundHint}</p>
         </div>
         {found.length ? (
-          <LabelTabs
-            groups={(["current", "potential", "historic"] as const).map((label) => ({
+          <LabelPillars
+            groups={(["historic", "current", "potential"] as const).map((label) => ({
               key: label,
               name: s.labels[label],
+              preview: [...new Set(found.filter((x) => x.label === label).map((x) => x.hero))]
+                .slice(0, 4)
+                .map((id) => (
+                  <HeroImage
+                    key={id}
+                    hero={heroes[id]}
+                    lang={lang}
+                    className="h-8 w-14 rounded border-2 border-background object-cover"
+                  />
+                )),
               cards: found
                 .filter((x) => x.label === label)
                 .map((x) => (

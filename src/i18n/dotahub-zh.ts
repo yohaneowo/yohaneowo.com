@@ -280,6 +280,7 @@ const dotahubZh = {
       `${pct}% 机率高于同英雄平均，${total} 个半年里 ${positive} 个为正`,
     noEvidence: "没有足够证据",
     span: (from: string, to: string) => `${from} 到 ${to}`,
+    closePillar: "收起",
     toLeaderboard: "看排行榜 →",
     skilledTitle: "高熟练",
     skilledHint:
