@@ -155,6 +155,7 @@ const dotahubEn: typeof dotahubZh = {
     },
     result: "Result",
     results: { all: "Both", win: "Wins", loss: "Losses" },
+    resultsShort: { win: "W", loss: "L" },
     summary: (deaths: number, matches: number) => `${matches} matches, ${deaths} deaths`,
     insights: "Highlights",
     where: "Where you die",

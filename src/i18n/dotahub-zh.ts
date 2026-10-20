@@ -144,6 +144,7 @@ const dotahubZh = {
     phases: { all: "整场", laning: "对线期（0–10 分）", mid: "中期（10–30 分）", late: "后期（30 分以后）" },
     result: "胜负",
     results: { all: "都算", win: "赢的场", loss: "输的场" },
+    resultsShort: { win: "W", loss: "L" },
     summary: (deaths: number, matches: number) => `${matches} 场、${deaths} 次死亡`,
     insights: "重点",
     where: "死在哪里",

@@ -283,8 +283,44 @@ export function FilterBar({
             />
           </div>
           <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} stacked />
-          <Chips label={t.side} value={f.side} onChange={f.setSide} options={sides} stacked />
-          <Chips label={t.result} value={f.result} onChange={f.setResult} options={results} stacked />
+          <PanelRow
+            label={t.side}
+            value={f.side}
+            onChange={f.setSide}
+            options={sides.map(([v, text]) => ({
+              value: v,
+              title: text,
+              content:
+                v === "all" ? (
+                  text
+                ) : (
+                  <Image
+                    src={`/dota/${v}.webp`}
+                    alt={text}
+                    width={16}
+                    height={16}
+                    className="size-4 rounded-sm"
+                  />
+                ),
+            }))}
+          />
+          <PanelRow
+            label={t.result}
+            value={f.result}
+            onChange={f.setResult}
+            options={results.map(([v, text]) => ({
+              value: v,
+              title: text,
+              content:
+                v === "all" ? (
+                  text
+                ) : (
+                  <span className={cn("font-semibold", v === "win" ? "text-emerald-500" : "text-red-500")}>
+                    {t.resultsShort[v]}
+                  </span>
+                ),
+            }))}
+          />
           <HeroFilter value={f.hero} onChange={f.setHero} heroes={heroes} counts={f.counts} stacked />
         </div>
       </aside>
@@ -295,6 +331,43 @@ export function FilterBar({
 
 // The root of a page with FilterBar (the side panel is placed against it).
 export const FILTER_PAGE = "relative flex flex-col gap-6";
+
+// One row of three small buttons in the side panel (side as the factions' pictures, result as W / L).
+function PanelRow<V extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: V;
+  onChange: (value: V) => void;
+  options: { value: V; title: string; content: React.ReactNode }[];
+}) {
+  return (
+    <div role="group" aria-label={label} className="grid grid-cols-3 items-center gap-1.5">
+      <span className="col-span-full text-xs text-muted-foreground">{label}</span>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          aria-label={o.title}
+          title={o.title}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "flex h-6 items-center justify-center rounded-full border text-[11px] whitespace-nowrap transition-colors",
+            value === o.value
+              ? "border-foreground/40 bg-muted font-medium"
+              : "text-muted-foreground opacity-80 hover:text-foreground hover:opacity-100",
+          )}
+        >
+          {o.content}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function TopFilters({
   f,
