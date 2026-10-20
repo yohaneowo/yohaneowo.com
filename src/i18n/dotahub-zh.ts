@@ -306,7 +306,7 @@ const dotahubZh = {
     coverage: (matches: number, since: string, withImp: string) =>
       `资料：STRATZ 记录到的 ${matches} 场天梯（${since} 起），${withImp} 有 IMP。`,
     method:
-      "以「英雄 × 位置」为单位，至少 50 场才进候选；近 180 天至少 20 场才判断近期状态。胜率与 IMP 都先向基准收缩，避免场数少时数字太极端。所有门槛都还在校准。",
+      "以「英雄 × 位置」为单位，至少 50 场才进候选。近 180 天至少 20 场、而且入选的证据在这段时间还成立（胜率或 IMP 仍不低于同期其他英雄，精通型则 IMP 仍为正）才算当前绝活，否则是历史绝活。判断证据时胜率与 IMP 都先向基准收缩，避免场数少时数字太极端。所有门槛都还在校准。",
     boards: { imp: "IMP 榜", level: "等级榜" },
     level: "等级",
     reached: "达到",

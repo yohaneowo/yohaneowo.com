@@ -180,14 +180,24 @@ export function signatures(history: HistoryMatch[], now = Math.floor(Date.now() 
       m.probability >= SIGNATURE.probability &&
       persistent;
 
-    // Recent form: the recent IMP (shrunk to 0) above 0, or without IMP the recent win rate (shrunk to
-    // the baseline) at least the baseline.
+    // Still standing out lately: each piece of evidence it has, checked again on the recent matches
+    // with its own measure: the win rate or mean IMP against the other heroes of the same recent window
+    // (all of them when that's too few), mastery's IMP against 0. Any one holding is enough.
     const recentWins = recent.filter((x) => x.won).length;
     const recentImps = recent.filter((x) => x.imp != null).map((x) => x.imp!);
     const recentImp = recentImps.length ? mean(recentImps) : null;
-    const recentOk = recentImps.length
-      ? recentImps.reduce((a, b) => a + b, 0) / (recentImps.length + SIGNATURE.kImp) > 0
-      : (recentWins + SIGNATURE.kWin * base) / (recent.length + SIGNATURE.kWin) >= base;
+    const recentOthers = others.filter((x) => x.start >= recentFrom);
+    const lately = recentOthers.length >= SIGNATURE.minBaseline ? recentOthers : others;
+    const latelyImps = lately.filter((x) => x.imp != null).map((x) => x.imp!);
+    const holds =
+      ((winP ?? 0) >= SIGNATURE.probability &&
+        recent.length > 0 &&
+        recentWins / recent.length >= lately.filter((x) => x.won).length / lately.length) ||
+      ((impP ?? 0) >= SIGNATURE.probability &&
+        recentImp != null &&
+        latelyImps.length > 0 &&
+        recentImp >= mean(latelyImps)) ||
+      (mastered && recentImp != null && recentImp > 0);
     const olderImps = rated.filter((x) => x.start < recentFrom).map((x) => x.imp!);
     const trend =
       recentImps.length >= SIGNATURE.minWindow && olderImps.length >= SIGNATURE.minWindow
@@ -204,7 +214,7 @@ export function signatures(history: HistoryMatch[], now = Math.floor(Date.now() 
     ];
     let label: SignatureLabel | null = null;
     if (n >= SIGNATURE.minHistory) {
-      if (paths.length) label = recent.length >= SIGNATURE.minRecent && recentOk ? "current" : "historic";
+      if (paths.length) label = recent.length >= SIGNATURE.minRecent && holds ? "current" : "historic";
       else {
         const near = Math.max(winP ?? 0, impP ?? 0, m?.probability ?? 0) >= SIGNATURE.nearProbability;
         label = near || coverage < SIGNATURE.minImpCoverage ? "skilled" : "frequent";

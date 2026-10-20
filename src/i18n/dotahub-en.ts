@@ -320,7 +320,7 @@ const dotahubEn: typeof dotahubZh = {
     coverage: (matches: number, since: string, withImp: string) =>
       `Data: ${matches} ranked matches STRATZ has (since ${since}), ${withImp} with IMP.`,
     method:
-      "By hero and position; 50 matches to be considered, 20 in the last 180 days to judge recent form. Win rate and IMP are shrunk toward a baseline so few matches can't look extreme. All thresholds are still being calibrated.",
+      "By hero and position; 50 matches to be considered. It's a current signature with 20 matches in the last 180 days and its evidence still holding there (win rate or IMP no lower than the other heroes of the same period; for mastery, IMP still above 0); otherwise it's historic. Win rate and IMP are shrunk toward a baseline when judging the evidence, so few matches can't look extreme. All thresholds are still being calibrated.",
     boards: { imp: "By IMP", level: "By level" },
     level: "Level",
     reached: "Reached",
