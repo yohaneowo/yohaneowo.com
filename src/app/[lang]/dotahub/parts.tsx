@@ -122,9 +122,10 @@ export function Notice({ children }: { children: React.ReactNode }) {
   return <div className="rounded-lg border px-4 py-6 text-sm text-muted-foreground">{children}</div>;
 }
 
-// Dota Plus hero levels by tier: Bronze from 1, Silver 6, Gold 11, Platinum 16, Master 21,
-// Grandmaster 25 (to 30). Badge pictures 1–6 from STRATZ's CDN, kept in public/dota/plus.
-const PLUS_TIER_FROM = [1, 6, 11, 16, 21, 25];
+// Dota Plus hero levels by tier: Bronze 1–5, Silver 6–11, Gold 12–17, Platinum 18–24, Master 25–29,
+// Grandmaster 30. Badge pictures 1–6 are Valve's (Plus_Hero_Badge_N on the Dota 2 Fandom wiki),
+// kept in public/dota/plus.
+const PLUS_TIER_FROM = [1, 6, 12, 18, 25, 30];
 
 export function plusTier(level: number) {
   let tier = 1;
@@ -134,18 +135,37 @@ export function plusTier(level: number) {
   return tier;
 }
 
+// From 32px up the level is written on the badge; smaller ones put it beside.
 export function PlusBadge({ level, t, size = 20 }: { level: number; t: T; size?: number }) {
   const tier = plusTier(level);
   const label = t.signature.heroLevel(t.signature.plusTiers[tier - 1], level);
+  const image = (
+    <Image
+      src={`/dota/plus/${tier}.webp`}
+      alt={label}
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+    />
+  );
+  if (size >= 32)
+    return (
+      <span className="relative inline-flex shrink-0 drop-shadow-md" title={label}>
+        {image}
+        <span
+          className="absolute inset-0 flex items-center justify-center font-extrabold text-white tabular-nums"
+          style={{
+            fontSize: Math.round(size * 0.34),
+            textShadow: "0 0 3px #000, 0 0 2px #000, 0 1px 1px #000",
+          }}
+        >
+          {level}
+        </span>
+      </span>
+    );
   return (
     <span className="inline-flex shrink-0 items-center gap-0.5" title={label}>
-      <Image
-        src={`/dota/plus/${tier}.webp`}
-        alt={label}
-        width={size}
-        height={size}
-        style={{ width: size, height: size }}
-      />
+      {image}
       <span className="text-[11px] font-semibold tabular-nums">{level}</span>
     </span>
   );

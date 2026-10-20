@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { ArrowDownRightIcon, ArrowUpRightIcon } from "lucide-react";
 import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -62,13 +63,17 @@ function Card({
   level: number | undefined;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border p-3">
-      <div className="flex items-start gap-3">
+    <div className="relative flex flex-col gap-3 rounded-xl border p-3">
+      {level ? (
+        <div className="absolute -top-3 -right-2">
+          <PlusBadge level={level} t={dict} size={56} />
+        </div>
+      ) : null}
+      <div className={cn("flex items-start gap-3", level && "pr-12")}>
         <HeroImage hero={heroes[s.hero]} lang={lang} className="h-12 w-20 shrink-0 rounded" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-medium">{heroes[s.hero]?.[lang] ?? s.hero}</span>
-            {level ? <PlusBadge level={level} t={dict} /> : null}
             <span className="text-xs text-muted-foreground">
               {s.pos ? positions[s.pos - 1] : t.unknownPosition}
             </span>
@@ -153,6 +158,8 @@ export async function SignatureBody({
   own: boolean;
   hero: number | null;
 }) {
+  // The report counts "recent" from now, so this renders per request.
+  await connection();
   let history, heroes, levels: Record<number, number>;
   try {
     [history, heroes, levels] = await Promise.all([
