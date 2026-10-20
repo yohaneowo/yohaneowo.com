@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 import { LayoutGroup, MotionConfig, motion } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { ATTR_BG, RENDER_SIZES } from "./card-portrait";
 
 export type LabelGroup = {
   key: "historic" | "current" | "potential";
@@ -27,14 +28,6 @@ const INK: Record<LabelGroup["key"], string> = {
   potential: "text-sky-600 dark:text-sky-400",
 };
 
-// Behind each hero's render, its primary attribute's colour (strength, agility, intelligence,
-// universal), like the art panels of the Art Book Next theme.
-const ATTR_BG = [
-  "radial-gradient(circle at 50% 30%, #d0574a, #3a0f0b 75%)",
-  "radial-gradient(circle at 50% 30%, #4fae5c, #0d2912 75%)",
-  "radial-gradient(circle at 50% 30%, #4f8fe0, #0c1a38 75%)",
-  "radial-gradient(circle at 50% 30%, #a56ad8, #22103a 75%)",
-];
 const RING: Record<LabelGroup["key"], string> = {
   current: "ring-amber-400/80",
   historic: "ring-white/25",
@@ -58,19 +51,21 @@ function Art({ g }: { g: LabelGroup }) {
       <span className="absolute inset-0 flex gap-[3px]">
         {g.art.length ? (
           g.art.map((a) => (
-            <span
+            // Shares its layoutId with the hero's card, so clicking the pillar flies it there.
+            <motion.span
               key={a.id}
+              layoutId={`sig-${g.key}-${a.id}`}
               className="relative flex-1 overflow-hidden"
-              style={{ background: ATTR_BG[a.attr] }}
+              style={{ background: ATTR_BG[a.attr], borderRadius: 0 }}
             >
               <Image
                 src={a.render}
                 alt={a.name}
                 fill
-                sizes="(min-width: 640px) 240px, 160px"
+                sizes={RENDER_SIZES}
                 className="origin-[50%_22%] scale-[1.5] skew-x-[8deg] object-cover object-[50%_22%] brightness-90 transition duration-500 group-enabled:group-hover:scale-[1.65] group-enabled:group-hover:brightness-110"
               />
-            </span>
+            </motion.span>
           ))
         ) : (
           <span className="flex-1 bg-[repeating-linear-gradient(135deg,#1c1c1f_0_10px,#151517_10px_20px)]" />
@@ -134,13 +129,12 @@ export function LabelPillars({ groups }: { groups: LabelGroup[] }) {
                 )}
               >
                 {state === "panel" ? (
-                  <motion.div
-                    key="panel"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, transition: { delay: 0.15 } }}
-                    className="flex flex-col gap-3 p-3"
-                  >
-                    <div className="flex items-center justify-between">
+                  <div key="panel" className="flex flex-col gap-3 p-3">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, transition: { delay: 0.15 } }}
+                      className="flex items-center justify-between"
+                    >
                       <span className={cn("font-medium", INK[g.key])}>
                         {g.name}{" "}
                         <span className="text-sm text-muted-foreground tabular-nums">{g.cards.length}</span>
@@ -154,24 +148,26 @@ export function LabelPillars({ groups }: { groups: LabelGroup[] }) {
                       >
                         <XIcon className="size-4" aria-hidden />
                       </button>
-                    </div>
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-3 gap-y-5 pt-3 pr-2">
+                    </motion.div>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-3 gap-y-5 pt-5 pr-2">
                       {g.cards.map((card, i) => (
-                        <motion.div
-                          key={i}
-                          className="grid"
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{
-                            opacity: 1,
-                            y: 0,
-                            transition: { ...SPRING, delay: 0.2 + Math.min(i, 8) * 0.05 },
-                          }}
-                        >
+                        <div key={i} className="relative grid">
                           {card}
-                        </motion.div>
+                          {/* The card shows by lifting a cover in the page colour off it; the hero
+                              picture sits above the cover, so it can be seen flying in first. */}
+                          <motion.div
+                            aria-hidden
+                            className="pointer-events-none absolute -inset-x-2 -top-4 -bottom-2 z-10 bg-background"
+                            initial={{ opacity: 1 }}
+                            animate={{
+                              opacity: 0,
+                              transition: { duration: 0.35, delay: 0.35 + Math.min(i, 8) * 0.07 },
+                            }}
+                          />
+                        </div>
                       ))}
                     </div>
-                  </motion.div>
+                  </div>
                 ) : state === "pillar" ? (
                   <motion.button
                     key="pillar"
