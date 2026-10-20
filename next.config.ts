@@ -5,6 +5,22 @@ const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
+  images: {
+    // Dota hero renders are 1440px PNGs of 1–2 MB; the 绝活 pillars get them scaled down.
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.cloudflare.steamstatic.com",
+        pathname: "/apps/dota2/videos/dota_react/heroes/renders/**",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.cloudflare.steamstatic.com",
+        pathname: "/apps/dota2/images/dota_react/heroes/**",
+      },
+    ],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+  },
   async redirects() {
     return [
       { source: "/trakt", destination: "/moviehub", permanent: false },

@@ -207,16 +207,16 @@ export async function SignatureBody({
             groups={(["historic", "current", "potential"] as const).map((label) => ({
               key: label,
               name: s.labels[label],
-              preview: [...new Set(found.filter((x) => x.label === label).map((x) => x.hero))]
+              art: [...new Set(found.filter((x) => x.label === label).map((x) => x.hero))]
+                .filter((id) => heroes[id])
                 .slice(0, 4)
-                .map((id) => (
-                  <HeroImage
-                    key={id}
-                    hero={heroes[id]}
-                    lang={lang}
-                    className="h-8 w-14 rounded border-2 border-background object-cover"
-                  />
-                )),
+                .map((id) => ({
+                  id,
+                  name: heroes[id][lang],
+                  // Cached hero lists from before the render field fall back to the small picture.
+                  render: heroes[id].render ?? heroes[id].img,
+                  attr: heroes[id].attr,
+                })),
               cards: found
                 .filter((x) => x.label === label)
                 .map((x) => (

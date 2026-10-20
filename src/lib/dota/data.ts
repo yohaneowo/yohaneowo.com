@@ -47,8 +47,16 @@ async function getJson<T>(url: string, options: { notFound?: "null" } = {}): Pro
 
 // ── Heroes and items ─────────────────────────────────────────────────────────────────────────
 
-// attr is the primary attribute: 0 strength, 1 agility, 2 intelligence, 3 universal.
-export type HeroInfo = { zh: string; en: string; img: string; icon: string; attr: number };
+// attr is the primary attribute: 0 strength, 1 agility, 2 intelligence, 3 universal. render is the
+// full-body picture (1440px, transparent), only for next/image to scale down.
+export type HeroInfo = {
+  zh: string;
+  en: string;
+  img: string;
+  icon: string;
+  render: string;
+  attr: number;
+};
 export type ItemInfo = { zh: string; en: string; img: string };
 
 type FeedHero = {
@@ -76,6 +84,7 @@ export async function getHeroes(): Promise<Record<number, HeroInfo>> {
           en: hero.name_english_loc,
           img: `${CDN}/heroes/${slug}.png`,
           icon: `${CDN}/heroes/icons/${slug}.png`,
+          render: `${CDN.replace("/images/", "/videos/")}/heroes/renders/${slug}.png`,
           attr: hero.primary_attr,
         },
       ];
