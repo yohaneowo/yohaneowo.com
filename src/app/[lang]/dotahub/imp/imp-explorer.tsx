@@ -19,6 +19,7 @@ import {
   Stat,
   useMatchFilters,
 } from "../stats/controls";
+import { CompareMenu, type CompareProps } from "../economy/compare/compare-menu";
 import { ByLength, Distribution, ImpByLane, ImpByState, Predicted, Streaks, WhenBest } from "./more";
 
 const PHASES = [
@@ -89,12 +90,15 @@ export function ImpExplorer({
   heroes,
   ranges,
   matchHref,
+  compare,
 }: {
   matches: DetailMatch[];
   sides: Record<number, boolean>;
   heroes: Record<number, HeroInfo>;
   ranges: number[];
   matchHref: string;
+  // Who to compare with (the menu that turns the page into the comparison).
+  compare?: CompareProps;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.impPage;
@@ -180,7 +184,26 @@ export function ImpExplorer({
 
   return (
     <div className={FILTER_PAGE}>
-      <FilterBar f={f} heroes={heroes} ranges={ranges} />
+      <FilterBar
+        f={f}
+        heroes={heroes}
+        ranges={ranges}
+        compare={
+          compare
+            ? (variant) => (
+                <CompareMenu
+                  {...compare}
+                  heroes={heroes}
+                  hero={f.hero}
+                  position={f.pos}
+                  counts={f.counts}
+                  onHero={f.setHero}
+                  variant={variant}
+                />
+              )
+            : undefined
+        }
+      />
       {!rated.length ? (
         <p className="text-sm text-muted-foreground">{s.empty}</p>
       ) : (

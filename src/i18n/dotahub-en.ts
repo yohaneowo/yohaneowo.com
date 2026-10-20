@@ -482,6 +482,23 @@ const dotahubEn: typeof dotahubZh = {
     followsHero:
       "This one follows the hero filter: GPM differs a lot between positions, so pick a hero for a clearer picture.",
   },
+  impCompare: {
+    average: "Average IMP",
+    inWins: "IMP in wins",
+    inLosses: "IMP in losses",
+    positive: "Matches with IMP above 0",
+    howCrowd:
+      "Every chart uses the same filters. My matches are the other nine players of your matches, over your range, with each match's IMP only; a rank is that rank's players of the hero, from the sample collected in the background (whatever your range).",
+    curveHint:
+      "The average IMP by minute, one line each; ranks dashed. My matches have no per-minute data and aren't drawn.",
+    heroesTitle: "IMP per hero",
+    heroesHint:
+      "Each match's IMP: the thick line is the median, the box 25–75%, whiskers 10% and 90%. Heroes both sides played at least 3 times; ignores the hero filter.",
+    statesHint:
+      "IMP at each minute while ahead, even and behind (from minute 10). My matches have no per-minute data and aren't drawn.",
+    tableHint: "Each cell is the average IMP, with the matches below; ignores the result filter.",
+    trendHint: "A rolling average of 10 matches, people only.",
+  },
   compare: {
     withMe: "Compare with me →",
     label: "Compare",
@@ -559,6 +576,7 @@ const dotahubEn: typeof dotahubZh = {
     loading: (who: string) => `Loading ${who}… (a rank picked for the first time takes a while)`,
     updating: "Updating…",
     switchingHero: (hero: string) => `Switching to ${hero}…`,
+    gamesUnitNote: (n: number) => `${n} matches`,
   },
   fresh: {
     justNow: "just now",

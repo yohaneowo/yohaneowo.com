@@ -15,6 +15,7 @@ import {
   type Series,
 } from "../economy/compare/series";
 import { EconomyExplorer, type KeyItem } from "../economy/economy-explorer";
+import { ImpCompareView } from "../imp/compare-view";
 import { ImpExplorer } from "../imp/imp-explorer";
 import { Notice } from "../parts";
 import { bracketVolatility, loadBracket, loadDetailMatches, loadRank } from "./load";
@@ -58,8 +59,8 @@ function mainPosition(matches: { heroId: number; details: { pos: number | null }
 
 // The 经济 or IMP page's content for a player: loads their matches with details and hands them to
 // the page's explorer. A player linked here has every stored match (with "all"); anyone else the
-// newest 100 from STRATZ. The economy page can compare (?vs=): other players, 我的对局 and a hero's
-// players at a rank tier.
+// newest 100 from STRATZ. Both pages can compare (?vs=): other players, 我的对局 and a hero's
+// players at a rank tier (the IMP page without STRATZ's rank averages: they have no IMP).
 export async function StatsBody({
   kind,
   source,
@@ -86,20 +87,6 @@ export async function StatsBody({
   const matchHref = localePath(lang, "/dotahub/matches");
   const note = !data.complete ? t.stats.history : source.kind === "stratz" ? t.player.stratzRecent : null;
 
-  if (kind === "imp")
-    return (
-      <div className="flex flex-col gap-4">
-        {note && <p className="text-xs text-muted-foreground">{note}</p>}
-        <ImpExplorer
-          matches={data.matches}
-          sides={data.sides}
-          heroes={data.heroes}
-          ranges={ranges}
-          matchHref={matchHref}
-        />
-      </div>
-    );
-
   // The key items any shown match bought (the compared players' included), for the client.
   const items: Record<number, KeyItem> = {};
   const addItem = (id: number) => {
@@ -113,7 +100,7 @@ export async function StatsBody({
 
   const bracketAvailable = source.kind === "stored";
   const wanted = parseVs(vs, accountId, bracketAvailable);
-  const path = localePath(lang, own ? "/dotahub/economy" : `/dotahub/players/${accountId}/economy`);
+  const path = localePath(lang, own ? `/dotahub/${kind}` : `/dotahub/players/${accountId}/${kind}`);
   const heroName = (id: number) => data.heroes[id]?.[lang] ?? String(id);
   const playerKeys = wanted.filter((k) => k !== "bracket" && !parseRankKey(k));
   const crowdKeys = wanted.filter((k) => k === "bracket" || parseRankKey(k));
@@ -155,7 +142,7 @@ export async function StatsBody({
         if (rank) {
           const [sample, averageSet] = await Promise.all([
             loadRank(rank.heroId, rank.tier).catch(() => null),
-            getRankAverages(rank.heroId, rank.tier).catch(() => null),
+            kind === "economy" ? getRankAverages(rank.heroId, rank.tier).catch(() => null) : null,
           ]);
           if (!sample && !averageSet) return null;
           return {
@@ -231,15 +218,26 @@ export async function StatsBody({
       <div className="flex flex-col gap-4">
         {note && <p className="text-xs text-muted-foreground">{note}</p>}
         {wanted.length > 0 && <p className="text-xs text-muted-foreground">{t.compare.couldNotLoad}</p>}
-        <EconomyExplorer
-          matches={data.matches}
-          sides={data.sides}
-          heroes={data.heroes}
-          items={items}
-          ranges={ranges}
-          matchHref={matchHref}
-          compare={compare}
-        />
+        {kind === "imp" ? (
+          <ImpExplorer
+            matches={data.matches}
+            sides={data.sides}
+            heroes={data.heroes}
+            ranges={ranges}
+            matchHref={matchHref}
+            compare={compare}
+          />
+        ) : (
+          <EconomyExplorer
+            matches={data.matches}
+            sides={data.sides}
+            heroes={data.heroes}
+            items={items}
+            ranges={ranges}
+            matchHref={matchHref}
+            compare={compare}
+          />
+        )}
       </div>
     );
 
@@ -255,6 +253,13 @@ export async function StatsBody({
     },
     ...others,
   ];
+  if (kind === "imp")
+    return (
+      <div className="flex flex-col gap-4">
+        {note && <p className="text-xs text-muted-foreground">{note}</p>}
+        <ImpCompareView series={series} heroes={data.heroes} ranges={ranges} compare={compare} />
+      </div>
+    );
   // The forest chart's background: other players' volatility per hero. 我的对局: sampled players of
   // the page player's main heroes; a rank: its sampled players of its hero.
   let crowdCv: Record<number, number[]> = {};

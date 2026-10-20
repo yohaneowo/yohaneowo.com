@@ -454,6 +454,21 @@ const dotahubZh = {
     notEnough: "场数不够画这张图（每个英雄至少 3 场）。",
     followsHero: "这张图跟着英雄筛选：不同位置的 GPM 本来就差很多，选一个英雄看得更准。",
   },
+  impCompare: {
+    average: "平均 IMP",
+    inWins: "赢的场 IMP",
+    inLosses: "输的场 IMP",
+    positive: "IMP 为正的比例",
+    howCrowd:
+      "所有图都套用同样的筛选。我的对局是你这些比赛里另外 9 个人，场数范围跟着你，只有每场的 IMP；段位是那个段位玩这个英雄的人，来自后台收集的样本（不看场数）。",
+    curveHint: "每分钟的平均 IMP，每人一条线；段位是虚线。我的对局没有每分钟资料，不画。",
+    heroesTitle: "各英雄的 IMP",
+    heroesHint:
+      "每场 IMP 的分布：粗线是中位数，箱子是 25%–75%，须线到 10% 与 90%。双方都至少 3 场的英雄才画；不看英雄筛选。",
+    statesHint: "领先、均势、落后时每分钟的 IMP（第 10 分钟起）。我的对局没有每分钟资料，不画。",
+    tableHint: "每格是平均 IMP，小字是场数；不看胜负筛选。",
+    trendHint: "最近 10 场的滚动平均，只画个人。",
+  },
   compare: {
     withMe: "跟我对比 →",
     label: "对比",
@@ -525,6 +540,7 @@ const dotahubZh = {
     loading: (who: string) => `正在载入 ${who}…（第一次选的段位要等后台收集一下）`,
     updating: "更新中…",
     switchingHero: (hero: string) => `换成${hero}…`,
+    gamesUnitNote: (n: number) => `${n} 场`,
   },
   fresh: {
     justNow: "刚刚",

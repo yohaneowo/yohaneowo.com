@@ -395,7 +395,10 @@ export const ROADMAP: RoadmapItem[] = [
     id: "dotahub-match",
     status: "testing",
     area: "dotahub",
-    title: { zh: "DotaHub：比赛页的选角与每分钟 IMP", en: "DotaHub: the draft and IMP by minute in a match" },
+    title: {
+      zh: "DotaHub：比赛页的选角与每分钟 IMP、IMP 对比",
+      en: "DotaHub: the draft and IMP by minute in a match, comparing IMP",
+    },
     summary: {
       zh: "选角改成禁用一排加选人时间轴；新增那一场每分钟的 IMP，能叠上同段位同英雄的平均。",
       en: "The draft as a row of bans and a timeline of picks; a match's IMP minute by minute, with the same hero's average at a rank behind it.",
@@ -427,6 +430,11 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step("选角两排最左边加上天辉、夜魇的阵营图", "The sides' marks at the left of the draft", true),
+      step(
+        "IMP 页对比模式：跟好友、我的对局或段位比平均 IMP、每分钟 IMP、各英雄与顺逆风的箱线图、局势、对线、位置与走势",
+        "Comparing on the IMP page: average and per-minute IMP, per-hero and ahead-or-behind boxes, game states, lanes, positions and trend, against friends, your matches or a rank",
+        true,
+      ),
     ],
     added: "2026-10-21",
     started: "2026-10-21",
@@ -436,19 +444,18 @@ export const ROADMAP: RoadmapItem[] = [
     status: "considering",
     area: "dotahub",
     title: {
-      zh: "DotaHub：IMP 对比、死法分析与 bot 指令",
-      en: "DotaHub: comparing IMP, how you died, bot commands",
+      zh: "DotaHub：死法分析、段位全英雄与 bot 指令",
+      en: "DotaHub: how you died, ranks over all heroes, bot commands",
     },
     summary: {
-      zh: "IMP 页也能对比、分析每次怎么死的、段位对比能选所有英雄、在 Discord 用指令看最近一场。",
-      en: "Comparing on the IMP page, how each death happened, comparing ranks over all your heroes, and a bot command for the last match.",
+      zh: "分析每次怎么死的、段位对比能选所有英雄、在 Discord 用指令看最近一场。",
+      en: "How each death happened, comparing ranks over all your heroes, and a bot command for the last match.",
     },
     why: {
       zh: "经济页对比上线后还没做的部分。",
       en: "What the economy comparison left for later.",
     },
     steps: [
-      step("IMP 页对比模式", "Compare on the IMP page"),
       step(
         "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
         "How you died (burst, walked into wards, unused heals…)",

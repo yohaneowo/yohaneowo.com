@@ -10,6 +10,7 @@ import { StatsBody } from "../../../stats/body";
 import { SIDE_PANEL_PAGE } from "../../../stats/panel";
 
 type Params = Promise<{ id: string }>;
+type SearchParams = Promise<{ vs?: string | string[] }>;
 
 // Any account id can be opened, so there is no static shell to prerender.
 export const instant = false;
@@ -18,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.impPage.title };
 }
 
-async function Body({ params }: { params: Params }) {
+async function Body({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const lang = await getLocale();
   const t = (await getDictionary()).dotahub;
   const id = accountParam((await params).id);
@@ -26,8 +27,14 @@ async function Body({ params }: { params: Params }) {
   await redirectIfOwn(id, lang, "/dotahub/imp");
   // Linked here: admin's stored history; anyone else: STRATZ asked directly.
   const userId = await getSteamOwner(steamIdOf(id));
+  const vs = (await searchParams).vs;
   return (
-    <StatsBody kind="imp" source={userId ? { kind: "stored", userId } : { kind: "stratz" }} accountId={id} />
+    <StatsBody
+      kind="imp"
+      source={userId ? { kind: "stored", userId } : { kind: "stratz" }}
+      accountId={id}
+      vs={Array.isArray(vs) ? vs[0] : vs}
+    />
   );
 }
 
@@ -42,7 +49,13 @@ async function Chip({ params }: { params: Params }) {
 }
 
 // Someone's imp page.
-export default async function PlayerPage({ params }: { params: Params }) {
+export default async function PlayerPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
   const t = (await getDictionary()).dotahub;
   return (
     <div className={SIDE_PANEL_PAGE}>
@@ -60,7 +73,7 @@ export default async function PlayerPage({ params }: { params: Params }) {
           </div>
         }
       >
-        <Body params={params} />
+        <Body params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );

@@ -39,7 +39,7 @@ const MIN_STATE_MINUTES = 10;
 const MAX_HEROES = 10;
 
 // A table with one column per side; cells are whatever each metric shows.
-function SideTable({
+export function SideTable({
   sides,
   rows,
 }: {
@@ -90,7 +90,7 @@ function SideTable({
 }
 
 // Which column has the largest (or smallest) value.
-function bestOf(values: (number | null)[], lowest = false) {
+export function bestOf(values: (number | null)[], lowest = false) {
   let best = -1;
   values.forEach((v, i) => {
     if (v == null) return;
