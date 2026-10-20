@@ -278,12 +278,15 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: "dotahub-insights",
-    status: "testing",
+    status: "shipped",
     area: "dotahub",
-    title: { zh: "DotaHub：热力图加强与总览加快", en: "DotaHub: a richer heat map, a faster overview" },
+    title: {
+      zh: "DotaHub：热力图加强、经济与 IMP、对比",
+      en: "DotaHub: a richer heat map, economy and IMP, comparing",
+    },
     summary: {
-      zh: "死亡热力图多了胜率、平均每场掉落金钱与死亡等待、被拿一血；总览改成分区载入，OpenDota 慢的时候先给旧资料。",
-      en: "The heat map gains win rate, gold lost and time dead per match, and first-blood deaths; the overview loads in parts and shows cached data while OpenDota is slow.",
+      zh: "死亡热力图多了胜率、掉落金钱、死亡等待与一血；新增经济与 IMP 两页（波动率、顺逆风、对线……）；经济页能跟好友或任何段位玩同一个英雄的人对比。",
+      en: "The heat map gains win rate, gold lost, time dead and first blood; new economy and IMP pages (volatility, ahead and behind, lanes…); the economy page compares you with friends or any rank's players of a hero.",
     },
     why: {
       zh: "OpenDota 的统计接口常常要等半分钟，热力图也还能看出更多东西。",
@@ -351,32 +354,73 @@ export const ROADMAP: RoadmapItem[] = [
         "The compare menu as you VS avatars, friends and ranks; compare with a hero's players at any of the eight ranks: STRATZ's averages plus about 100 matches collected in the background",
         true,
       ),
-      step("IMP 页对比模式", "Compare on the IMP page"),
       step(
-        "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
-        "How you died (burst, walked into wards, unused heals…)",
+        "筛选与对比放进左边的侧栏，滑动时一直看得到",
+        "Filters and the compare menu in a side panel that stays in view",
+        true,
       ),
     ],
-    links: [{ label: { zh: "死亡热力图", en: "Death heat map" }, href: "/dotahub/deaths" }],
+    links: [
+      { label: { zh: "死亡热力图", en: "Death heat map" }, href: "/dotahub/deaths" },
+      { label: { zh: "经济", en: "Economy" }, href: "/dotahub/economy" },
+      { label: { zh: "IMP", en: "IMP" }, href: "/dotahub/imp" },
+    ],
+    notes: [
+      {
+        zh: "死亡热力图：胜率、平均每场掉落金钱与死亡等待、被拿一血；总览分区载入，OpenDota 慢时先给旧资料",
+        en: "Heat map: win rate, gold lost and time dead per match, first blood; the overview loads in parts and shows cached data while OpenDota is slow",
+      },
+      {
+        zh: "经济页：GPM、身价曲线、顺逆风收入、局势、对线、出装时间与胜率、波动率四种图",
+        en: "Economy: GPM, net worth by minute, income ahead and behind, game states, lanes, item timings and win rate, four volatility charts",
+      },
+      {
+        zh: "IMP 页：走势、每分钟 IMP、各位置与英雄、顺逆风、连胜连败、什么时候打得最好",
+        en: "IMP: trend, IMP by minute, by position and hero, ahead and behind, streaks, when you play best",
+      },
+      {
+        zh: "经济页对比：跟好友、我的对局或任何段位玩同一个英雄的人比，并排箱线图与波动率森林图",
+        en: "Comparing on the economy page: with friends, your matches' other players, or any rank's players of a hero, with side-by-side boxes and a volatility forest plot",
+      },
+      {
+        zh: "STRATZ 解析太慢时自动请它重新解析；队友资料在 OpenDota 挂掉时改用 STRATZ",
+        en: "Slow STRATZ parses are asked again automatically; teammates come from STRATZ when OpenDota is down",
+      },
+    ],
     added: "2026-10-20",
     started: "2026-10-20",
+    shipped: "2026-10-20",
   },
   {
     id: "dotahub-next",
     status: "considering",
     area: "dotahub",
-    title: { zh: "DotaHub：对线、好友比较与 bot 指令", en: "DotaHub: lanes, friends and bot commands" },
+    title: {
+      zh: "DotaHub：IMP 对比、死法分析与 bot 指令",
+      en: "DotaHub: comparing IMP, how you died, bot commands",
+    },
     summary: {
-      zh: "每场的对线结果、跟 Discord 好友比较段位与表现、在 Discord 用指令看最近一场。",
-      en: "Each match's lane outcome, comparing rank and play with Discord friends, and a bot command for the last match.",
+      zh: "IMP 页也能对比、分析每次怎么死的、段位对比能选所有英雄、在 Discord 用指令看最近一场。",
+      en: "Comparing on the IMP page, how each death happened, comparing ranks over all your heroes, and a bot command for the last match.",
     },
     why: {
-      zh: "DotaHub 第一版上线后还没做的部分。",
-      en: "What the first version of DotaHub left for later.",
+      zh: "经济页对比上线后还没做的部分。",
+      en: "What the economy comparison left for later.",
     },
     steps: [
-      step("对线结果（STRATZ）", "Lane outcomes (STRATZ)"),
-      step("跟 Discord 好友比较", "Comparing with Discord friends"),
+      step("IMP 页对比模式", "Compare on the IMP page"),
+      step(
+        "死法分析（被秒杀、走进对方的眼、有保命道具没用……）",
+        "How you died (burst, walked into wards, unused heals…)",
+      ),
+      step(
+        "段位对比选「所有英雄」：按你的英雄组合加权",
+        "Comparing a rank over all heroes, weighted like your own",
+      ),
+      step(
+        "总览的胜负、常用英雄、比赛列表在 OpenDota 挂掉时改用 STRATZ",
+        "The overview's win rate, heroes and matches from STRATZ when OpenDota is down",
+      ),
       step("Discord bot 指令（例如最近一场）", "Discord bot commands (e.g. the last match)"),
     ],
     added: "2026-10-20",
