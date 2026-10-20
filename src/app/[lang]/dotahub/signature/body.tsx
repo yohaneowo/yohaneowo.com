@@ -71,7 +71,9 @@ function Card({
         </div>
       ) : null}
       <div className={cn("flex items-start gap-3", level && "pr-16")}>
-        <HeroImage hero={heroes[s.hero]} lang={lang} className="h-12 w-20 shrink-0 rounded" />
+        <span data-sig-hero className="shrink-0">
+          <HeroImage hero={heroes[s.hero]} lang={lang} className="h-12 w-20 rounded" />
+        </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-medium">{heroes[s.hero]?.[lang] ?? s.hero}</span>
@@ -216,6 +218,12 @@ export async function SignatureBody({
                   // Cached hero lists from before the render field fall back to the small picture.
                   render: heroes[id].render ?? heroes[id].img,
                   attr: heroes[id].attr,
+                })),
+              cast: found
+                .filter((x) => x.label === label)
+                .map((x) => ({
+                  name: heroes[x.hero]?.[lang] ?? String(x.hero),
+                  render: heroes[x.hero]?.render ?? heroes[x.hero]?.img ?? "",
                 })),
               cards: found
                 .filter((x) => x.label === label)

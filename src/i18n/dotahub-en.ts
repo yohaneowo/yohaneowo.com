@@ -294,6 +294,7 @@ const dotahubEn: typeof dotahubZh = {
       `${pct}% likely above the hero's average, positive in ${positive} of ${total} half-years`,
     noEvidence: "Not enough evidence",
     span: (from: string, to: string) => `${from} to ${to}`,
+    skipIntro: "Click anywhere to skip",
     closePillar: "Close",
     toLeaderboard: "Leaderboard →",
     skilledTitle: "Skilled",

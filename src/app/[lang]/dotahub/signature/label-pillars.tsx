@@ -1,9 +1,10 @@
 "use client";
 
-import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { XIcon } from "lucide-react";
-import { LayoutGroup, MotionConfig, motion } from "motion/react";
+import { LayoutGroup, MotionConfig, motion, useAnimate, useReducedMotion } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +14,12 @@ export type LabelGroup = {
   cards: ReactNode[];
   // The heroes painted on the pillar (a few, first ones first).
   art: { id: number; name: string; render: string; attr: number }[];
+  // Each card's hero, in card order, for the entrance.
+  cast: { name: string; render: string }[];
 };
+
+// One size for every render, so the entrance reuses the pictures the pillars loaded.
+const RENDER_SIZES = "320px";
 
 const TONE: Record<LabelGroup["key"], string> = {
   current:
@@ -67,7 +73,7 @@ function Art({ g }: { g: LabelGroup }) {
                 src={a.render}
                 alt={a.name}
                 fill
-                sizes="(min-width: 640px) 240px, 160px"
+                sizes={RENDER_SIZES}
                 className="origin-[50%_22%] scale-[1.5] skew-x-[8deg] object-cover object-[50%_22%] brightness-90 transition duration-500 group-enabled:group-hover:scale-[1.65] group-enabled:group-hover:brightness-110"
               />
             </span>
@@ -84,12 +90,135 @@ function Art({ g }: { g: LabelGroup }) {
 
 const SPRING = { type: "spring", stiffness: 260, damping: 30 } as const;
 
+const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+// An opened pillar. Its heroes come on one at a time: each one's render appears big in the middle of
+// the screen, then shrinks onto its card's hero picture and fades there, and that card shows. A click
+// anywhere skips the rest. The cards keep their own small pictures; only the entrance uses renders.
+function Panel({ g, onClose }: { g: LabelGroup; onClose: () => void }) {
+  const { t } = useLocale();
+  const reduce = useReducedMotion();
+  const grid = useRef<HTMLDivElement>(null);
+  const [scope, animate] = useAnimate<HTMLDivElement>();
+  const [playing, setPlaying] = useState(!reduce && g.cast.length > 0);
+  const [revealed, setRevealed] = useState(playing ? 0 : g.cards.length);
+  const skipped = useRef(false);
+  const running = useRef<{ complete: () => void }[]>([]);
+
+  function skip() {
+    skipped.current = true;
+    running.current.forEach((a) => a.complete());
+  }
+
+  useEffect(() => {
+    if (!playing) return;
+    let stop = false;
+    const run = async () => {
+      // Let the panel finish growing, so the cards are where they will stay.
+      await wait(450);
+      for (let i = 0; i < g.cast.length; i++) {
+        if (stop || skipped.current) break;
+        const actor = scope.current?.querySelector<HTMLElement>(`[data-actor="${i}"]`);
+        const target = grid.current?.children[i]?.querySelector("[data-sig-hero]")?.getBoundingClientRect();
+        if (actor && target) {
+          const from = actor.getBoundingClientRect();
+          const enter = animate(
+            actor,
+            { opacity: [0, 1], scale: [0.7, 1] },
+            { duration: 0.3, ease: "easeOut" },
+          );
+          running.current = [enter];
+          await enter;
+          if (stop || skipped.current) break;
+          const fly = animate(
+            actor,
+            {
+              x: target.left + target.width / 2 - (from.left + from.width / 2),
+              y: target.top + target.height / 2 - (from.top + from.height / 2),
+              scale: (target.height * 1.8) / from.height,
+            },
+            { delay: 0.3, duration: 0.45, ease: [0.4, 0, 0.2, 1] },
+          );
+          const fade = animate(actor, { opacity: 0 }, { delay: 0.62, duration: 0.15 });
+          running.current = [fly, fade];
+          await Promise.all([fly, fade]);
+        }
+        if (!stop) setRevealed(i + 1);
+      }
+      if (!stop) {
+        setRevealed(g.cards.length);
+        setPlaying(false);
+      }
+    };
+    run();
+    return () => {
+      stop = true;
+    };
+  }, [playing, g, animate, scope]);
+
+  return (
+    <div className="flex flex-col gap-3 p-3">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1, transition: { delay: 0.15 } }}
+        className="flex items-center justify-between"
+      >
+        <span className={cn("font-medium", INK[g.key])}>
+          {g.name} <span className="text-sm text-muted-foreground tabular-nums">{g.cards.length}</span>
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t.dotahub.signature.closePillar}
+          title={t.dotahub.signature.closePillar}
+          className="cursor-pointer rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <XIcon className="size-4" aria-hidden />
+        </button>
+      </motion.div>
+      <div
+        ref={grid}
+        className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-3 gap-y-5 pt-3 pr-2"
+      >
+        {g.cards.map((card, i) => (
+          <motion.div
+            key={i}
+            className="grid"
+            initial={{ opacity: 0, y: 12 }}
+            animate={i < revealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+          >
+            {card}
+          </motion.div>
+        ))}
+      </div>
+      {/* Fixed to the screen, so outside the panel (its layout animation transforms it). */}
+      {playing &&
+        createPortal(
+          <div ref={scope} onClick={skip} role="presentation" className="fixed inset-0 z-50 cursor-pointer">
+            {g.cast.map((c, i) => (
+              <div
+                key={i}
+                data-actor={i}
+                className="absolute top-1/2 left-1/2 size-[min(300px,70vw)] -translate-x-1/2 -translate-y-1/2 opacity-0 drop-shadow-[0_10px_24px_rgb(0_0_0/0.6)]"
+              >
+                <Image src={c.render} alt={c.name} fill sizes={RENDER_SIZES} className="object-contain" />
+              </div>
+            ))}
+            <p className="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full border bg-background/90 px-3 py-1 text-xs text-muted-foreground shadow-sm">
+              {t.dotahub.signature.skipIntro}
+            </p>
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 // The signature labels as three slanted art pillars (historic / current / potential, current the
 // widest), after the system view of the ES-DE theme Art Book Next. Clicking one grows it into the
 // panel of its cards while the other two shrink to strips at its sides, which switch to theirs; the
 // cross on the panel puts the pillars back.
 export function LabelPillars({ groups }: { groups: LabelGroup[] }) {
-  const { t } = useLocale();
   const [open, setOpen] = useState<LabelGroup["key"] | null>(null);
   const row = useRef<HTMLDivElement>(null);
 
@@ -134,44 +263,7 @@ export function LabelPillars({ groups }: { groups: LabelGroup[] }) {
                 )}
               >
                 {state === "panel" ? (
-                  <motion.div
-                    key="panel"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, transition: { delay: 0.15 } }}
-                    className="flex flex-col gap-3 p-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={cn("font-medium", INK[g.key])}>
-                        {g.name}{" "}
-                        <span className="text-sm text-muted-foreground tabular-nums">{g.cards.length}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setOpen(null)}
-                        aria-label={t.dotahub.signature.closePillar}
-                        title={t.dotahub.signature.closePillar}
-                        className="cursor-pointer rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <XIcon className="size-4" aria-hidden />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-3 gap-y-5 pt-3 pr-2">
-                      {g.cards.map((card, i) => (
-                        <motion.div
-                          key={i}
-                          className="grid"
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{
-                            opacity: 1,
-                            y: 0,
-                            transition: { ...SPRING, delay: 0.2 + Math.min(i, 8) * 0.05 },
-                          }}
-                        >
-                          {card}
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
+                  <Panel key="panel" g={g} onClose={() => setOpen(null)} />
                 ) : state === "pillar" ? (
                   <motion.button
                     key="pillar"
