@@ -519,9 +519,8 @@ const dotahubEn: typeof dotahubZh = {
     noPeers: "Nobody you play with often yet; paste an id.",
     mine: "My matches",
     mineHint: "The other nine players of your matches (matchmaking puts them in your bracket)",
-    rankHero: "Hero",
-    rankHint: (hero: string) =>
-      `Pick a rank to compare with its ${hero} players: averages (win rate, net worth and last hits by minute, item timings) from STRATZ's tens of thousands of recent matches; box plots, volatility and game states from about 100 matches collected in the background, which takes a few minutes the first time.`,
+    rankHint:
+      "Averages (win rate, net worth and last hits by minute, item timings) from STRATZ's tens of thousands of recent matches; box plots, volatility and game states from about 100 matches collected in the background, which takes a few minutes the first time.",
     rankLabel: (medal: string, hero: string, position: string | null) =>
       [medal, hero, position].filter(Boolean).join(" · "),
     howCrowd:
@@ -532,6 +531,10 @@ const dotahubEn: typeof dotahubZh = {
     steadierThanCrowd: (who: string, pct: number, crowd: string) =>
       `${who}: steadier than ${pct}% of ${crowd}`,
     crowdSampled: (n: number) => `${n} sampled`,
+    allPositions: "every position (mixed like yours)",
+    followsFilters: "(following the filters)",
+    pickHeroFirst: "Pick a hero in the filters first: a rank compares that hero.",
+    change: "Change",
   },
   fresh: {
     justNow: "just now",

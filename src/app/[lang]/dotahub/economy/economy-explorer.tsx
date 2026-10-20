@@ -18,6 +18,7 @@ import {
   Tabs,
   useMatchFilters,
 } from "../stats/controls";
+import { CompareMenu, type CompareProps } from "./compare/compare-menu";
 import { AgainstAverage, GameStates, IncomeSpread, LaneOutcomes, Swings } from "./more";
 import { VolatilityCharts } from "./volatility-charts";
 
@@ -40,6 +41,7 @@ export function EconomyExplorer({
   items,
   ranges,
   matchHref,
+  compare,
 }: {
   matches: DetailMatch[];
   sides: Record<number, boolean>;
@@ -48,6 +50,8 @@ export function EconomyExplorer({
   items: Record<number, KeyItem>;
   ranges: number[];
   matchHref: string;
+  // Who to compare with (the menu that turns the page into the comparison).
+  compare?: CompareProps;
 }) {
   const { t: dict } = useLocale();
   const t = dict.dotahub.economy;
@@ -121,7 +125,18 @@ export function EconomyExplorer({
 
   return (
     <div className={FILTER_PAGE}>
-      <FilterBar f={f} heroes={heroes} ranges={ranges} />
+      <FilterBar
+        f={f}
+        heroes={heroes}
+        ranges={ranges}
+        compare={
+          compare
+            ? (variant) => (
+                <CompareMenu {...compare} heroes={heroes} hero={f.hero} position={f.pos} variant={variant} />
+              )
+            : undefined
+        }
+      />
       {!shown.length ? (
         <p className="text-sm text-muted-foreground">{s.empty}</p>
       ) : (

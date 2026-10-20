@@ -4,7 +4,7 @@ import { getItemCosts, getItems, getPeers, getPlayer, isKeyItem } from "@/lib/do
 import { getRankAverages } from "@/lib/dota/stratz";
 import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import type { DeathsSource } from "../deaths/deaths-view";
-import { CompareMenu } from "../economy/compare/compare-menu";
+import type { CompareProps } from "../economy/compare/compare-menu";
 import { CompareView } from "../economy/compare/compare-view";
 import {
   CROWD_COLORS,
@@ -208,33 +208,28 @@ export async function StatsBody({
   const heroGames = [...heroCounts.entries()].sort((a, b) => b[1] - a[1]);
   const mainHeroes = heroGames.map(([id]) => id);
 
-  const menu = (
-    <CompareMenu
-      path={path}
-      ownerId={accountId}
-      me={{ label: own ? t.compare.you : meProfile.name, avatar: meProfile.avatar, tier: meProfile.tier }}
-      targets={others.map((x) => ({
-        key: x.key,
-        kind: x.kind,
-        label: x.label,
-        color: x.color,
-        avatar: x.avatar ?? null,
-        tier: x.kind === "bracket" ? meProfile.tier : (x.tier ?? null),
-        heroId: x.heroId ?? null,
-      }))}
-      peers={peers}
-      bracketAvailable={bracketAvailable}
-      myTier={meProfile.tier}
-      heroes={data.heroes}
-      heroGames={heroGames}
-    />
-  );
+  const compare: CompareProps = {
+    path,
+    ownerId: accountId,
+    me: { label: own ? t.compare.you : meProfile.name, avatar: meProfile.avatar, tier: meProfile.tier },
+    targets: others.map((x) => ({
+      key: x.key,
+      kind: x.kind,
+      label: x.label,
+      color: x.color,
+      avatar: x.avatar ?? null,
+      tier: x.kind === "bracket" ? meProfile.tier : (x.tier ?? null),
+      heroId: x.heroId ?? null,
+    })),
+    peers,
+    bracketAvailable,
+    myTier: meProfile.tier,
+  };
 
   if (!others.length)
     return (
       <div className="flex flex-col gap-4">
         {note && <p className="text-xs text-muted-foreground">{note}</p>}
-        {menu}
         {wanted.length > 0 && <p className="text-xs text-muted-foreground">{t.compare.couldNotLoad}</p>}
         <EconomyExplorer
           matches={data.matches}
@@ -243,6 +238,7 @@ export async function StatsBody({
           items={items}
           ranges={ranges}
           matchHref={matchHref}
+          compare={compare}
         />
       </div>
     );
@@ -275,7 +271,6 @@ export async function StatsBody({
   return (
     <div className="flex flex-col gap-4">
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
-      {menu}
       <CompareView
         series={series}
         heroes={data.heroes}
@@ -283,6 +278,7 @@ export async function StatsBody({
         ranges={ranges}
         crowdCv={crowdCv}
         crowdLabel={crowd?.label ?? ""}
+        compare={compare}
       />
     </div>
   );

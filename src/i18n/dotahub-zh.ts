@@ -487,9 +487,8 @@ const dotahubZh = {
     noPeers: "还没有常一起玩的人，可以贴 ID。",
     mine: "我的对局",
     mineHint: "你比赛里的另外 9 个人（配对出来就是你的段位）",
-    rankHero: "英雄",
-    rankHint: (hero: string) =>
-      `选一个段位，跟那个段位的${hero}玩家比：平均（胜率、身价与正补曲线、出装时间）来自 STRATZ 最近的几万场；箱线图、波动率、局势等来自后台收集的约 100 场，第一次选要等几分钟。`,
+    rankHint:
+      "平均（胜率、身价与正补曲线、出装时间）来自 STRATZ 最近的几万场；箱线图、波动率、局势等来自后台收集的约 100 场，第一次选要等几分钟。",
     rankLabel: (medal: string, hero: string, position: string | null) =>
       [medal, hero, position].filter(Boolean).join(" · "),
     howCrowd:
@@ -499,6 +498,10 @@ const dotahubZh = {
     crowdBand: (who: string, mean: string) => `${who} ${mean} ±2σ`,
     steadierThanCrowd: (who: string, pct: number, crowd: string) => `${who} 比 ${pct}% ${crowd}稳`,
     crowdSampled: (n: number) => `抽 ${n} 人`,
+    allPositions: "都算（按你的位置加权）",
+    followsFilters: "（跟着左边筛选）",
+    pickHeroFirst: "先在左边筛选选一个英雄，段位会跟那个英雄比。",
+    change: "更换",
   },
   fresh: {
     justNow: "刚刚",

@@ -247,10 +247,13 @@ export function FilterBar({
   f,
   heroes,
   ranges,
+  compare,
 }: {
   f: MatchFilters;
   heroes: Record<number, HeroInfo>;
   ranges: number[];
+  // The economy page's compare menu, at the top of the panel (or above the filters).
+  compare?: (variant: "panel" | "top") => React.ReactNode;
 }) {
   const { t: dict } = useLocale();
   const t = dict.dotahub.deaths;
@@ -265,6 +268,7 @@ export function FilterBar({
           (FILTER_PAGE) is positioned and spans the page's content, so the panel sticks all the way down. */}
       <aside className="absolute top-0 right-full bottom-0 mr-4 hidden w-32 min-[1520px]:block">
         <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
+          {compare?.("panel")}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t.range}</span>
             <Tabs
@@ -322,7 +326,15 @@ export function FilterBar({
           <HeroFilter value={f.hero} onChange={f.setHero} heroes={heroes} counts={f.counts} stacked />
         </div>
       </aside>
-      <TopFilters f={f} heroes={heroes} range={range} positions={positions} sides={sides} results={results} />
+      <TopFilters
+        f={f}
+        heroes={heroes}
+        range={range}
+        positions={positions}
+        sides={sides}
+        results={results}
+        compare={compare?.("top")}
+      />
     </>
   );
 }
@@ -374,6 +386,7 @@ function TopFilters({
   positions,
   sides,
   results,
+  compare,
 }: {
   f: MatchFilters;
   heroes: Record<number, HeroInfo>;
@@ -381,12 +394,14 @@ function TopFilters({
   positions: [number, string][];
   sides: [Side, string][];
   results: [Result, string][];
+  compare: React.ReactNode;
 }) {
   const { t: dict } = useLocale();
   const t = dict.dotahub.deaths;
   const s = dict.dotahub.stats;
   return (
     <div className="flex flex-col gap-2 min-[1520px]:hidden">
+      {compare}
       <Tabs label={t.range} value={f.n} onChange={f.setN} options={range} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} />

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { EChartsOption } from "echarts";
 import { EChart } from "@/components/charts/echart";
 import { useLocale } from "@/i18n/locale-provider";
@@ -14,8 +15,17 @@ import { MinuteChart, SpreadChart } from "../../stats/charts";
 import { avg, FILTER_PAGE, FilterBar, perMinute, Section, Tabs, useFilterState } from "../../stats/controls";
 import { byHero, funnel, mean, rolling, sd } from "../../stats/volatility";
 import type { KeyItem } from "../economy-explorer";
+import { CompareMenu, type CompareProps } from "./compare-menu";
 import { Forest, LOW_GAMES, MIN_GAMES } from "./forest";
-import { averagesFor, type FilteredSeries, filterSeries, isCrowd, type Series } from "./series";
+import {
+  averagesFor,
+  type FilteredSeries,
+  filterSeries,
+  isCrowd,
+  parseRankKey,
+  rankKey,
+  type Series,
+} from "./series";
 
 const thousands = (n: number) => Math.round(n).toLocaleString("en-US");
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -100,6 +110,7 @@ export function CompareView({
   ranges,
   crowdCv,
   crowdLabel,
+  compare,
 }: {
   series: Series[];
   heroes: Record<number, HeroInfo>;
@@ -108,6 +119,7 @@ export function CompareView({
   // Per hero, the volatility of a crowd's sampled players (the forest chart's background).
   crowdCv: Record<number, number[]>;
   crowdLabel: string;
+  compare: CompareProps;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.compare;
@@ -117,6 +129,16 @@ export function CompareView({
   const rank = series.find((x) => x.kind === "rank");
   const state = useFilterState(ranges, rank?.heroId ?? 0, rank?.position ?? 0);
   const { n, pos, side, hero, result } = state;
+  const router = useRouter();
+  // A rank follows the hero filter: picking another hero compares that hero at the same rank.
+  useEffect(() => {
+    if (!hero || !rank || hero === rank.heroId) return;
+    const keys = compare.targets.map((x) => {
+      const r = parseRankKey(x.key);
+      return r ? rankKey(r.tier, hero) : x.key;
+    });
+    router.replace(`${compare.path}?vs=${keys.join(",")}`, { scroll: false });
+  }, [hero, rank, compare, router]);
   const sides = useMemo(() => {
     const filtered = filterSeries(series, { n, pos, side, hero, result });
     // A rank's averages follow the position filter (with every position: mixed like the page
@@ -271,7 +293,14 @@ export function CompareView({
 
   return (
     <div className={FILTER_PAGE}>
-      <FilterBar f={{ ...state, ...me.lists }} heroes={heroes} ranges={ranges} />
+      <FilterBar
+        f={{ ...state, ...me.lists }}
+        heroes={heroes}
+        ranges={ranges}
+        compare={(variant) => (
+          <CompareMenu {...compare} heroes={heroes} hero={hero} position={pos} variant={variant} />
+        )}
+      />
       <p className="text-xs text-muted-foreground">{crowd ? t.howCrowd : t.how}</p>
       {sides
         .filter((x) => x.progress && x.progress.count < x.progress.target)
