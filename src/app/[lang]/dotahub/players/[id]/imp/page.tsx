@@ -7,6 +7,7 @@ import { PlayerChip } from "../../../deaths/player-chip";
 import { accountParam } from "../../../match-list";
 import { Notice } from "../../../parts";
 import { StatsBody } from "../../../stats/body";
+import { SIDE_PANEL_PAGE } from "../../../stats/panel";
 
 type Params = Promise<{ id: string }>;
 
@@ -44,7 +45,7 @@ async function Chip({ params }: { params: Params }) {
 export default async function PlayerPage({ params }: { params: Params }) {
   const t = (await getDictionary()).dotahub;
   return (
-    <div className="flex flex-col gap-6">
+    <div className={SIDE_PANEL_PAGE}>
       <div>
         <h1 className="text-2xl font-semibold">{t.impPage.title}</h1>
         <Suspense fallback={<div className="mt-2 h-8" />}>

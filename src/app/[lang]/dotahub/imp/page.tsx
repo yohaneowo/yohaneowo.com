@@ -7,6 +7,7 @@ import { dotaViewer, syncDotaLink } from "../account";
 import { ViewerChip } from "../deaths/player-chip";
 import { Notice } from "../parts";
 import { StatsBody } from "../stats/body";
+import { SIDE_PANEL_PAGE } from "../stats/panel";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.impPage.title };
@@ -38,7 +39,7 @@ async function Chip() {
 export default async function Page() {
   const t = (await getDictionary()).dotahub.impPage;
   return (
-    <div className="flex flex-col gap-6">
+    <div className={SIDE_PANEL_PAGE}>
       <div>
         <h1 className="text-2xl font-semibold">{t.title}</h1>
         <Suspense fallback={<div className="mt-2 h-8" />}>
