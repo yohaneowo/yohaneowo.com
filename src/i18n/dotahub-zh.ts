@@ -132,6 +132,7 @@ const dotahubZh = {
     waited: (seconds: number) => `等 ${seconds} 秒`,
     range: "场数",
     recent: (n: number) => `最近 ${n} 场`,
+    recentShort: (n: number) => `${n} 场`,
     all: "全部",
     hero: "英雄",
     allHeroes: "所有英雄",

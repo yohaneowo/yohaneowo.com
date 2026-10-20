@@ -137,6 +137,7 @@ const dotahubEn: typeof dotahubZh = {
     waited: (seconds: number) => `${seconds}s dead`,
     range: "Matches",
     recent: (n: number) => `Last ${n}`,
+    recentShort: (n: number) => `${n}`,
     all: "All",
     hero: "Hero",
     allHeroes: "All heroes",

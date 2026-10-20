@@ -14,21 +14,15 @@ export function Chips<V extends string | number>({
   value,
   options,
   onChange,
-  stacked = false,
 }: {
   label: string;
   value: V;
   options: [V, string][];
   onChange: (value: V) => void;
-  stacked?: boolean;
 }) {
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className={cn("items-center gap-1.5", stacked ? "grid grid-cols-2" : "flex flex-wrap")}
-    >
-      <span className={cn("mr-1 text-xs text-muted-foreground", stacked && "col-span-full")}>{label}</span>
+    <div role="group" aria-label={label} className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-xs text-muted-foreground">{label}</span>
       {options.map(([v, text]) => (
         <button
           key={v}
@@ -36,8 +30,7 @@ export function Chips<V extends string | number>({
           aria-pressed={value === v}
           onClick={() => onChange(v)}
           className={cn(
-            "rounded-full border py-1 text-xs transition-colors",
-            stacked ? "px-1 text-[11px] whitespace-nowrap" : "px-3",
+            "rounded-full border px-3 py-1 text-xs transition-colors",
             value === v
               ? "border-foreground/40 bg-muted font-medium"
               : "text-muted-foreground hover:text-foreground",
@@ -278,11 +271,16 @@ export function FilterBar({
               label={t.range}
               value={f.n}
               onChange={f.setN}
-              options={range}
-              className="grid w-full grid-cols-1 text-[11px] whitespace-nowrap [&>button]:px-1"
+              options={ranges.map((r) => [r, r ? t.recentShort(r) : t.all])}
+              className="grid w-full grid-cols-2 text-[11px] whitespace-nowrap [&>button]:px-1"
             />
           </div>
-          <Chips label={s.position} value={f.pos} onChange={f.setPos} options={positions} stacked />
+          <PanelRow
+            label={s.position}
+            value={f.pos}
+            onChange={f.setPos}
+            options={positions.map(([v, text]) => ({ value: v, title: text, content: v ? String(v) : text }))}
+          />
           <PanelRow
             label={t.side}
             value={f.side}
@@ -333,7 +331,7 @@ export function FilterBar({
 export const FILTER_PAGE = "relative flex flex-col gap-6";
 
 // One row of three small buttons in the side panel (side as the factions' pictures, result as W / L).
-function PanelRow<V extends string>({
+function PanelRow<V extends string | number>({
   label,
   value,
   onChange,
