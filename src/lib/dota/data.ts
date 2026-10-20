@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import { recordCall, sourceOf } from "./health";
+import { getStratzPeers } from "./stratz";
 
 // DotaHub's upstream data. OpenDota (no key needed on its free tier, about 60 requests a minute)
 // gives players and matches; Valve's own Dota 2 data feed gives hero and item names in Chinese and
@@ -235,10 +236,18 @@ export async function getPlayerHeroes(accountId: number) {
   return fresh(getJson<PlayerHero[]>(`${OPENDOTA}/players/${accountId}/heroes`));
 }
 
+// OpenDota's player statistics sometimes time out while the rest of it answers: STRATZ's teammates
+// over the newest matches stand in then.
 export async function getPeers(accountId: number) {
   "use cache";
   cacheLife(SLOW);
-  return getJson<Peer[]>(`${OPENDOTA}/players/${accountId}/peers`);
+  try {
+    return await getJson<Peer[]>(`${OPENDOTA}/players/${accountId}/peers`);
+  } catch (error) {
+    const fallback = await getStratzPeers(accountId).catch(() => null);
+    if (fallback?.length) return fallback;
+    throw error;
+  }
 }
 
 export async function getLaneRoles(accountId: number) {

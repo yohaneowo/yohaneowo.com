@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import type { DeathEvent, MatchDetails, StoredMatch } from "./admin";
+import type { Peer } from "./data";
 import { recordCall } from "./health";
 
 // STRATZ (GraphQL, STRATZ_API_TOKEN): one match's IMP scores and every player's deaths, with
@@ -524,4 +525,78 @@ export async function getRankAverages(heroId: number, tier: number): Promise<Ran
   const set: RankAverageSet = {};
   for (const p of POSITIONS) set[p] = toAverages(stats[`t${p}`] as RawTimes, stats[`i${p}`] as RawItems);
   return set[0] ? set : null;
+}
+
+// The people played with and against most, over the newest PEER_MATCHES matches: the stand-in for
+// OpenDota's peers when its player statistics are down (they sometimes time out while the rest of
+// OpenDota answers). In OpenDota's shape.
+const PEER_MATCHES = 2000;
+const PEERS = 50;
+
+type RawPeer = {
+  steamAccountId: number;
+  matchCount: number;
+  winCount: number;
+  lastMatchDateTime: number | null;
+  steamAccount: { name: string | null; avatar: string | null } | null;
+};
+
+export async function getStratzPeers(accountId: number): Promise<Peer[]> {
+  const token = process.env.STRATZ_API_TOKEN;
+  if (!token) throw new Error("STRATZ_API_TOKEN is not set");
+  const id = Math.trunc(accountId);
+  const peers = (sort: "WITH" | "AGAINST") =>
+    `${sort.toLowerCase()}: peers(request: { playerTeammateSort: ${sort}, matchGroupOrderBy: MATCH_COUNT, take: ${PEER_MATCHES} }, take: ${PEERS}) { steamAccountId matchCount winCount lastMatchDateTime steamAccount { name avatar } }`;
+  const started = Date.now();
+  const response = await fetch("https://api.stratz.com/graphql", {
+    method: "POST",
+    // STRATZ asks API clients to send this exact user agent.
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "STRATZ_API",
+    },
+    body: JSON.stringify({
+      query: `{ stratz { page { player(steamAccountId: ${id}) { ${peers("WITH")} ${peers("AGAINST")} } } } }`,
+    }),
+    signal: AbortSignal.timeout(20_000),
+  }).catch((error) => {
+    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    throw error;
+  });
+  recordCall("stratz", started, {
+    ok: response.ok,
+    error: response.ok ? null : `HTTP ${response.status}`,
+    headers: response.headers,
+  });
+  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+  const body = (await response.json()) as {
+    errors?: unknown[];
+    data?: { stratz?: { page?: { player?: { with: RawPeer[] | null; against: RawPeer[] | null } | null } } };
+  };
+  if (body.errors?.length) throw new Error("STRATZ query failed");
+  const player = body.data?.stratz?.page?.player;
+  const out = new Map<number, Peer>();
+  const add = (list: RawPeer[] | null | undefined, side: "with" | "against") => {
+    for (const p of list ?? []) {
+      if (!p.steamAccountId || p.steamAccountId === id) continue;
+      const peer = out.get(p.steamAccountId) ?? {
+        account_id: p.steamAccountId,
+        personaname: p.steamAccount?.name ?? null,
+        avatarfull: p.steamAccount?.avatar ?? null,
+        last_played: 0,
+        with_games: 0,
+        with_win: 0,
+        against_games: 0,
+        against_win: 0,
+      };
+      peer[`${side}_games`] = p.matchCount;
+      peer[`${side}_win`] = p.winCount;
+      peer.last_played = Math.max(peer.last_played, p.lastMatchDateTime ?? 0);
+      out.set(p.steamAccountId, peer);
+    }
+  };
+  add(player?.with, "with");
+  add(player?.against, "against");
+  return [...out.values()];
 }

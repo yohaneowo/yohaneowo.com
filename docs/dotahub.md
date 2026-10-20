@@ -18,7 +18,7 @@ STRATZ 要设 `User-Agent: STRATZ_API`。OpenDota 的统计接口（`/wl`、`/he
 - **网站**（`src/app/[lang]/dotahub/`、`src/lib/dota/`）：页面与图表。OpenDota、Valve、STRATZ 的单场查询都在网站，`"use cache"` 快取。
   - `lib/steam-link.ts`：Steam 连结（`steam_account` 表）、SteamID 与 Dota 帐号 ID 互换（差 `76561197960265728`）、`getSteamOwner` 查某个 Steam 是不是本站用户。
   - `lib/dota/data.ts`：OpenDota 与 Valve。`getJson` 把超时、连不上、错误码都变成 `DotaUnavailable`；但 `"use cache"` 里丢出的错误回到页面会变成普通 `Error`，所以页面一律 `catch` 后显示提示，不靠错误类型判断。
-  - `lib/dota/stratz.ts`：单场（`getStratzMatch`，比赛详情与最近一场）、别人最近 100 场天梯（`getStratzRanked`，含死亡与经济/IMP，快取数小时）、重新解析（`requestStratzParse`，同一场 10 分钟一次）。
+  - `lib/dota/stratz.ts`：队友的备援（`getStratzPeers`：OpenDota 的 `peers` 失败时，`getPeers` 改用 STRATZ `stratz.page.player.peers` 最近 2000 场的同队与对手，转成 OpenDota 的格式）；单场（`getStratzMatch`，比赛详情与最近一场）、别人最近 100 场天梯（`getStratzRanked`，含死亡与经济/IMP，快取数小时）、重新解析（`requestStratzParse`，同一场 10 分钟一次）。
   - `lib/dota/admin.ts`：admin 的网站接口（连结、状态、私讯开关、存档的死亡与 details）。
   - `lib/dota/health.ts`：导航右边三个点的状态（见下）。
   - `lib/dota/map.ts`：地图座标与分区。
