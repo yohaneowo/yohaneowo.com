@@ -333,14 +333,16 @@ export function CompareMenu({
     return (
       <div className="flex flex-col gap-1.5">
         <span className="text-xs text-muted-foreground">{t.label}</span>
-        <div className="flex flex-wrap items-center gap-1">
+        {/* One row in the panel's 110px: three faces and VS (with two picked, no plus: removing one
+            with its × brings it back). */}
+        <div className="flex items-center justify-between gap-0.5">
           <span title={me.label}>
-            <Face avatar={me.avatar} color={ME_COLOR} size={24} />
+            <Face avatar={me.avatar} color={ME_COLOR} size={28} />
           </span>
-          <span className="px-0.5 text-[10px] font-semibold text-muted-foreground">VS</span>
+          <span className="text-xs font-semibold text-muted-foreground">VS</span>
           {targets.map((x) => (
             <span key={x.key} className="group relative" title={x.label}>
-              <Face avatar={x.avatar} tier={x.tier} color={x.color} crowd={isCrowdKind(x.kind)} size={24} />
+              <Face avatar={x.avatar} tier={x.tier} color={x.color} crowd={isCrowdKind(x.kind)} size={28} />
               <button
                 type="button"
                 onClick={() => remove(x.key)}
@@ -351,16 +353,20 @@ export function CompareMenu({
               </button>
             </span>
           ))}
-          <Popover open={open} onOpenChange={openMenu}>
-            <PopoverTrigger
-              aria-label={t.pick}
-              title={t.pick}
-              className="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-muted-foreground hover:text-foreground"
-            >
-              <PlusIcon className="size-3.5" aria-hidden />
-            </PopoverTrigger>
-            {menu}
-          </Popover>
+          {!full && (
+            <Popover open={open} onOpenChange={openMenu}>
+              <PopoverTrigger
+                aria-label={t.pick}
+                title={t.pick}
+                className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-muted-foreground hover:text-foreground"
+              >
+                <PlusIcon className="size-4" aria-hidden />
+              </PopoverTrigger>
+              {menu}
+            </Popover>
+          )}
+          {/* Keeps the faces at the left while there's room. */}
+          {targets.length === 0 && <span className="size-7" aria-hidden />}
         </div>
       </div>
     );

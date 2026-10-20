@@ -269,7 +269,7 @@ export function FilterBar({
       {/* In the empty space left of the content (the page makes room, SIDE_PANEL_PAGE). The parent
           (FILTER_PAGE) is positioned and spans the page's content, so the panel sticks all the way down. */}
       <aside className="absolute top-0 right-full bottom-0 mr-4 hidden w-32 min-[1520px]:block">
-        <div className="sticky top-[118px] flex max-h-[calc(100vh-134px)] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top] duration-300 [html[data-header-hidden]_&]:top-16">
+        <div className="sticky top-[118px] flex max-h-[calc(100vh-126px)] flex-col gap-4 overflow-y-auto rounded-xl border p-2 transition-[top,max-height] duration-300 [html[data-header-hidden]_&]:top-16 [html[data-header-hidden]_&]:max-h-[calc(100vh-72px)]">
           {compare?.("panel")}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t.range}</span>
