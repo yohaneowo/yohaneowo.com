@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ExternalLinkIcon } from "lucide-react";
+import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
 import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
@@ -358,20 +358,26 @@ async function Detail({ params, searchParams }: { params: Params; searchParams: 
             </span>
           </p>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href={localePath(lang, "/dotahub/matches")} className="text-muted-foreground hover:underline">
-            {t.match.back}
-          </Link>
+        <div className="flex flex-col items-start gap-2 text-sm sm:items-end">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link
+              href={localePath(lang, "/dotahub/matches")}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+            >
+              <ArrowLeftIcon className="size-3.5" aria-hidden />
+              {t.match.back}
+            </Link>
+            <a
+              href={`https://www.opendota.com/matches/${id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+            >
+              {t.match.openOn}
+              <ExternalLinkIcon className="size-3" aria-hidden />
+            </a>
+          </div>
           <CopyMatchId matchId={id} />
-          <a
-            href={`https://www.opendota.com/matches/${id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-          >
-            {t.match.openOn}
-            <ExternalLinkIcon className="size-3" aria-hidden />
-          </a>
         </div>
       </div>
 

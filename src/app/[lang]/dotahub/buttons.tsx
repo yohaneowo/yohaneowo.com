@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
+import { cn } from "@/lib/utils";
 import { askStratzToParse, askToParse, disconnectSteam } from "./actions";
 
 export function DisconnectSteam() {
@@ -98,7 +99,12 @@ export function CopyMatchId({ matchId }: { matchId: number }) {
   return (
     <button
       type="button"
-      className="inline-flex cursor-pointer items-center gap-1 text-muted-foreground hover:text-foreground"
+      className={cn(
+        "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 transition-colors",
+        copied
+          ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : "border-foreground/25 bg-muted/40 hover:border-foreground/50 hover:bg-muted",
+      )}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(String(matchId));
@@ -108,8 +114,9 @@ export function CopyMatchId({ matchId }: { matchId: number }) {
         }
       }}
     >
-      {copied ? t.dotahub.match.copied : t.dotahub.match.copyId}
-      {copied ? <CheckIcon className="size-3" aria-hidden /> : <CopyIcon className="size-3" aria-hidden />}
+      {copied ? <CheckIcon className="size-4" aria-hidden /> : <CopyIcon className="size-4" aria-hidden />}
+      <span>{copied ? t.dotahub.match.copied : t.dotahub.match.copyId}</span>
+      <span className="font-mono text-xs text-muted-foreground tabular-nums">{matchId}</span>
     </button>
   );
 }
