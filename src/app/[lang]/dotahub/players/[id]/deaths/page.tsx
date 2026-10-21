@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DEATHS_TITLE_SLOT } from "../../../deaths/insights";
 import { getDictionary, getLocale } from "@/i18n/server";
-import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import { redirectIfOwn } from "../../../account";
 import { DeathsView, rangeParam } from "../../../deaths/deaths-view";
 import { PlayerChip } from "../../../deaths/player-chip";
@@ -10,6 +9,9 @@ import { accountParam } from "../../../match-list";
 import { Notice } from "../../../parts";
 import { prewarm } from "../../../prewarm";
 import { LoadingPanel } from "../../../loading-panel";
+import { sourceOf } from "../../../source";
+import { FullHistoryBanner } from "../../../full-history";
+import { getRankedCount } from "@/lib/dota/data";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ n?: string | string[] }>;
@@ -28,18 +30,27 @@ async function Deaths({ params, searchParams }: { params: Params; searchParams: 
   await redirectIfOwn(id, lang, "/dotahub/deaths");
   // Players who linked Steam here have their whole history stored; anyone else's newest ranked
   // matches are asked from STRATZ directly.
-  const userId = await getSteamOwner(steamIdOf(id));
-  await prewarm(id, userId ? { kind: "stored", userId } : { kind: "stratz" });
+  const { source, guest } = await sourceOf(id);
+  await prewarm(id, source);
   return (
-    <DeathsView
-      t={t}
-      lang={lang}
-      source={userId ? { kind: "stored", userId } : { kind: "stratz" }}
-      accountId={id}
-      n={rangeParam((await searchParams).n)}
-      path={`/dotahub/players/${id}/deaths`}
-      status={null}
-    />
+    <div className="flex flex-col gap-4">
+      {source.kind !== "stored" && (
+        <FullHistoryBanner
+          accountId={id}
+          guest={guest}
+          estimate={guest ? null : await getRankedCount(id).catch(() => null)}
+        />
+      )}
+      <DeathsView
+        t={t}
+        lang={lang}
+        source={source}
+        accountId={id}
+        n={rangeParam((await searchParams).n)}
+        path={`/dotahub/players/${id}/deaths`}
+        status={null}
+      />
+    </div>
   );
 }
 

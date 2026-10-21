@@ -251,3 +251,68 @@ export async function getRankSample(heroId: number, tier: number) {
     .nullable()
     .parse(await call(`/samples/${Math.trunc(heroId)}/${Math.trunc(tier)}?limit=200`));
 }
+
+// ── Guests: the whole history of an account nobody linked, read on request ─────────────────────
+
+const guestSchema = z.object({
+  accountId: z.number(),
+  state: z.enum(["queued", "reading", "done"]),
+  // Unfinished guests asked for before this one (0: it's being read).
+  ahead: z.number(),
+  read: z.number(),
+  historyDone: z.boolean(),
+  requestedAt: z.number(),
+  error: z.string().nullable(),
+});
+export type GuestStatus = z.infer<typeof guestSchema>;
+
+// A signed-in user confirmed reading an account's whole ranked history: admin queues it (one guest
+// at a time, a page a minute, a daily budget). "linked": the account is linked here already;
+// "tooMany": the user has three waiting.
+export async function queueGuest(
+  accountId: number,
+  userId: string,
+): Promise<GuestStatus | "linked" | "tooMany"> {
+  try {
+    return guestSchema.parse(
+      await call(`/guests/${Math.trunc(accountId)}`, { method: "POST", body: { requestedBy: userId } }),
+    );
+  } catch (error) {
+    if (error instanceof DotaAdminUnavailable && error.message === "HTTP 409") return "linked";
+    if (error instanceof DotaAdminUnavailable && error.message === "HTTP 429") return "tooMany";
+    throw error;
+  }
+}
+
+// Where an account's guest history stands; null when nobody asked for it.
+export async function getGuest(accountId: number) {
+  return guestSchema.nullable().parse(await call(`/guests/${Math.trunc(accountId)}`));
+}
+
+// The guests a user asked for, newest first (the progress notifications).
+export async function listGuests(userId: string) {
+  return z.array(guestSchema).parse(await call(`/guests?requestedBy=${encodeURIComponent(userId)}`));
+}
+
+// A guest's stored matches, as a linked account's (deaths, or economy and IMP details; limit 0:
+// all). Cached like those; asking also tells admin the guest is still looked at.
+export async function getGuestDeaths(accountId: number, limit: number) {
+  "use cache";
+  cacheLife(STORED);
+  return deathsSchema
+    .nullable()
+    .parse(await call(`/accounts/${Math.trunc(accountId)}/deaths?limit=${limit}`));
+}
+
+export async function getGuestDetails(accountId: number, limit: number) {
+  "use cache";
+  cacheLife(STORED);
+  const data = detailsListSchema
+    .nullable()
+    .parse(await call(`/accounts/${Math.trunc(accountId)}/details?limit=${limit}`));
+  if (!data) return null;
+  return {
+    historyDone: data.historyDone,
+    matches: data.matches.filter((m): m is DetailMatch => m.details !== null),
+  };
+}

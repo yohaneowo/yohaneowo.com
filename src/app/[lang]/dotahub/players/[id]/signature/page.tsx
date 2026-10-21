@@ -6,9 +6,9 @@ import { PlayerChip } from "../../../deaths/player-chip";
 import { accountParam } from "../../../match-list";
 import { Notice } from "../../../parts";
 import { SignatureBody } from "../../../signature/body";
-import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import { prewarm } from "../../../prewarm";
 import { LoadingPanel } from "../../../loading-panel";
+import { sourceOf } from "../../../source";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ hero?: string | string[] }>;
@@ -26,8 +26,8 @@ async function Body({ params, searchParams }: { params: Params; searchParams: Se
   const id = accountParam((await params).id);
   if (!id) return <Notice>{t.player.notFound}</Notice>;
   await redirectIfOwn(id, lang, "/dotahub/signature");
-  const userId = await getSteamOwner(steamIdOf(id));
-  await prewarm(id, userId ? { kind: "stored", userId } : { kind: "stratz" });
+  const { source } = await sourceOf(id);
+  await prewarm(id, source);
   const hero = Number((await searchParams).hero);
   return (
     <SignatureBody

@@ -213,6 +213,14 @@ export async function getWinLoss(accountId: number) {
   return fresh(getJson<{ win: number; lose: number }>(`${OPENDOTA}/players/${accountId}/wl`));
 }
 
+// How many ranked matches a player has (OpenDota's count), to say how long reading them all takes.
+export async function getRankedCount(accountId: number) {
+  "use cache";
+  cacheLife(SLOW);
+  const wl = await getJson<{ win: number; lose: number }>(`${OPENDOTA}/players/${accountId}/wl?lobby_type=7`);
+  return wl.win + wl.lose;
+}
+
 export async function getRecentMatches(accountId: number) {
   "use cache";
   cacheLife(QUICK);

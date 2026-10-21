@@ -2,7 +2,6 @@ import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getItemCosts, getItems, getPeers, getPlayer, isKeyItem } from "@/lib/dota/data";
 import { getRankAverages, getStratzProfile } from "@/lib/dota/stratz";
-import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import type { DeathsSource } from "../deaths/deaths-view";
 import type { CompareProps } from "../economy/compare/compare-menu";
 import { CompareView } from "../economy/compare/compare-view";
@@ -20,6 +19,7 @@ import { ImpExplorer } from "../imp/imp-explorer";
 import { Notice } from "../parts";
 import { bracketVolatility, loadBracket, loadDetailMatches, loadRank } from "./load";
 import { getGoatScene } from "@/lib/dota/goat";
+import { sourceOf } from "../source";
 
 const BRACKET_HEROES = 8;
 const PEER_SUGGESTIONS = 12;
@@ -92,9 +92,11 @@ export async function StatsBody({
     kind === "economy" ? getItemCosts().catch(() => null) : null,
   ]);
   if (!data) return <Notice>{t.stats.unavailable}</Notice>;
-  const ranges = source.kind === "stored" ? [20, 50, 100, 0] : [20, 50, 100];
+  const ranges = source.kind === "stratz" ? [20, 50, 100] : [20, 50, 100, 0];
   const matchHref = localePath(lang, "/dotahub/matches");
-  const note = !data.complete ? t.stats.history : source.kind === "stratz" ? t.player.stratzRecent : null;
+  // A guest or a STRATZ-only player says where the matches come from in the 读取全部 banner above
+  // (how far the reading has got, or the newest 100), so not again here.
+  const note = !data.complete && source.kind === "stored" ? t.stats.history : null;
 
   // The key items any shown match bought (the compared players' included), for the client.
   const items: Record<number, KeyItem> = {};
@@ -170,11 +172,9 @@ export async function StatsBody({
           };
         }
         const id = Number(key);
-        const owner = await getSteamOwner(steamIdOf(id));
+        const { source: otherSource } = await sourceOf(id);
         const [other, profile] = await Promise.all([
-          loadDetailMatches(owner ? { kind: "stored", userId: owner } : { kind: "stratz" }, id).catch(
-            () => null,
-          ),
+          loadDetailMatches(otherSource, id).catch(() => null),
           profileOf(id),
         ]);
         return other
@@ -186,7 +186,12 @@ export async function StatsBody({
               matches: other.matches,
               sides: other.sides,
               avatar: profile.avatar,
-              history: { stored: Boolean(owner), complete: other.complete, count: other.matches.length },
+              history: {
+                stored: otherSource.kind !== "stratz",
+                complete: other.complete,
+                count: other.matches.length,
+                accountId: id,
+              },
             }
           : null;
       }),

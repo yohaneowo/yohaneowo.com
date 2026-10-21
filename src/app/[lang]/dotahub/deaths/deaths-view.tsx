@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { type DotaStatus, getStoredDeaths } from "@/lib/dota/admin";
+import { type DotaStatus, getGuestDeaths, getStoredDeaths } from "@/lib/dota/admin";
 import { getHeroes, getRankedSides } from "@/lib/dota/data";
 import { getStratzRanked } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
@@ -17,11 +17,13 @@ export function rangeParam(raw: string | string[] | undefined) {
 }
 
 // Where the deaths come from: admin's stored history for a player who linked Steam here (every
-// ranked match, kept up to date), or STRATZ asked directly for anyone else (the newest 100).
-export type DeathsSource = { kind: "stored"; userId: string } | { kind: "stratz" };
+// ranked match, kept up to date), admin's guest history for someone a signed-in user asked to read
+// in full (see full-history.tsx), or STRATZ asked directly for anyone else (the newest 100).
+export type DeathsSource = { kind: "stored"; userId: string } | { kind: "guest" } | { kind: "stratz" };
 
 export async function loadDeaths(source: DeathsSource, accountId: number, n: number) {
   if (source.kind === "stored") return getStoredDeaths(source.userId, n);
+  if (source.kind === "guest") return getGuestDeaths(accountId, n);
   // Without the details: the heat map doesn't use them, and they'd only weigh on the page.
   const matches = (await getStratzRanked(accountId)).map((match) => {
     const { details, ...rest } = match;
@@ -51,7 +53,7 @@ export async function DeathsView({
   status: DotaStatus | null;
 }) {
   // Asked directly, there is no "all": the newest 100 are as far back as it goes.
-  const ranges = source.kind === "stored" ? RANGES : RANGES.filter(Boolean);
+  const ranges = source.kind === "stratz" ? RANGES.filter(Boolean) : RANGES;
   const n = ranges.includes(asked) ? asked : 100;
   let data, heroes, sides: Record<number, boolean>;
   try {
@@ -86,7 +88,6 @@ export async function DeathsView({
       {status?.linked && !status.historyDone && (
         <p className="text-xs text-muted-foreground">{t.deaths.history(status.historyRead)}</p>
       )}
-      {source.kind === "stratz" && <p className="text-xs text-muted-foreground">{t.player.stratzRecent}</p>}
       <DeathsExplorer
         matches={data.matches}
         heroes={heroes}

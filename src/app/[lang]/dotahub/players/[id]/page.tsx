@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getDictionary, getLocale } from "@/i18n/server";
-import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
+import { steamIdOf } from "@/lib/steam-link";
 import { redirectIfOwn } from "../../account";
 import { accountParam } from "../../match-list";
 import { Overview } from "../../overview";
 import { Notice } from "../../parts";
 import { prewarm } from "../../prewarm";
+import { sourceOf } from "../../source";
 
 type Params = Promise<{ id: string }>;
 
@@ -24,18 +25,9 @@ async function Player({ params }: { params: Params }) {
   if (!id) return <Notice>{t.player.notFound}</Notice>;
   await redirectIfOwn(id, lang, "/dotahub");
   // Linked here: admin's stored history (IMP chart); anyone else: STRATZ asked directly.
-  const userId = await getSteamOwner(steamIdOf(id));
-  await prewarm(id, userId ? { kind: "stored", userId } : { kind: "stratz" });
-  return (
-    <Overview
-      t={t}
-      lang={lang}
-      accountId={id}
-      steamId={steamIdOf(id)}
-      own={false}
-      source={userId ? { kind: "stored", userId } : { kind: "stratz" }}
-    />
-  );
+  const { source } = await sourceOf(id);
+  await prewarm(id, source);
+  return <Overview t={t} lang={lang} accountId={id} steamId={steamIdOf(id)} own={false} source={source} />;
 }
 
 // Someone's public DotaHub page (a teammate, a player in a match), from OpenDota's public data;

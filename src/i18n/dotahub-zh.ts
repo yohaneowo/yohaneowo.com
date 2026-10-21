@@ -355,7 +355,6 @@ const dotahubZh = {
     notFound: "找不到这位玩家。",
     mine: "返回我的 DotaHub",
     noStratz: "STRATZ 查不到这位玩家的天梯比赛，可能没有公开比赛资料。",
-    stratzRecent: "这位玩家没有在本站连结 Steam，所以直接向 STRATZ 查最近 100 场天梯（几小时更新一次）。",
     deathsDescription: "这位玩家在天梯比赛里死在地图哪里：越多次的地方颜色越深。资料来自 STRATZ，只算天梯。",
     peersDescription: "这位玩家最常一起玩的人（同一队至少 3 场）。",
   },
@@ -681,6 +680,37 @@ const dotahubZh = {
       imp: ["读取天梯比赛…", "整理每分钟的 IMP…", "画图表…"],
       signature: ["读取完整的天梯历史…", "按英雄与位置分组…", "计算证据与机率…", "整理绝活卡片…"],
     },
+  },
+  full: {
+    only100: (estimate: number | null) =>
+      estimate
+        ? `目前只用了 STRATZ 最近 100 场（这位玩家大约有 ${estimate.toLocaleString()} 场天梯）。`
+        : "目前只用了 STRATZ 最近 100 场。",
+    readAll: "读取全部",
+    confirmTitle: "读取这位玩家的全部天梯？",
+    confirmBody: (n: number, minutes: number) =>
+      `大约 ${n.toLocaleString()} 场，在背景排队读取，每分钟约 100 场，轮到之后约需 ${minutes} 分钟。读完会在右上角通知你，之后所有人都能看「全部」。`,
+    confirmBodyUnknown: "会在背景排队读取，每分钟约 100 场。读完会在右上角通知你，之后所有人都能看「全部」。",
+    confirmRules:
+      "为了不一次用掉太多 API：一次只读一位，每人同时最多排 3 位，每天有总量上限（超过就排到隔天）。30 天没人看会删除，到时再读一次。",
+    cancel: "取消",
+    confirm: "加入队列",
+    signIn: "登入后才能读取全部 →",
+    errors: {
+      linked: "这位玩家已经连结 Steam，全部比赛会自动补齐。",
+      tooMany: "你已经有 3 位在排队，等其中一位读完再加。",
+      unavailable: "暂时无法加入队列，请稍后再试。",
+    },
+    queued: (ahead: number) => (ahead ? `已在队列中，前面还有 ${ahead} 位。` : "已在队列中，马上开始读取。"),
+    reading: (n: number) =>
+      `正在读取全部天梯：已读 ${n.toLocaleString()} 场。读完前「全部」先用已读到的部分。`,
+    queuedShort: "已加入队列",
+    noticeQueued: (ahead: number) => (ahead ? `排队中，前面还有 ${ahead} 位` : "排队中，马上开始"),
+    noticeReading: (n: number) => `正在读取全部天梯：已读 ${n.toLocaleString()} 场`,
+    noticeDone: (n: number) => `全部 ${n.toLocaleString()} 场天梯读完了`,
+    noticeRetry: "STRATZ 暂时出错，稍后会自动重试",
+    open: "看他的经济 →",
+    dismiss: "关闭",
   },
   ago: {
     minutes: (n: number) => `${n} 分钟前`,

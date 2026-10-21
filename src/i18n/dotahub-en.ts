@@ -369,8 +369,6 @@ const dotahubEn: typeof dotahubZh = {
     notFound: "No such player.",
     mine: "Back to my DotaHub",
     noStratz: "STRATZ has no ranked matches for this player; their match data may not be public.",
-    stratzRecent:
-      "This player hasn't linked Steam here, so their newest 100 ranked matches come straight from STRATZ (refreshed every few hours).",
     deathsDescription:
       "Where this player dies in ranked matches: the more deaths, the darker. From STRATZ, ranked only.",
     peersDescription: "The people this player plays with most (at least 3 games on the same team).",
@@ -734,6 +732,38 @@ const dotahubEn: typeof dotahubZh = {
         "Making the cards…",
       ],
     },
+  },
+  full: {
+    only100: (estimate: number | null) =>
+      estimate
+        ? `Only STRATZ's newest 100 so far (this player has about ${estimate.toLocaleString()} ranked matches).`
+        : "Only STRATZ's newest 100 so far.",
+    readAll: "Read them all",
+    confirmTitle: "Read all of this player's ranked matches?",
+    confirmBody: (n: number, minutes: number) =>
+      `About ${n.toLocaleString()} matches, read in the background at about 100 a minute: some ${minutes} minutes once it's their turn. You'll be told at the top right, and everyone can see All afterwards.`,
+    confirmBodyUnknown:
+      "Read in the background at about 100 a minute. You'll be told at the top right, and everyone can see All afterwards.",
+    confirmRules:
+      "So as not to use too much of the APIs at once: one player at a time, up to 3 waiting per person, and a daily total (past it, the rest waits for the next day). Dropped after 30 days unseen; it can be read again.",
+    cancel: "Cancel",
+    confirm: "Queue it",
+    signIn: "Sign in to read them all →",
+    errors: {
+      linked: "This player has linked Steam: all their matches are read anyway.",
+      tooMany: "You have 3 waiting already; add more once one is done.",
+      unavailable: "Couldn't queue it right now. Try again later.",
+    },
+    queued: (ahead: number) => (ahead ? `Queued, ${ahead} ahead.` : "Queued, starting now."),
+    reading: (n: number) =>
+      `Reading all their ranked matches: ${n.toLocaleString()} so far. All uses what's read until it's done.`,
+    queuedShort: "Queued",
+    noticeQueued: (ahead: number) => (ahead ? `Queued, ${ahead} ahead` : "Queued, starting now"),
+    noticeReading: (n: number) => `Reading all ranked matches: ${n.toLocaleString()} so far`,
+    noticeDone: (n: number) => `All ${n.toLocaleString()} ranked matches read`,
+    noticeRetry: "STRATZ is erroring; it will retry",
+    open: "See their economy →",
+    dismiss: "Close",
   },
   ago: {
     minutes: (n: number) => `${n} min ago`,

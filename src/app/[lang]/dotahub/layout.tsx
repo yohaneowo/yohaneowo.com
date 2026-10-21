@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { SubNavPlaceholder } from "@/components/sub-nav";
 import { getDictionary } from "@/i18n/server";
 import { DotaSubNav } from "./dota-sub-nav";
+import { FullHistoryNotices } from "./full-history-notices";
 
 // Every DotaHub page shares the sub-navigation (scoped to the player on someone's public page),
 // and the data sources at the bottom.
@@ -13,6 +14,7 @@ export default async function DotaHubLayout({ children }: { children: React.Reac
         <DotaSubNav />
       </Suspense>
       {children}
+      <FullHistoryNotices />
       <p className="mt-10 text-xs text-muted-foreground">{t.sources}</p>
     </>
   );

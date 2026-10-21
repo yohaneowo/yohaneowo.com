@@ -1,6 +1,6 @@
 import "server-only";
 import { after, connection } from "next/server";
-import { getStoredDeaths, getStoredDetails } from "@/lib/dota/admin";
+import { getGuestDeaths, getGuestDetails, getStoredDeaths, getStoredDetails } from "@/lib/dota/admin";
 import { getHeroes, getItemCosts, getItems, getPeers, getRankedSides } from "@/lib/dota/data";
 import { getHeroLevels, getPracticeHistory, getRankedHistory, getStratzRanked } from "@/lib/dota/stratz";
 import type { DeathsSource } from "./deaths/deaths-view";
@@ -24,7 +24,9 @@ export async function prewarm(accountId: number, source: DeathsSource) {
       // The death map's default range (rangeParam: 50) and the economy / IMP pages' full list.
       ...(source.kind === "stored"
         ? [getStoredDeaths(source.userId, 50), getStoredDetails(source.userId, 0)]
-        : [getStratzRanked(accountId)]),
+        : source.kind === "guest"
+          ? [getGuestDeaths(accountId, 50), getGuestDetails(accountId, 0)]
+          : [getStratzRanked(accountId)]),
     ]);
   });
 }

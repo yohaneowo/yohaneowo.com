@@ -17,7 +17,7 @@ export type Series = {
   sides: Record<number, boolean>;
   // A player's matches: from admin (linked here; complete once the older ones are all read) or
   // STRATZ's newest 100; count is how many there are so far.
-  history?: { stored: boolean; complete: boolean; count: number };
+  history?: { stored: boolean; complete: boolean; count: number; accountId: number };
   // A player's avatar; a rank's rank_tier (medal × 10, for its medal icon).
   avatar?: string | null;
   tier?: number | null;

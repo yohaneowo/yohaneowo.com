@@ -532,6 +532,39 @@ export const ROADMAP: RoadmapItem[] = [
     started: "2026-10-21",
   },
   {
+    id: "dotahub-full-history",
+    status: "building",
+    area: "dotahub",
+    title: { zh: "DotaHub：读取任何玩家的全部天梯", en: "DotaHub: read anyone's whole ranked history" },
+    summary: {
+      zh: "没在本站连结 Steam 的玩家，也能在登入后按「读取全部」，在背景排队读完他所有的天梯，死亡热力图、经济与 IMP 就能选「全部」。",
+      en: "For players who haven't linked Steam here: sign in, press Read them all, and their whole ranked history is queued and read in the background, so the death map, economy and IMP can show All.",
+    },
+    why: {
+      zh: "以前只有连结过的人才看得到全部，其他人只有 STRATZ 最近 100 场；一次读太多又怕把 API 额度用完。",
+      en: "Only linked players had All; everyone else had STRATZ's newest 100, and reading a lot at once risks the API quota.",
+    },
+    steps: [
+      step(
+        "admin：访客队列，一次一位、每分钟 100 场、每天总量上限，每人同时最多 3 位，30 天没人看就删除",
+        "admin: a guest queue, one at a time, 100 matches a minute, a daily total, 3 waiting per person, dropped after 30 days unseen",
+        true,
+      ),
+      step(
+        "网站：确认框、进度横幅、右上角通知，对比说明里也能直接排队",
+        "Site: a confirmation, a progress banner, notifications at the top right, and queuing from the compare notes",
+        true,
+      ),
+      step(
+        "上线后观察 STRATZ 用量，调整每天的上限",
+        "Watch STRATZ use after release and tune the daily total",
+      ),
+    ],
+    links: [],
+    added: "2026-10-21",
+    started: "2026-10-21",
+  },
+  {
     id: "dotahub-research",
     status: "considering",
     area: "dotahub",

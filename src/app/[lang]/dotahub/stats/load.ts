@@ -4,6 +4,7 @@ import {
   type DetailMatch,
   getRankSample,
   getStoredBracket,
+  getGuestDetails,
   getStoredDetails,
 } from "@/lib/dota/admin";
 import { getHeroes, getRankedSides } from "@/lib/dota/data";
@@ -15,9 +16,9 @@ import type { DeathsSource } from "../deaths/deaths-view";
 // newest 100). complete: false while admin is still reading the history.
 export async function loadDetailMatches(source: DeathsSource, accountId: number) {
   const [data, heroes, sides] = await Promise.all([
-    source.kind === "stored"
-      ? getStoredDetails(source.userId, 0).then((d) =>
-          d ? { matches: d.matches, complete: d.historyDone } : null,
+    source.kind === "stored" || source.kind === "guest"
+      ? (source.kind === "stored" ? getStoredDetails(source.userId, 0) : getGuestDetails(accountId, 0)).then(
+          (d) => (d ? { matches: d.matches, complete: d.historyDone } : null),
         )
       : getStratzRanked(accountId).then((all) => ({
           matches: all

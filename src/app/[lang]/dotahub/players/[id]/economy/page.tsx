@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getDictionary, getLocale } from "@/i18n/server";
-import { getSteamOwner, steamIdOf } from "@/lib/steam-link";
 import { redirectIfOwn } from "../../../account";
 import { PlayerChip } from "../../../deaths/player-chip";
 import { accountParam } from "../../../match-list";
@@ -10,6 +9,9 @@ import { StatsBody } from "../../../stats/body";
 import { SIDE_PANEL_PAGE } from "../../../stats/panel";
 import { prewarm } from "../../../prewarm";
 import { LoadingPanel } from "../../../loading-panel";
+import { sourceOf } from "../../../source";
+import { FullHistoryBanner } from "../../../full-history";
+import { getRankedCount } from "@/lib/dota/data";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ vs?: string | string[] }>;
@@ -28,16 +30,20 @@ async function Body({ params, searchParams }: { params: Params; searchParams: Se
   if (!id) return <Notice>{t.player.notFound}</Notice>;
   await redirectIfOwn(id, lang, "/dotahub/economy");
   // Linked here: admin's stored history; anyone else: STRATZ asked directly.
-  const userId = await getSteamOwner(steamIdOf(id));
-  await prewarm(id, userId ? { kind: "stored", userId } : { kind: "stratz" });
+  const { source, guest } = await sourceOf(id);
+  await prewarm(id, source);
   const vs = (await searchParams).vs;
   return (
-    <StatsBody
-      kind="economy"
-      source={userId ? { kind: "stored", userId } : { kind: "stratz" }}
-      accountId={id}
-      vs={Array.isArray(vs) ? vs[0] : vs}
-    />
+    <div className="flex flex-col gap-4">
+      {source.kind !== "stored" && (
+        <FullHistoryBanner
+          accountId={id}
+          guest={guest}
+          estimate={guest ? null : await getRankedCount(id).catch(() => null)}
+        />
+      )}
+      <StatsBody kind="economy" source={source} accountId={id} vs={Array.isArray(vs) ? vs[0] : vs} />
+    </div>
   );
 }
 
