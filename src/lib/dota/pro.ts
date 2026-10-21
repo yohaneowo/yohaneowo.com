@@ -1,5 +1,5 @@
 import "server-only";
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { getJson } from "./data";
 import { stratzQuery } from "./stratz";
 
@@ -457,6 +457,8 @@ export type LiveGame = {
 export async function getLivePros(): Promise<{ games: LiveGame[]; at: number }> {
   "use cache";
   cacheLife({ stale: 30, revalidate: 60, expire: 3600 });
+  // The live page's refresh button expires it early (goat/live/actions.ts).
+  cacheTag("goat-live");
   type Raw = {
     match_id: string;
     game_time: number;
@@ -481,7 +483,9 @@ export async function getLivePros(): Promise<{ games: LiveGame[]; at: number }> 
   };
   const live = await getJson<Raw[]>(`${OPENDOTA}/live`);
   const games = live
-    .filter((g) => g.players?.some((p) => p.is_pro))
+    // OpenDota keeps games in the list for a while after they stop updating (ended or dropped):
+    // only the ones updated in the last 10 minutes.
+    .filter((g) => g.players?.some((p) => p.is_pro) && g.last_update_time >= Date.now() / 1000 - 600)
     .sort((a, b) => b.sort_score - a.sort_score)
     .map((g) => ({
       matchId: g.match_id,

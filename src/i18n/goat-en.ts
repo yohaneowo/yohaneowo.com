@@ -192,6 +192,12 @@ const goatEn: typeof goatZh = {
     heroGames: (n: number) => `in ${n} games`,
     nobody: "nobody on it now",
     noMatch: "Nobody is playing the picked heroes right now.",
+    refreshNow: "Refresh now",
+    refreshingNow: "Refreshing…",
+    updatedAgo: (ago: string) => `Data from ${ago}`,
+    secondsAgo: (n: number) => `${n} seconds ago`,
+    matchId: "Match ID",
+    matchIdHint: "Copy it and search for the match in the game's Watch tab",
     refreshing: "Refreshes every minute",
   },
 };

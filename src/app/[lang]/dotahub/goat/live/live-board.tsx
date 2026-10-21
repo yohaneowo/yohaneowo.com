@@ -11,6 +11,7 @@ import type { LiveGame } from "@/lib/dota/pro";
 import { cn } from "@/lib/utils";
 import { duration, HeroImage } from "../../parts";
 import { AddToCompare } from "../compare-tray";
+import { CopyValue } from "../copy-button";
 
 const ATTR_ICONS = ["strength", "agility", "intelligence", "universal"].map(
   (name) => `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/icons/hero_${name}.png`,
@@ -246,6 +247,11 @@ export function LiveBoard({ games, heroes }: { games: LiveGame[]; heroes: Record
                     {game.averageMmr && <span>{g.averageMmr(game.averageMmr)}</span>}
                     <span>{game.leagueId ? `${g.league} ${game.leagueId}` : g.pub}</span>
                     {game.spectators > 0 && <span>{g.spectators(game.spectators)}</span>}
+                    {/* The match ID, to search in the game's Watch tab. */}
+                    <span className="ml-auto flex items-center gap-0.5" title={g.matchIdHint}>
+                      {g.matchId}
+                      <CopyValue value={game.matchId} label={g.matchId} />
+                    </span>
                   </div>
                   {/* The gold lead as a bar: green to the left for Radiant, red to the right for Dire. */}
                   <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">

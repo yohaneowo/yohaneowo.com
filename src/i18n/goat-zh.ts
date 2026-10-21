@@ -192,6 +192,12 @@ const goatZh = {
     heroGames: (n: number) => `${n} 场在玩`,
     nobody: "现在没人在玩",
     noMatch: "选的英雄现在没有人在玩。",
+    refreshNow: "立刻刷新",
+    refreshingNow: "刷新中…",
+    updatedAgo: (ago: string) => `资料 ${ago}`,
+    secondsAgo: (n: number) => `${n} 秒前`,
+    matchId: "对局 ID",
+    matchIdHint: "复制后可在游戏内的「观战」搜寻这场对局",
     refreshing: "每分钟自动刷新",
   },
 };

@@ -6,11 +6,18 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary } from "@/i18n/server";
 import { getHeroes, type HeroInfo } from "@/lib/dota/data";
 import { getLivePros } from "@/lib/dota/pro";
-import { Notice } from "../../parts";
+import { ago, Notice } from "../../parts";
 import { AutoRefresh } from "./auto-refresh";
 import { LiveBoard } from "./live-board";
+import { RefreshButton } from "./refresh-button";
 
 type T = Dictionary["dotahub"];
+
+// How old the live data is, to the second while under a minute.
+function age(at: number, t: T) {
+  const seconds = Math.round((Date.now() - at) / 1000);
+  return seconds < 60 ? t.goat.live.secondsAgo(Math.max(1, seconds)) : ago(at / 1000, t);
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = (await getDictionary()).dotahub.goat;
@@ -29,14 +36,17 @@ async function Body({ t }: { t: T }) {
     <div className="flex flex-col gap-3">
       {/* The refresh keeps the filter: it only reloads the games. */}
       <AutoRefresh seconds={60} />
-      <div>
-        <h2 className="flex items-center gap-2 font-medium">
-          <RadioIcon className="size-4 animate-pulse text-red-500" aria-hidden />
-          {g.title}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {g.hint} {g.refreshing}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="flex items-center gap-2 font-medium">
+            <RadioIcon className="size-4 animate-pulse text-red-500" aria-hidden />
+            {g.title}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {g.hint} {g.refreshing}
+          </p>
+        </div>
+        <RefreshButton updated={age(live.at, t)} />
       </div>
       <LiveBoard games={live.games} heroes={heroes} />
     </div>
