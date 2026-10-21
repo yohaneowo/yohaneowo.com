@@ -254,9 +254,9 @@ const dotahubZh = {
   },
   signature: {
     noRecentRanked: (date: string) =>
-      `看不到这个帐号近 180 天的天梯比赛（最后一场看得到的是 ${date}），所以每个绝活都只能算历史绝活。可能是没打，也可能是关闭了「公开比赛资料」：那样天梯比赛不会出现在任何第三方网站。`,
+      `看不到这个帐号近 180 天的天梯比赛（最后一场看得到的是 ${date}），所以每个绝活都只能算历史绝活。`,
     stillRanked: (rank: number) =>
-      `他目前在 Valve 官方天梯排行第 ${rank} 名，所以很可能还在打，只是比赛资料不公开（读取全部也补不回来）。`,
+      `他目前在 Valve 官方天梯排行第 ${rank} 名，所以还在打。2025 年 3 月起，只要对局里有人超过 8500 分就按冠绝征召进行，这类对局不进公开比赛历史、Valve 的 API 也查不到，OpenDota、STRATZ 和本站都拿不到（读取全部也补不回来）。`,
     proElsewhere: (name: string, team: string | null) =>
       `${name} 是${team ? ` ${team} 的` : ""}职业选手：训练赛与正式比赛（练习房的队长模式，不算天梯）一定公开，见下方。`,
     toGoat: "在 GOAT 看他的战队与帐号",
@@ -689,6 +689,8 @@ const dotahubZh = {
         ? `目前只用了 STRATZ 最近 100 场（这位玩家大约有 ${estimate.toLocaleString()} 场天梯）。`
         : "目前只用了 STRATZ 最近 100 场。",
     offerHint: "读完后死亡热力图、经济和 IMP 都能选「全部」，所有人都能看。",
+    highHidden: (rank: number) =>
+      `他在官方天梯排行第 ${rank} 名：2025 年 3 月起 8500 分以上的对局（冠绝征召）不公开，读取全部只能补到公开的场次，大多是那之前的。`,
     readAll: "读取全部",
     confirmTitle: "读取这位玩家的全部天梯？",
     confirmBody: (n: number, minutes: number) =>

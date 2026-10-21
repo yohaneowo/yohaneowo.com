@@ -266,9 +266,9 @@ const dotahubEn: typeof dotahubZh = {
   },
   signature: {
     noRecentRanked: (date: string) =>
-      `No ranked match of this account in the last 180 days can be seen (the last one visible is from ${date}), so every signature hero can only be a former one. Either they haven't played, or they turned off Expose Public Match Data: then their ranked matches show up on no third-party site.`,
+      `No ranked match of this account in the last 180 days can be seen (the last one visible is from ${date}), so every signature hero can only be a former one.`,
     stillRanked: (rank: number) =>
-      `They're #${rank} on Valve's ranked leaderboard right now, so they most likely still play; their matches just aren't public (reading them all can't bring them back).`,
+      `They're #${rank} on Valve's ranked leaderboard right now, so they still play. Since March 2025 a match with anyone above 8500 MMR is played as Immortal Draft, which stays out of public match history and Valve's API: OpenDota, STRATZ and this site can't get it (reading them all can't bring it back).`,
     proElsewhere: (name: string, team: string | null) =>
       `${name} is a pro${team ? ` on ${team}` : ""}: scrims and official matches (captains mode in practice lobbies, not ranked) are always public; see below.`,
     toGoat: "Their team and accounts in GOAT",
@@ -741,6 +741,8 @@ const dotahubEn: typeof dotahubZh = {
         ? `Only STRATZ's newest 100 so far (this player has about ${estimate.toLocaleString()} ranked matches).`
         : "Only STRATZ's newest 100 so far.",
     offerHint: "Once read, the death map, economy and IMP can all show All, for everyone.",
+    highHidden: (rank: number) =>
+      `They're #${rank} on the ranked leaderboard: since March 2025 matches above 8500 MMR (Immortal Draft) aren't public, so reading them all only fills in the public ones, mostly from before then.`,
     readAll: "Read them all",
     confirmTitle: "Read all of this player's ranked matches?",
     confirmBody: (n: number, minutes: number) =>

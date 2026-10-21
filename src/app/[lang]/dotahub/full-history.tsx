@@ -116,10 +116,13 @@ export function FullHistoryBanner({
   accountId,
   guest: initial,
   estimate,
+  leaderboard,
 }: {
   accountId: number;
   guest: GuestStatus | null;
   estimate: number | null;
+  // Their place on Valve's ranked leaderboard: their newer matches are likely hidden (Immortal Draft).
+  leaderboard: number | null;
 }) {
   const f = useLocale().t.dotahub.full;
   const [guest, setGuest] = useState(initial);
@@ -138,6 +141,11 @@ export function FullHistoryBanner({
           <div className="min-w-0 flex-1">
             <p className="font-medium text-amber-900 dark:text-amber-100">{f.only100(estimate)}</p>
             <p className="text-xs text-amber-800/80 dark:text-amber-200/70">{f.offerHint}</p>
+            {leaderboard ? (
+              <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/70">
+                {f.highHidden(leaderboard)}
+              </p>
+            ) : null}
           </div>
           <Request accountId={accountId} estimate={estimate} onQueued={setGuest} />
         </>

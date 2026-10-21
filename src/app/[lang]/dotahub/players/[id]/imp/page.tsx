@@ -11,7 +11,7 @@ import { prewarm } from "../../../prewarm";
 import { LoadingPanel } from "../../../loading-panel";
 import { sourceOf } from "../../../source";
 import { FullHistoryBanner } from "../../../full-history";
-import { getRankedCount } from "@/lib/dota/data";
+import { getPlayer, getRankedCount } from "@/lib/dota/data";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ vs?: string | string[] }>;
@@ -40,6 +40,7 @@ async function Body({ params, searchParams }: { params: Params; searchParams: Se
           accountId={id}
           guest={guest}
           estimate={guest ? null : await getRankedCount(id).catch(() => null)}
+          leaderboard={(await getPlayer(id).catch(() => null))?.data.leaderboard_rank ?? null}
         />
       )}
       <StatsBody kind="imp" source={source} accountId={id} vs={Array.isArray(vs) ? vs[0] : vs} />
