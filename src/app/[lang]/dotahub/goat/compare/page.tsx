@@ -19,7 +19,8 @@ import {
   type PlayerHero,
   type PlayerMatch,
 } from "@/lib/dota/data";
-import { getProDetails, getProScene, type ProDetails } from "@/lib/dota/pro";
+import { getGoatScene } from "@/lib/dota/goat";
+import { getProDetails, type ProDetails } from "@/lib/dota/pro";
 import { cn } from "@/lib/utils";
 import { dotaViewer } from "../../account";
 import { duration, HeroImage, Medal } from "../../parts";
@@ -70,7 +71,7 @@ function parseIds(raw: string | string[] | undefined) {
 async function load(
   id: number,
   me: boolean,
-  scene: Awaited<ReturnType<typeof getProScene>> | null,
+  scene: Awaited<ReturnType<typeof getGoatScene>> | null,
   details: Record<number, ProDetails>,
 ): Promise<Person> {
   const [player, wl, recent, heroes] = await Promise.all([
@@ -138,7 +139,7 @@ async function Body({ searchParams, t, lang }: { searchParams: SearchParams; t: 
     );
 
   const [scene, details, heroInfo] = await Promise.all([
-    getProScene().catch(() => null),
+    getGoatScene().catch(() => null),
     getProDetails(ids).catch(() => ({}) as Record<number, ProDetails>),
     getHeroes().catch(() => ({}) as Record<number, HeroInfo>),
   ]);

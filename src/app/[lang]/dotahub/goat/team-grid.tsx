@@ -3,10 +3,11 @@
 import { useDeferredValue, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { SearchIcon, ShieldIcon } from "lucide-react";
+import { CalendarIcon, SearchIcon, ShieldIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { LocalTime } from "./local-time";
 
 export type GridTeam = {
   id: number;
@@ -18,6 +19,8 @@ export type GridTeam = {
   wins: number;
   losses: number;
   lastMatch: string;
+  // The team's next (or current) series on PandaScore's schedule.
+  next: { live: boolean; begin: string | null; opponent: string; bestOf: number } | null;
   roster: { id: number; name: string; avatar: string | null; accounts: number[] }[];
 };
 
@@ -118,6 +121,25 @@ export function TeamGrid({ teams }: { teams: GridTeam[] }) {
                     </span>
                     <span className="tabular-nums">{games ? Math.round((team.wins / games) * 100) : 0}%</span>
                   </div>
+                  {team.next && (
+                    <p className="flex items-center gap-1.5 text-xs">
+                      {team.next.live ? (
+                        <span className="rounded bg-red-500/15 px-1.5 font-semibold text-red-600 dark:text-red-400">
+                          LIVE
+                        </span>
+                      ) : (
+                        <CalendarIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                      )}
+                      <span className="text-muted-foreground">{g.schedule.next}</span>
+                      <span className="min-w-0 truncate font-medium">
+                        {g.schedule.vs} {team.next.opponent}
+                      </span>
+                      <span className="ml-auto shrink-0 text-muted-foreground">
+                        {!team.next.live && team.next.begin && <LocalTime iso={team.next.begin} />}{" "}
+                        {g.schedule.bo(team.next.bestOf)}
+                      </span>
+                    </p>
+                  )}
                   {team.roster.length ? (
                     <ul className="grid grid-cols-5 gap-1">
                       {team.roster.slice(0, 5).map((p) => (
@@ -130,7 +152,7 @@ export function TeamGrid({ teams }: { teams: GridTeam[] }) {
                                 width={36}
                                 height={36}
                                 unoptimized
-                                className="size-9"
+                                className="size-9 object-cover object-top"
                               />
                             )}
                           </span>

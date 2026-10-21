@@ -13,6 +13,9 @@ export type DirectoryRow = {
   key: string;
   name: string;
   avatar: string | null;
+  // PandaScore's real name, and whether PandaScore leaves them off the team's roster.
+  real: string | null;
+  stale: boolean;
   country: string | null;
   role: number;
   team: { id: number; name: string; logo: string | null; rank: number } | null;
@@ -44,6 +47,7 @@ export function PlayerDirectory({ rows }: { rows: DirectoryRow[] }) {
         (!country || r.country === country) &&
         (!q ||
           r.name.toLowerCase().includes(q) ||
+          r.real?.toLowerCase().includes(q) ||
           r.team?.name.toLowerCase().includes(q) ||
           r.accounts.some((a) => String(a.id) === q || a.persona?.toLowerCase().includes(q))),
     )
@@ -141,7 +145,7 @@ export function PlayerDirectory({ rows }: { rows: DirectoryRow[] }) {
                                 width={28}
                                 height={28}
                                 unoptimized
-                                className="size-7"
+                                className="size-7 object-cover object-top"
                               />
                             )}
                           </span>
@@ -151,6 +155,9 @@ export function PlayerDirectory({ rows }: { rows: DirectoryRow[] }) {
                           >
                             {r.name}
                           </Link>
+                          {r.real && (
+                            <span className="hidden text-xs text-muted-foreground md:inline">{r.real}</span>
+                          )}
                           {r.country && /^[a-z]{2}$/.test(r.country) && (
                             <Image
                               src={`https://flagcdn.com/w40/${r.country}.png`}
@@ -181,6 +188,11 @@ export function PlayerDirectory({ rows }: { rows: DirectoryRow[] }) {
                               />
                             )}
                             <span className="max-w-40 truncate">{r.team.name}</span>
+                            {r.stale && (
+                              <span className="text-[11px] text-amber-600 dark:text-amber-400">
+                                {g.ps.stale}
+                              </span>
+                            )}
                           </Link>
                         ) : (
                           <span className="text-xs text-muted-foreground">{g.account.freeAgent}</span>

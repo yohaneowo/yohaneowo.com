@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ExternalLinkIcon, ShieldIcon } from "lucide-react";
 import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
-import type { ProDetails, ProPlayer } from "@/lib/dota/pro";
+import { type GoatPlayer, realName } from "@/lib/dota/goat";
+import type { PsPlayer } from "@/lib/dota/pandascore";
+import type { ProDetails } from "@/lib/dota/pro";
 import { cn } from "@/lib/utils";
 import { ago, Medal } from "../parts";
 import { AddToCompare } from "./compare-tray";
@@ -87,7 +89,7 @@ export function PlayerCard({
   team,
   note,
 }: {
-  player: ProPlayer;
+  player: GoatPlayer;
   details: Record<number, ProDetails>;
   t: T;
   lang: Locale;
@@ -99,14 +101,24 @@ export function PlayerCard({
   const g = t.goat.account;
   const main = player.accounts[0];
   const info = details[main.accountId];
-  const position = positionLabel(info?.position, player.role, t);
+  // PandaScore's photo and details first (kept by hand), then STRATZ's, then OpenDota's.
+  const position = positionLabel(info?.position ?? player.ps?.role, player.role, t);
   const avatar = info?.avatar ?? main.avatar;
+  const portrait = player.ps?.photo ?? avatar;
+  const real = realName(player.ps) ?? info?.realName;
   return (
     <article className="flex flex-col gap-3 rounded-xl border p-3">
       <header className="flex items-start gap-3">
-        <span className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-          {avatar && (
-            <Image src={avatar} alt={player.name} width={56} height={56} unoptimized className="size-14" />
+        <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+          {portrait && (
+            <Image
+              src={portrait}
+              alt={player.name}
+              width={56}
+              height={56}
+              unoptimized
+              className="size-14 object-cover object-top"
+            />
           )}
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -122,9 +134,15 @@ export function PlayerCard({
               <span className="rounded-full border px-1.5 text-[11px] text-muted-foreground">{position}</span>
             )}
           </div>
-          {(info?.realName || info?.sponsor) && (
+          {(real || info?.sponsor || player.ps?.age) && (
             <p className="truncate text-xs text-muted-foreground">
-              {[info?.realName, info?.sponsor && `${g.sponsor}: ${info.sponsor}`].filter(Boolean).join(" · ")}
+              {[
+                real,
+                player.ps?.age ? t.goat.ps.age(player.ps.age) : null,
+                info?.sponsor && `${g.sponsor}: ${info.sponsor}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           )}
           {team !== undefined && (
@@ -139,6 +157,7 @@ export function PlayerCard({
             </p>
           )}
           {note && <p className="text-xs text-muted-foreground">{note}</p>}
+          {player.stale && <p className="text-xs text-amber-600 dark:text-amber-400">{t.goat.ps.stale}</p>}
         </div>
         {info?.seasonRank ? (
           <span className="flex shrink-0 flex-col items-center">
@@ -214,6 +233,40 @@ export function PlayerCard({
           {info?.twitter && <Out to={href(info.twitter, "https://x.com/")}>X</Out>}
         </span>
       </footer>
+    </article>
+  );
+}
+
+// A current player PandaScore lists whose Dota account isn't known yet: no accounts to show, just who.
+export function PsOnlyCard({ p, t }: { p: PsPlayer; t: T }) {
+  const position = positionLabel(p.role, 0, t);
+  return (
+    <article className="flex items-center gap-3 rounded-xl border border-dashed p-3">
+      <span className="size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+        {p.photo && (
+          <Image
+            src={p.photo}
+            alt={p.name}
+            width={48}
+            height={48}
+            unoptimized
+            className="size-12 object-cover object-top"
+          />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-1.5">
+          <span className="font-semibold">{p.name}</span>
+          <Flag code={p.nationality} />
+          {position && (
+            <span className="rounded-full border px-1.5 text-[11px] text-muted-foreground">{position}</span>
+          )}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          {[realName(p), p.age ? t.goat.ps.age(p.age) : null].filter(Boolean).join(" · ")}
+        </p>
+        <p className="text-xs text-muted-foreground">{t.goat.ps.noAccount}</p>
+      </div>
     </article>
   );
 }

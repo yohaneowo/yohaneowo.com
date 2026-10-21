@@ -82,7 +82,8 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 - **页面**：战队（排名卡片，可搜战队、选手、帐号 ID）；战队页（帐号卡、每月战绩堆叠长条、常用英雄、近 20 场、近 365 天的对手与赛事、前选手）；选手目录（搜寻、位置 / 国家筛选、四种排序，展开看全部帐号）；正在比赛（每 60 秒 `router.refresh()`）；对比（`?ids=` 最多 4 人）。
 - **对比**：清单存在浏览器（`compare-tray.tsx`，localStorage，`useSyncExternalStore`），各页的「加入对比」与底部对比栏；对比页的网址是准（`SyncPicks` 让清单跟着网址）。对比页：OpenDota 的总战绩、最近 20 场平均（KDA、GPM、XPM、正补、伤害、时长，每列最佳标金色）、雷达（每轴以最高者为满分）、各自常用英雄、每人都 ≥ 10 场的共同英雄、两两的同队 / 敌对（`/peers`），并连到经济 / IMP 对比（`?vs=`，最多 2 人，需连结 Steam）。帐号卡也有「跟我比经济 / IMP」。
 - **坑**：`MAX_COMPARE`、`compareHref` 放在 `compare-ids.ts`，因为服务端从 `"use client"` 档案 import 到的常数只是参照（曾让对比页拿到空清单）。战队页是动态路由，跟比赛页一样要 `export const instant = false`（根版面的客户端 hook 读路径）。资料抓取时间（`page.at`）当「现在」，渲染时不能呼叫 `Date.now()`。
-- **还没接的来源**：Liquipedia（资料 API 要申请金钥，wiki API 有严格的频率限制）与 PandaScore（要 token）。要更准的阵容异动或赛程再考虑。
+- **PandaScore**（`lib/dota/pandascore.ts`，`PANDASCORE_API_TOKEN` 在 Doppler dev / stg / prd，免费方案约每小时 1000 次）：人工维护的阵容（照片、真名、国籍、年龄、位置）与赛程（系列赛、赛事等级、BO、直播连结）。它没有 Steam 帐号，所以靠名字对接：`getPsTeams()`（6 小时）从近 120 天的比赛与即将开打的系列赛收集战队，对不上的 OpenDota 战队再用名称搜寻；`findPsTeam` 比全名、去掉 Team / Gaming… 后的名字、缩写；`sameNick` 比选手名（相同，或 4 字以上互相包含）。`lib/dota/goat.ts` 的 `getGoatScene()` 以 PandaScore 阵容为准（≥ 3 人才用）：对到的帐号补上 PandaScore 资料并移到这队，这队其他 OpenDota 帐号标为可能已离队（`stale`），再拿 STRATZ 记的职业名称 / Steam 名称救回（ATF = AMMAR_THE_F），仍对不到的列为「还没找到帐号」（战队页再拿为战队出赛过的成员比一次）。赛程页 `getPsSchedule()` 每 5 分钟；战队页 `getPsTeamMatches()` 每 15 分钟；战队卡片显示下一场。时间用 `LocalTime` 在浏览器转成当地时间。
+- **还没接的来源**：Liquipedia（资料 API 要申请金钥，wiki API 有严格的频率限制）。
 
 ### 死亡热力图
 

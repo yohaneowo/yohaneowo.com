@@ -355,6 +355,8 @@ export async function getTeamPage(teamId: number): Promise<TeamPage | null> {
 export type ProDetails = {
   persona: string | null;
   avatar: string | null;
+  // The name STRATZ knows the pro by (it can differ from OpenDota's and PandaScore's).
+  proName: string | null;
   realName: string | null;
   // 1–5, null when STRATZ doesn't say.
   position: number | null;
@@ -375,6 +377,7 @@ type RawDetails = {
     seasonLeaderboardRank: number | null;
     isAnonymous: boolean | null;
     proSteamAccount: {
+      name: string | null;
       realName: string | null;
       position: string | null;
       sponsor: string | null;
@@ -397,7 +400,7 @@ export async function getProDetails(accountIds: number[]): Promise<Record<number
     const query = chunk
       .map(
         (id) =>
-          `a${id}: player(steamAccountId: ${id}) { steamAccount { name avatar seasonRank seasonLeaderboardRank isAnonymous proSteamAccount { realName position sponsor twitchLink twitterLink } } }`,
+          `a${id}: player(steamAccountId: ${id}) { steamAccount { name avatar seasonRank seasonLeaderboardRank isAnonymous proSteamAccount { name realName position sponsor twitchLink twitterLink } } }`,
       )
       .join(" ");
     const data = await stratzQuery<Record<string, RawDetails>>(`{ ${query} }`, 20_000).catch(() => null);
@@ -409,6 +412,7 @@ export async function getProDetails(accountIds: number[]): Promise<Record<number
       out[id] = {
         persona: clean(s.name),
         avatar: clean(s.avatar),
+        proName: clean(pro?.name),
         realName: clean(pro?.realName),
         position: position >= 1 && position <= 5 ? position : null,
         sponsor: clean(pro?.sponsor),

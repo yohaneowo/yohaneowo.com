@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getDictionary } from "@/i18n/server";
-import { getProScene } from "@/lib/dota/pro";
+import { getGoatScene } from "@/lib/dota/goat";
+import { getPsSchedule } from "@/lib/dota/pandascore";
 import { ago, Notice } from "../parts";
 import { TeamGrid } from "./team-grid";
 
@@ -13,36 +14,64 @@ export async function generateMetadata(): Promise<Metadata> {
 async function Body() {
   await connection();
   const t = (await getDictionary()).dotahub;
-  const scene = await getProScene().catch(() => null);
+  const [scene, schedule] = await Promise.all([
+    getGoatScene().catch(() => null),
+    getPsSchedule().catch(() => null),
+  ]);
   if (!scene) return <Notice>{t.goat.unavailable}</Notice>;
   const byTeam = new Map<number, typeof scene.players>();
-  for (const p of scene.players) if (p.teamId) byTeam.set(p.teamId, [...(byTeam.get(p.teamId) ?? []), p]);
+  for (const p of scene.players)
+    if (p.teamId && !p.stale) byTeam.set(p.teamId, [...(byTeam.get(p.teamId) ?? []), p]);
+  const series = [...(schedule?.running ?? []), ...(schedule?.upcoming ?? [])];
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
         {t.goat.teamsHint} {t.goat.updated(ago(scene.at / 1000, t))}
+        {scene.psAt ? ` · ${t.goat.ps.source}` : ""}
       </p>
       <TeamGrid
-        teams={scene.teams.map((team) => ({
-          id: team.id,
-          rank: team.rank,
-          name: team.name,
-          tag: team.tag,
-          logo: team.logo,
-          rating: team.rating,
-          wins: team.wins,
-          losses: team.losses,
-          lastMatch: ago(team.lastMatch, t),
-          // The ones who played last first: the current five, not old accounts still listed.
-          roster: (byTeam.get(team.id) ?? [])
-            .sort((a, b) => (b.accounts[0].lastMatch ?? 0) - (a.accounts[0].lastMatch ?? 0))
-            .map((p) => ({
-              id: p.accounts[0].accountId,
-              name: p.name,
-              avatar: p.accounts[0].avatar,
-              accounts: p.accounts.map((a) => a.accountId),
-            })),
-        }))}
+        teams={scene.teams.map((team) => {
+          const next = team.ps
+            ? series.find((m) => m.opponents.some((o) => o.id === team.ps!.id))
+            : undefined;
+          const opponent = next?.opponents.find((o) => o.id !== team.ps!.id);
+          return {
+            id: team.id,
+            rank: team.rank,
+            name: team.name,
+            tag: team.tag,
+            logo: team.logo ?? team.ps?.image ?? null,
+            rating: team.rating,
+            wins: team.wins,
+            losses: team.losses,
+            lastMatch: ago(team.lastMatch, t),
+            next: next
+              ? {
+                  live: next.status === "running",
+                  begin: next.begin,
+                  opponent: opponent?.name ?? "TBD",
+                  bestOf: next.bestOf,
+                }
+              : null,
+            // PandaScore's roster when it has one (each with their account), else the ones who
+            // played last first: the current five, not old accounts still listed.
+            roster: [
+              ...(byTeam.get(team.id) ?? [])
+                .sort(
+                  (a, b) =>
+                    (a.ps?.role ?? 9) - (b.ps?.role ?? 9) ||
+                    (b.accounts[0].lastMatch ?? 0) - (a.accounts[0].lastMatch ?? 0),
+                )
+                .map((p) => ({
+                  id: p.accounts[0].accountId,
+                  name: p.name,
+                  avatar: p.ps?.photo ?? p.accounts[0].avatar,
+                  accounts: p.accounts.map((a) => a.accountId),
+                })),
+              ...team.psOnly.map((p) => ({ id: -p.id, name: p.name, avatar: p.photo, accounts: [] })),
+            ],
+          };
+        })}
       />
     </div>
   );

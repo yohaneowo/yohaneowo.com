@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { key: "teams", path: "/dotahub/goat" },
   { key: "players", path: "/dotahub/goat/players" },
+  { key: "schedule", path: "/dotahub/goat/schedule" },
   { key: "live", path: "/dotahub/goat/live" },
   { key: "compare", path: "/dotahub/goat/compare" },
 ] as const;

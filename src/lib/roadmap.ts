@@ -511,6 +511,11 @@ export const ROADMAP: RoadmapItem[] = [
       step("选手目录：搜寻、筛选与排序", "A player directory to search, filter and sort", true),
       step("正在比赛：高分直播对局里的职业选手", "Live: pros in high-rated live games", true),
       step(
+        "接 PandaScore：以它的阵容为准（照片、真名、年龄、位置），赛程分页与战队的下一场",
+        "PandaScore: its rosters lead (photos, names, ages, roles), a schedule tab and each team's next series",
+        true,
+      ),
+      step(
         "对比：最多 4 人并排（战绩、近 20 场、雷达、共同英雄、交手纪录），并接到经济与 IMP 对比",
         "Compare up to 4 side by side (records, last 20, radar, shared heroes, head to head), leading on to the economy and IMP compares",
         true,

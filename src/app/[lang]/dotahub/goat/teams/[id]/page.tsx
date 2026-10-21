@@ -8,11 +8,14 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getHeroes } from "@/lib/dota/data";
-import { getProDetails, getProScene, getTeamPage, type ProPlayer, type TeamPage } from "@/lib/dota/pro";
+import { type GoatPlayer, getGoatScene } from "@/lib/dota/goat";
+import { getPsTeamMatches, type PsPlayer, sameNick } from "@/lib/dota/pandascore";
+import { getProDetails, getTeamPage, type TeamMember, type TeamPage } from "@/lib/dota/pro";
 import { cn } from "@/lib/utils";
 import { ago, duration, HeroImage, Notice, ResultBadge } from "../../../parts";
 import { AddManyToCompare, AddToCompare } from "../../compare-tray";
-import { pct, PlayerCard, TeamLogo } from "../../parts";
+import { pct, PlayerCard, PsOnlyCard, TeamLogo } from "../../parts";
+import { SeriesRow } from "../../series-row";
 import { MonthlyChart, type MonthRow } from "./team-charts";
 
 type T = Dictionary["dotahub"];
@@ -94,7 +97,7 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
   if (!Number.isInteger(id) || id <= 0) notFound();
   const [page, scene, heroes] = await Promise.all([
     getTeamPage(id).catch(() => undefined),
-    getProScene().catch(() => null),
+    getGoatScene().catch(() => null),
     getHeroes().catch(() => ({}) as Awaited<ReturnType<typeof getHeroes>>),
   ]);
   if (page === undefined) return <Notice>{g.unavailable}</Notice>;
@@ -102,50 +105,67 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
   const { team, members, matches } = page;
   // "Now" for the month and year windows: when the data was fetched.
   const now = page.at;
+  const goat = scene?.teams.find((x) => x.id === id);
+  const series = goat?.ps ? await getPsTeamMatches(goat.ps.id).catch(() => null) : null;
+  const odTeams = new Map((scene?.teams ?? []).filter((x) => x.ps).map((x) => [x.ps!.id, x.id]));
 
-  // The roster: OpenDota's register of pro accounts for the team (with alts), plus current members
-  // the register misses.
-  const registered = scene?.players.filter((p) => p.teamId === id) ?? [];
-  const known = new Set(registered.flatMap((p) => p.accounts.map((a) => a.accountId)));
-  const extra: ProPlayer[] = members
-    .filter((m) => m.current && !known.has(m.accountId))
-    .map((m) => ({
-      key: `m-${m.accountId}`,
-      name: m.name,
-      teamId: id,
-      country: null,
-      role: 0,
-      accounts: [
-        {
-          accountId: m.accountId,
-          steamId: null,
-          name: m.name,
-          persona: null,
-          avatar: null,
-          country: null,
-          role: 0,
-          teamId: id,
-          lastMatch: null,
-          locked: false,
-          profile: null,
-        },
-      ],
-    }));
+  const member = (m: TeamMember, ps?: PsPlayer): GoatPlayer => ({
+    key: `m-${m.accountId}`,
+    name: ps?.name ?? m.name,
+    teamId: id,
+    country: ps?.nationality ?? null,
+    role: 0,
+    ps,
+    accounts: [
+      {
+        accountId: m.accountId,
+        steamId: null,
+        name: m.name,
+        persona: null,
+        avatar: null,
+        country: null,
+        role: 0,
+        teamId: id,
+        lastMatch: null,
+        locked: false,
+        profile: null,
+      },
+    ],
+  });
+
+  // The roster: the team's players in the scene (PandaScore's roster matched to accounts when it has
+  // one). PandaScore's players still without an account are tried against everyone who has played
+  // for the team; without PandaScore, current members the register misses are added.
+  const registered = scene?.players.filter((p) => p.teamId === id && !p.stale) ?? [];
+  const stale = scene?.players.filter((p) => p.teamId === id && p.stale) ?? [];
+  const known = new Set([...registered, ...stale].flatMap((p) => p.accounts.map((a) => a.accountId)));
+  const psOnly: PsPlayer[] = [];
+  const extra: GoatPlayer[] = [];
+  for (const p of goat?.psOnly ?? []) {
+    const m = members.find((x) => !known.has(x.accountId) && sameNick(x.name, p.name));
+    if (m) {
+      known.add(m.accountId);
+      extra.push(member(m, p));
+    } else psOnly.push(p);
+  }
+  if (!goat?.ps)
+    extra.push(...members.filter((m) => m.current && !known.has(m.accountId)).map((m) => member(m)));
   const roster = [...registered, ...extra];
-  const details = await getProDetails(roster.flatMap((p) => p.accounts.map((a) => a.accountId))).catch(
-    () => ({}) as Awaited<ReturnType<typeof getProDetails>>,
-  );
-  const position = (p: ProPlayer) => details[p.accounts[0].accountId]?.position ?? 9;
+  const details = await getProDetails(
+    [...roster, ...stale].flatMap((p) => p.accounts.map((a) => a.accountId)),
+  ).catch(() => ({}) as Awaited<ReturnType<typeof getProDetails>>);
+  const position = (p: GoatPlayer) => details[p.accounts[0].accountId]?.position ?? p.ps?.role ?? 9;
   roster.sort(
     (a, b) => position(a) - position(b) || (b.accounts[0].lastMatch ?? 0) - (a.accounts[0].lastMatch ?? 0),
   );
-  const gamesFor = (p: ProPlayer) => members.find((m) => p.accounts.some((a) => a.accountId === m.accountId));
-  const rosterIds = new Set(roster.flatMap((p) => p.accounts.map((a) => a.accountId)));
+  const gamesFor = (p: GoatPlayer) =>
+    members.find((m) => p.accounts.some((a) => a.accountId === m.accountId));
+  const rosterIds = new Set([...roster, ...stale].flatMap((p) => p.accounts.map((a) => a.accountId)));
   const former = members
     .filter((m) => !m.current && !rosterIds.has(m.accountId))
     .sort((a, b) => b.games - a.games)
     .slice(0, 16);
-  const rank = scene?.teams.find((x) => x.id === id)?.rank;
+  const rank = goat?.rank;
   const games = team.wins + team.losses;
   const opponents = tally(matches, (m) => m.opponentId, now).slice(0, 10);
   const leagues = tally(matches, (m) => (m.leagueId ? m.leagueId : null), now).slice(0, 10);
@@ -162,7 +182,7 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
           {g.team.back}
         </Link>
         <header className="flex flex-wrap items-center gap-4 rounded-xl border bg-linear-to-br from-muted/60 to-transparent p-4">
-          <TeamLogo src={team.logo} name={team.name} size={72} />
+          <TeamLogo src={team.logo ?? goat?.ps?.image ?? null} name={team.name} size={72} />
           <div className="min-w-60 flex-1">
             <h2 className="text-2xl font-bold">
               {team.name}
@@ -213,7 +233,10 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
             </div>
           </div>
         </header>
-        <p className="text-xs text-muted-foreground">{g.updatedHourly(ago(page.at / 1000, t))}</p>
+        <p className="text-xs text-muted-foreground">
+          {g.updatedHourly(ago(page.at / 1000, t))}
+          {goat?.ps ? ` · ${g.ps.source}` : ""}
+        </p>
       </div>
 
       <Section title={g.team.currentRoster} hint={g.team.rosterHint}>
@@ -251,6 +274,39 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
           <p className="text-sm text-muted-foreground">{g.noRoster}</p>
         )}
       </Section>
+
+      {psOnly.length > 0 && (
+        <Section title={g.ps.psOnlyTitle} hint={g.ps.psOnlyHint}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {psOnly.map((p) => (
+              <PsOnlyCard key={p.id} p={p} t={t} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {series && (series.upcoming.length > 0 || series.past.length > 0) && (
+        <div className="grid gap-8 lg:grid-cols-2">
+          <Section title={g.schedule.teamUpcoming} hint={g.schedule.teamHint}>
+            {series.upcoming.length ? (
+              <ul className="flex flex-col gap-2">
+                {series.upcoming.slice(0, 6).map((m) => (
+                  <SeriesRow key={m.id} m={m} t={t} lang={lang} odTeams={odTeams} />
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">{g.schedule.none}</p>
+            )}
+          </Section>
+          <Section title={g.schedule.teamPast}>
+            <ul className="flex flex-col gap-2">
+              {series.past.slice(0, 6).map((m) => (
+                <SeriesRow key={m.id} m={m} t={t} lang={lang} odTeams={odTeams} />
+              ))}
+            </ul>
+          </Section>
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-2">
         <Section title={g.team.monthly} hint={g.team.monthlyHint}>
@@ -362,6 +418,16 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
           </ul>
         </Section>
       </div>
+
+      {stale.length > 0 && (
+        <Section title={g.ps.staleTitle} hint={g.ps.staleHint}>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {stale.map((p) => (
+              <PlayerCard key={p.key} player={p} details={details} t={t} lang={lang} />
+            ))}
+          </div>
+        </Section>
+      )}
 
       {former.length > 0 && (
         <Section title={g.team.former} hint={g.team.formerHint}>
