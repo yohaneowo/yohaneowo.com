@@ -50,9 +50,11 @@ type EChartProps = {
   className?: string;
   // ECharts event name → handler (mouseover, click…), as echarts-for-react takes them.
   onEvents?: Record<string, (params: never) => void>;
+  // Charts in the same group share the axis pointer and tooltip (echarts.connect).
+  group?: string;
 };
 
-export function EChart({ option, className, onEvents }: EChartProps) {
+export function EChart({ option, className, onEvents, group }: EChartProps) {
   const { resolvedTheme } = useTheme();
 
   return (
@@ -65,6 +67,14 @@ export function EChart({ option, className, onEvents }: EChartProps) {
       className={className}
       style={{ height: "100%", width: "100%" }}
       onEvents={onEvents}
+      onChartReady={
+        group
+          ? (chart) => {
+              chart.group = group;
+              echarts.connect(group);
+            }
+          : undefined
+      }
       notMerge
     />
   );

@@ -1,5 +1,6 @@
 // DotaHub texts (Chinese); dotahub-en.ts must have the same shape.
 import goatZh from "./goat-zh";
+import researchZh from "./research-zh";
 
 const dotahubZh = {
   title: "DotaHub",
@@ -90,6 +91,7 @@ const dotahubZh = {
     bans: "禁",
     notFound: "找不到这场比赛。",
     back: "回到比赛列表",
+    research: "拿去局内科研",
     openOn: "在 OpenDota 看",
     copyId: "复制比赛编号",
     copied: "已复制",
@@ -336,12 +338,7 @@ const dotahubZh = {
     heroLevel: (tier: string, level: number) => `英雄等级 ${level}（${tier}）`,
     yourLevel: (own: boolean): string => (own ? "你在这个英雄的等级：" : "这位玩家在这个英雄的等级："),
   },
-  research: {
-    title: "局内科研",
-    badge: "规划中",
-    description: "还在规划中的功能，会分析一场比赛里更细的数据。",
-    vote: "到开发计划投票",
-  },
+  research: researchZh,
   matchDeaths: { title: "死亡地图", player: "看谁的" },
   settings: {
     title: "DotaHub",
@@ -671,6 +668,7 @@ const dotahubZh = {
     firstVisit: "第一次打开这位玩家要等几秒，之后会很快",
     firstVisitGoat: "资料过期时第一次打开要等几秒，之后会很快",
     steps: {
+      research: ["读取两局的解析资料…", "整理每分钟、出装、技能与走位…", "比较差异、写结论…"],
       goatLegends: ["读取传奇名单…", "查每个帐号的近况…"],
       goatTeams: ["读取职业战队排名…", "对照 PandaScore 的阵容…", "整理每队的现役选手…"],
       goatTeam: ["读取战队资料与比赛…", "对照选手的帐号…", "读取赛程…"],

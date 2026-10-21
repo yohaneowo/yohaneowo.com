@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
+import { ArrowLeftIcon, ExternalLinkIcon, FlaskConicalIcon } from "lucide-react";
 import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
@@ -377,7 +377,17 @@ async function Detail({ params, searchParams }: { params: Params; searchParams: 
               <ExternalLinkIcon className="size-3" aria-hidden />
             </a>
           </div>
-          <CopyMatchId matchId={id} />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* The page's player (or the viewer) studied in 局内科研. */}
+            <Link
+              href={localePath(lang, `/dotahub/research?a=${id}-${focusLine?.player_slot ?? 0}`)}
+              className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-muted"
+            >
+              <FlaskConicalIcon className="size-3.5" aria-hidden />
+              {t.match.research}
+            </Link>
+            <CopyMatchId matchId={id} />
+          </div>
         </div>
       </div>
 

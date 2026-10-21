@@ -48,8 +48,10 @@ export async function getJson<T>(url: string, options: { notFound?: "null" } = {
 // ── Heroes and items ─────────────────────────────────────────────────────────────────────────
 
 // attr is the primary attribute: 0 strength, 1 agility, 2 intelligence, 3 universal. render is the
-// full-body picture (1440px, transparent), only for next/image to scale down.
+// full-body picture (1440px, transparent), only for next/image to scale down. key is the unit name
+// replays use (npc_dota_hero_antimage).
 export type HeroInfo = {
+  key: string;
   zh: string;
   en: string;
   img: string;
@@ -80,6 +82,7 @@ export async function getHeroes(): Promise<Record<number, HeroInfo>> {
       return [
         hero.id,
         {
+          key: hero.name,
           zh: hero.name_loc || hero.name_english_loc,
           en: hero.name_english_loc,
           img: `${CDN}/heroes/${slug}.png`,

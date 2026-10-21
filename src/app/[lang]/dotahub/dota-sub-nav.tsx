@@ -37,12 +37,7 @@ export function DotaSubNav() {
         { href: `${base}/economy`, label: t.nav.economy, icon: <CoinsIcon aria-hidden /> },
         { href: `${base}/imp`, label: t.nav.imp, icon: <ActivityIcon aria-hidden /> },
         { href: `${base}/signature`, label: t.nav.signature, icon: <StarIcon aria-hidden /> },
-        {
-          href: `${base}/research`,
-          label: t.nav.research,
-          icon: <FlaskConicalIcon aria-hidden />,
-          badge: t.nav.planned,
-        },
+        { href: `${base}/research`, label: t.nav.research, icon: <FlaskConicalIcon aria-hidden /> },
         { href: `${base}/peers`, label: t.nav.peers, icon: <UsersIcon aria-hidden /> },
         // The pro scene isn't anyone's page, so it stays the same on a player's.
         { href: "/dotahub/goat", label: t.nav.goat, icon: <CrownIcon aria-hidden /> },

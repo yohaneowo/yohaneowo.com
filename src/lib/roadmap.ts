@@ -576,19 +576,48 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: "dotahub-research",
-    status: "considering",
+    status: "building",
     area: "dotahub",
     title: { zh: "DotaHub：局内科研", en: "DotaHub: the in-game lab" },
     summary: {
-      zh: "更细地分析一场比赛里发生的事。",
-      en: "A closer look at what happens inside a match.",
+      zh: "把一局里一位玩家做的事全部摊开，并对比另一局（通常是另一位玩家用同一个英雄）：每分钟曲线、出装与技能时机、对线、参战、伤害、视野、走位、资源、经济来源，每块一句结论。",
+      en: "Everything one player did in a match laid out and set beside another (usually someone else on the same hero): curves by the minute, item and skill timings, laning, fights, damage, vision, movement, resources and gold sources, each with a one-line reading.",
     },
     why: {
-      zh: "小导航已经留了位置，内容还在规划。",
-      en: "It has a place in the navigation; what it does is still being planned.",
+      zh: "想知道同一个英雄，别人（例如职业选手）在局内到底做了什么不一样的事。",
+      en: "To see what someone else (a pro, say) actually did differently on the same hero.",
     },
-    steps: [step("规划要分析的内容", "Plan what it analyses")],
+    steps: [
+      step(
+        "资料：OpenDota 解析（曲线、出装、伤害、经济、视野、团战）＋ STRATZ 解析（时机、走位、位置）",
+        "Data: OpenDota's parse (curves, items, damage, gold, vision, teamfights) + STRATZ's (timings, movement, places)",
+        true,
+      ),
+      step(
+        "十一个可折叠区块：时间线、对线期、出装、技能、参战、伤害、视野、走位、资源、经济来源、操作",
+        "Eleven collapsible sections: timeline, laning, items, skills, fights, damage, vision, movement, resources, gold, actions",
+        true,
+      ),
+      step(
+        "对比：按时间、等级或关键装备对齐，共用的时间范围，图表联动，滑过时地图标出两人位置",
+        "Compare aligned by time, level or a key item, with a shared range, linked charts and both positions marked on the maps",
+        true,
+      ),
+      step(
+        "解读：每块一句结论、顶部总结与差异最大的几项（每分钟与百分比换算）",
+        "Reading: a sentence per section, a summary and the biggest differences (per minute and as shares)",
+        true,
+      ),
+      step(
+        "选局：比赛编号、最近比赛、同英雄的自己与职业选手对局；比赛页有入口",
+        "Choosing: by match id, recent matches, the same hero in your matches and pros'; a way in from the match page",
+        true,
+      ),
+      step("用户审视后删减与调整", "Trim and adjust after review"),
+    ],
+    links: [{ label: { zh: "局内科研", en: "In-game lab" }, href: "/dotahub/research" }],
     added: "2026-10-21",
+    started: "2026-10-21",
   },
   {
     id: "dotahub-next",

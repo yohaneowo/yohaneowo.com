@@ -15,7 +15,8 @@ export type LoadingKind =
   | "goatPlayers"
   | "goatSchedule"
   | "goatLive"
-  | "goatCompare";
+  | "goatCompare"
+  | "research";
 
 const Block = ({ className }: { className?: string }) => (
   <div className={cn("animate-pulse rounded-xl bg-muted/50", className)} />
@@ -40,6 +41,21 @@ function Outline({ kind }: { kind: LoadingKind }) {
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <Block key={i} className="h-44" />
         ))}
+      </div>
+    );
+  if (kind === "research")
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Block className="h-40" />
+          <Block className="h-40" />
+        </div>
+        <Block className="h-24" />
+        <div className="grid gap-3 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Block key={i} className="h-52" />
+          ))}
+        </div>
       </div>
     );
   if (kind === "goatTeam")

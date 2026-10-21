@@ -77,6 +77,17 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 - **精通型的标准**：STRATZ 的 IMP 本来就是跟同段位、同英雄比（各段位排行榜前 50 的平均 IMP 都在 3–15，没有随段位升高），所以 IMP > 0 已是「赢过同段位平均」，顶尖玩家几乎每个英雄都过（Yatoro 有 20 多个精通型）。2026-10-21 试过「还要不低于自己其他英雄的平均 IMP」，用户决定撤回，维持原标准。
 - **没有近期天梯与训练赛**：帐号近 180 天看不到天梯时，页面上方说明原因（没打，或是 8500 分以上的对局从 2025 年 3 月起不公开，见「已知的坑」；有官方排行名次时直接写出这个原因）；是 GOAT 里的职业选手就连到他的战队。职业选手的比赛多是练习房的队长模式（`lobby_type 1`、模式 2：训练赛与正式比赛），不算天梯；`getPracticeHistory()` 抓最近 500 场，满 20 场就列「训练赛与职业比赛」表（每个英雄的场数、近 180 天、胜率、平均 IMP，也是天梯绝活的标出来），不进绝活判断。
 
+### 局内科研
+
+`/dotahub/research?a=<比赛>-<位置>&b=<比赛>-<位置>`（别人的页面是 `/dotahub/players/<id>/research`，选局建议来自那位玩家的比赛）：一局里一位玩家的所有资料，B 可不选。资料在 `src/lib/dota/lab.ts` 的 `getLabSide()`，以「比赛＋位置」快取（两边都解析了就几天，否则几分钟），一边约 80KB；页面在 `dotahub/research/`（`lab-view.tsx` 外框与控制列，`sections-early.tsx` / `sections-late.tsx` 各区块，`lab-parts.tsx` 共用的图表、地图、游标，`insights.ts` 解读），文字在 `i18n/research-zh.ts` / `research-en.ts`（挂在 `dotahub.research`）。
+
+- **来源**：OpenDota 解析（`version` 有值）是必要的：每分钟曲线（`gold_t`、`xp_t`、`lh_t`、`dn_t`、`networth_t`…）、`purchase_log`、`item_uses` / `ability_uses`、`damage_inflictor(_received)`、`damage_targets`、`damage_taken`、`gold_reasons` / `xp_reasons`、插眼与拆眼纪录（以 `ehandle` 对应）、`teamfights`、`objectives`、`benchmarks`。没解析就显示请求解析按钮。STRATZ 解析补带时间的部分：`playbackData` 的加点、技能与物品每次使用、升级时间、血量、击杀与死亡（位置与旗标：走进眼位、被视野看着、想 TP 走、被秒…）、神符、买活、补刀位置（`csEvents`）；10 人轻量查询（击杀、助攻、死亡、走位）用来找每次击杀的参与者、对线对手（STRATZ 的 `lane` 换成绝对的上中下）与前 12 分钟的换线。焦点玩家用 `players(steamAccountId:)` 只抓一人，匿名玩家才抓全部再按位置挑。STRATZ 的 `mapLocation` 不准，区域一律用座标（`map.ts` 的 `mapZone`，再换成相对的己方 / 敌方）。
+- **名称**：物品与技能用 Valve datafeed 的 `itemlist` / `abilitylist`（中文名，以键与编号两种对照），价格与是否消耗品用 OpenDota `constants/items`。天赋名称里的 `{s:value}` 换成 X；地图机关（双生门、灯笼）在字典的 `skills.special`。
+- **对齐**：游戏时间、等级（以各自升级时间换算）、关键装备（两边都买了的 1800 金以上非消耗品，以首次购买时间为 0）。所有图表共用 x 范围（控制列的滑杆）并用 `echarts.connect` 联动（`EChart` 的 `group`）；滑过图表时，游标存在一个小 store（不让图表重绘），地图标出两人在那个时间的位置。地图与列表也跟着时间范围过滤。
+- **比较与解读**：`biggestDiffs()` 把每分钟或百分比换算后的项目按差距排序（百分比按点数、时间按比例）；每个区块一句结论，顶部总结从打钱方式、活动范围、参战、对线、装备节奏、死亡、插眼、施法挑差距最大的几句。没选 B 时改用 OpenDota 的同英雄基准。
+- **已知的估计**：拉野＝前 15 分钟在己方野区补的线上小兵；插眼「被谁排」只算没活满时间（假眼 6 分钟、真眼 7 分钟）且是敌方英雄打掉的（OpenDota 在眼自然消失时也会填 `attackername`）；团战「参与」只看伤害、击杀、死亡（单纯治疗多半是回血）；STRATZ 的 `heroDamageReceivedPerMinute` 其实是累计值。
+- **入口**：小导航的「局内科研」；比赛页右上「拿去局内科研」带这页聚焦的玩家（从玩家页点进来的或自己）。
+
 ### 读取全部（访客）
 
 没在本站连结 Steam 的玩家原本只有 STRATZ 最近 100 场。登入的用户在他的死亡热力图 / 经济 / IMP 页按「读取全部」（横幅 `full-history.tsx`，估计场数用 OpenDota `wl?lobby_type=7`），确认后经 `full-history-actions.ts` 请 admin 排队（`POST /website/dota/guests/{帐号}`，admin `module_bot/dota/guests.py`）：一次一位、每分钟一页 100 场、访客每天合计最多 300 页、排在已连结帐号与段位样本之后；每人同时最多 3 位；不补同场其他 9 人；读完后有人看且超过 1 小时才补最新比赛；30 天没人看连比赛删除（GOAT 里有战队的职业选手除外：网站排队时带 `keep`，admin 不删，场次太多不值得重读）；之后连结 Steam 由连结接手。

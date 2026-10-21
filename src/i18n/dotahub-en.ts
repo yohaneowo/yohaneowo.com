@@ -1,5 +1,6 @@
 import type dotahubZh from "./dotahub-zh";
 import goatEn from "./goat-en";
+import researchEn from "./research-en";
 
 const dotahubEn: typeof dotahubZh = {
   title: "DotaHub",
@@ -93,6 +94,7 @@ const dotahubEn: typeof dotahubZh = {
     bans: "Bans",
     notFound: "Match not found.",
     back: "Back to matches",
+    research: "Study in the lab",
     openOn: "Open on OpenDota",
     copyId: "Copy match ID",
     copied: "Copied",
@@ -349,12 +351,7 @@ const dotahubEn: typeof dotahubZh = {
     heroLevel: (tier: string, level: number) => `Hero level ${level} (${tier})`,
     yourLevel: (own: boolean) => (own ? "Your level on this hero:" : "This player's level on this hero:"),
   },
-  research: {
-    title: "In-game lab",
-    badge: "Planned",
-    description: "A feature still being planned, looking deeper into what happens inside a match.",
-    vote: "Vote on the roadmap",
-  },
+  research: researchEn,
   matchDeaths: { title: "Death map", player: "Player" },
   settings: {
     title: "DotaHub",
@@ -706,6 +703,11 @@ const dotahubEn: typeof dotahubZh = {
     firstVisit: "The first visit for a player takes a few seconds; after that it's quick",
     firstVisitGoat: "After the data expires the first visit takes a few seconds; after that it's quick",
     steps: {
+      research: [
+        "Reading both parsed matches…",
+        "Sorting minutes, items, skills and movement…",
+        "Comparing and writing it up…",
+      ],
       goatLegends: ["Reading the legends…", "Checking what each account is up to…"],
       goatTeams: [
         "Reading the team ratings…",
