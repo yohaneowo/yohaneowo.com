@@ -746,7 +746,7 @@ const dotahubEn: typeof dotahubZh = {
     confirmBodyUnknown:
       "Read in the background at about 100 a minute. You'll be told at the top right, and everyone can see All afterwards.",
     confirmRules:
-      "So as not to use too much of the APIs at once: one player at a time, up to 3 waiting per person, and a daily total (past it, the rest waits for the next day). Dropped after 30 days unseen; it can be read again.",
+      "So as not to use too much of the APIs at once: one player at a time, up to 3 waiting per person, and a daily total (past it, the rest waits for the next day). Dropped after 30 days unseen; it can be read again (not for players on a GOAT team: too many matches, they're kept).",
     cancel: "Cancel",
     confirm: "Queue it",
     signIn: "Sign in to read them all →",

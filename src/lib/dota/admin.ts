@@ -268,14 +268,16 @@ export type GuestStatus = z.infer<typeof guestSchema>;
 
 // A signed-in user confirmed reading an account's whole ranked history: admin queues it (one guest
 // at a time, a page a minute, a daily budget). "linked": the account is linked here already;
-// "tooMany": the user has three waiting.
+// "tooMany": the user has three waiting. keep: a pro, never dropped for going unseen (too many matches
+// to read again).
 export async function queueGuest(
   accountId: number,
   userId: string,
+  keep: boolean,
 ): Promise<GuestStatus | "linked" | "tooMany"> {
   try {
     return guestSchema.parse(
-      await call(`/guests/${Math.trunc(accountId)}`, { method: "POST", body: { requestedBy: userId } }),
+      await call(`/guests/${Math.trunc(accountId)}`, { method: "POST", body: { requestedBy: userId, keep } }),
     );
   } catch (error) {
     if (error instanceof DotaAdminUnavailable && error.message === "HTTP 409") return "linked";

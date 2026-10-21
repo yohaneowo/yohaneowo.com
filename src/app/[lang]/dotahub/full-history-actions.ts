@@ -2,6 +2,7 @@
 
 import { type GuestStatus, listGuests, queueGuest } from "@/lib/dota/admin";
 import { getPlayer } from "@/lib/dota/data";
+import { getGoatScene } from "@/lib/dota/goat";
 import { getSession } from "@/lib/auth";
 
 export type FullHistoryResult =
@@ -13,7 +14,12 @@ export async function requestFullHistory(accountId: number): Promise<FullHistory
   const session = await getSession();
   if (!session) return { ok: false, error: "signIn" };
   try {
-    const result = await queueGuest(accountId, session.user.id);
+    // A player on a GOAT team (any of their accounts) is kept: thousands of matches, not worth
+    // reading twice.
+    const scene = await getGoatScene().catch(() => null);
+    const pro =
+      scene?.players.some((p) => p.teamId && p.accounts.some((a) => a.accountId === accountId)) ?? false;
+    const result = await queueGuest(accountId, session.user.id, pro);
     if (result === "linked" || result === "tooMany") return { ok: false, error: result };
     return { ok: true, status: result };
   } catch {

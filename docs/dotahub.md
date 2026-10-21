@@ -79,7 +79,7 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 
 ### 读取全部（访客）
 
-没在本站连结 Steam 的玩家原本只有 STRATZ 最近 100 场。登入的用户在他的死亡热力图 / 经济 / IMP 页按「读取全部」（横幅 `full-history.tsx`，估计场数用 OpenDota `wl?lobby_type=7`），确认后经 `full-history-actions.ts` 请 admin 排队（`POST /website/dota/guests/{帐号}`，admin `module_bot/dota/guests.py`）：一次一位、每分钟一页 100 场、访客每天合计最多 300 页、排在已连结帐号与段位样本之后；每人同时最多 3 位；不补同场其他 9 人；读完后有人看且超过 1 小时才补最新比赛；30 天没人看连比赛删除；之后连结 Steam 由连结接手。
+没在本站连结 Steam 的玩家原本只有 STRATZ 最近 100 场。登入的用户在他的死亡热力图 / 经济 / IMP 页按「读取全部」（横幅 `full-history.tsx`，估计场数用 OpenDota `wl?lobby_type=7`），确认后经 `full-history-actions.ts` 请 admin 排队（`POST /website/dota/guests/{帐号}`，admin `module_bot/dota/guests.py`）：一次一位、每分钟一页 100 场、访客每天合计最多 300 页、排在已连结帐号与段位样本之后；每人同时最多 3 位；不补同场其他 9 人；读完后有人看且超过 1 小时才补最新比赛；30 天没人看连比赛删除（GOAT 里有战队的职业选手除外：网站排队时带 `keep`，admin 不删，场次太多不值得重读）；之后连结 Steam 由连结接手。
 
 - `source.ts` 的 `sourceOf()`：连结过 → admin 已存（`stored`）；访客读到至少一页 → `guest`（`/accounts/{帐号}/deaths|details`，跟已存一样有「全部」）；否则 STRATZ 最近 100。公开页、对比对象、预热都用它。
 - 右上角的通知 `full-history-notices.tsx`（挂在 DotaHub 版面）：登入用户自己排的项目，进行中每 20 秒更新，读完显示一天，可关闭（关掉的记在 localStorage）。
