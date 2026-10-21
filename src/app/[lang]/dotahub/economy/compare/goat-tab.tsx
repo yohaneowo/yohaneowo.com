@@ -73,62 +73,64 @@ export function GoatTab({
         className="h-8 rounded-md border bg-transparent px-2 text-sm"
       />
       {teams.length ? (
-        teams.map((team) => (
-          <div key={team.id} className="flex flex-col">
-            <span className="mb-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="w-5 text-right tabular-nums">#{team.rank}</span>
-              {team.logo ? (
-                <Image
-                  src={team.logo}
-                  alt=""
-                  width={16}
-                  height={16}
-                  unoptimized
-                  className="size-4 object-contain"
-                />
-              ) : (
-                <ShieldIcon className="size-4" aria-hidden />
-              )}
-              {team.name}
-            </span>
-            {shown
-              .filter((p) => p.team.id === team.id)
-              .map((p) => {
-                const chosen = targets.find((x) => x.key === String(p.id));
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    disabled={!chosen && full}
-                    aria-pressed={Boolean(chosen)}
-                    onClick={() => onToggle(String(p.id), p.name)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm hover:bg-muted disabled:opacity-40",
-                      chosen && "bg-muted",
-                    )}
-                  >
-                    {p.avatar ? (
-                      <Image
-                        src={p.avatar}
-                        alt=""
-                        width={24}
-                        height={24}
-                        unoptimized
-                        className="size-6 shrink-0 rounded-full object-cover object-top"
-                        style={chosen ? { boxShadow: `0 0 0 2px ${chosen.color}` } : undefined}
-                      />
-                    ) : (
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <UserIcon className="size-3 text-muted-foreground" aria-hidden />
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                    {chosen && <CheckIcon className="size-4" style={{ color: chosen.color }} aria-hidden />}
-                  </button>
-                );
-              })}
-          </div>
-        ))
+        <div className="flex flex-col divide-y">
+          {teams.map((team) => (
+            <div key={team.id} className="flex flex-col py-2 first:pt-0 last:pb-0">
+              <span className="mb-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-5 text-right tabular-nums">#{team.rank}</span>
+                {team.logo ? (
+                  <Image
+                    src={team.logo}
+                    alt=""
+                    width={16}
+                    height={16}
+                    unoptimized
+                    className="size-4 object-contain"
+                  />
+                ) : (
+                  <ShieldIcon className="size-4" aria-hidden />
+                )}
+                {team.name}
+              </span>
+              {shown
+                .filter((p) => p.team.id === team.id)
+                .map((p) => {
+                  const chosen = targets.find((x) => x.key === String(p.id));
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={!chosen && full}
+                      aria-pressed={Boolean(chosen)}
+                      onClick={() => onToggle(String(p.id), p.name)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm hover:bg-muted disabled:opacity-40",
+                        chosen && "bg-muted",
+                      )}
+                    >
+                      {p.avatar ? (
+                        <Image
+                          src={p.avatar}
+                          alt=""
+                          width={24}
+                          height={24}
+                          unoptimized
+                          className="size-6 shrink-0 rounded-full object-cover object-top"
+                          style={chosen ? { boxShadow: `0 0 0 2px ${chosen.color}` } : undefined}
+                        />
+                      ) : (
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
+                          <UserIcon className="size-3 text-muted-foreground" aria-hidden />
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                      {chosen && <CheckIcon className="size-4" style={{ color: chosen.color }} aria-hidden />}
+                    </button>
+                  );
+                })}
+            </div>
+          ))}
+        </div>
       ) : (
         <p className="text-xs text-muted-foreground">{t.goatNone}</p>
       )}
