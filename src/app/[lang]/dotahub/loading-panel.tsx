@@ -4,7 +4,17 @@ import { useEffect, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
-export type LoadingKind = "deaths" | "economy" | "imp" | "signature";
+export type LoadingKind =
+  | "deaths"
+  | "economy"
+  | "imp"
+  | "signature"
+  | "goatTeams"
+  | "goatTeam"
+  | "goatPlayers"
+  | "goatSchedule"
+  | "goatLive"
+  | "goatCompare";
 
 const Block = ({ className }: { className?: string }) => (
   <div className={cn("animate-pulse rounded-xl bg-muted/50", className)} />
@@ -21,6 +31,56 @@ function Outline({ kind }: { kind: LoadingKind }) {
           <Block className="h-40" />
           <Block className="h-28" />
         </div>
+      </div>
+    );
+  if (kind === "goatTeams")
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <Block key={i} className="h-44" />
+        ))}
+      </div>
+    );
+  if (kind === "goatTeam")
+    return (
+      <div className="flex flex-col gap-4">
+        <Block className="h-28" />
+        <div className="grid gap-3 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Block key={i} className="h-48" />
+          ))}
+        </div>
+      </div>
+    );
+  if (kind === "goatPlayers")
+    return (
+      <div className="flex flex-col gap-2">
+        <Block className="h-9 max-w-sm" />
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <Block key={i} className="h-9 rounded-md" />
+        ))}
+      </div>
+    );
+  if (kind === "goatSchedule" || kind === "goatLive")
+    return (
+      <div className="flex flex-col gap-3">
+        {kind === "goatLive" && <Block className="h-40" />}
+        <div className="grid gap-3 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Block key={i} className={kind === "goatLive" ? "h-56" : "h-20"} />
+          ))}
+        </div>
+      </div>
+    );
+  if (kind === "goatCompare")
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[0, 1, 2].map((i) => (
+            <Block key={i} className="h-44" />
+          ))}
+        </div>
+        <Block className="h-72" />
       </div>
     );
   if (kind === "signature")
@@ -74,7 +134,9 @@ export function LoadingPanel({ kind }: { kind: LoadingKind }) {
           <span key={step} className="animate-in font-medium duration-300 fade-in slide-in-from-bottom-1">
             {steps[step]}
           </span>
-          <span className="text-xs text-muted-foreground">{t.firstVisit}</span>
+          <span className="text-xs text-muted-foreground">
+            {kind.startsWith("goat") ? t.firstVisitGoat : t.firstVisit}
+          </span>
         </div>
       </div>
       <Outline kind={kind} />

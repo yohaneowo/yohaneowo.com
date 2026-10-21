@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
+import { after, connection } from "next/server";
 import { Suspense } from "react";
 import { getDictionary } from "@/i18n/server";
-import { getGoatScene } from "@/lib/dota/goat";
+import { getGoatScene, getTeamView } from "@/lib/dota/goat";
 import { getPsSchedule } from "@/lib/dota/pandascore";
 import { ago, Notice } from "../parts";
 import { TeamGrid } from "./team-grid";
+import { LoadingPanel } from "../loading-panel";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.goat.title };
@@ -19,6 +20,11 @@ async function Body() {
     getPsSchedule().catch(() => null),
   ]);
   if (!scene) return <Notice>{t.goat.unavailable}</Notice>;
+  // Warm the top teams' pages in the background, one after another (gentle on OpenDota): the next
+  // click on one of them finds it cached. Each costs nothing while its data is still fresh.
+  after(async () => {
+    for (const team of scene.teams.slice(0, 10)) await getTeamView(team.id).catch(() => null);
+  });
   const byTeam = new Map<number, typeof scene.players>();
   for (const p of scene.players)
     if (p.teamId && !p.stale) byTeam.set(p.teamId, [...(byTeam.get(p.teamId) ?? []), p]);
@@ -79,7 +85,7 @@ async function Body() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+    <Suspense fallback={<LoadingPanel kind="goatTeams" />}>
       <Body />
     </Suspense>
   );

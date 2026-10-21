@@ -9,6 +9,7 @@ import { getPsSchedule, type PsMatch } from "@/lib/dota/pandascore";
 import { ago, Notice } from "../../parts";
 import { AutoRefresh } from "../live/auto-refresh";
 import { SeriesRow } from "../series-row";
+import { LoadingPanel } from "../../loading-panel";
 
 type T = Dictionary["dotahub"];
 
@@ -83,7 +84,7 @@ async function Body({ t, lang }: { t: T; lang: Locale }) {
 export default async function Page() {
   const [dict, lang] = await Promise.all([getDictionary(), getLocale()]);
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+    <Suspense fallback={<LoadingPanel kind="goatSchedule" />}>
       <Body t={dict.dotahub} lang={lang} />
     </Suspense>
   );

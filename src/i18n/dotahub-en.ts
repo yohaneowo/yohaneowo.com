@@ -700,7 +700,22 @@ const dotahubEn: typeof dotahubZh = {
   goat: goatEn,
   loading: {
     firstVisit: "The first visit for a player takes a few seconds; after that it's quick",
+    firstVisitGoat: "After the data expires the first visit takes a few seconds; after that it's quick",
     steps: {
+      goatTeams: [
+        "Reading the team ratings…",
+        "Matching PandaScore's rosters…",
+        "Lining up each team's players…",
+      ],
+      goatTeam: ["Reading the team and its matches…", "Matching player accounts…", "Reading the schedule…"],
+      goatPlayers: ["Reading the pro register…", "Joining each player's accounts…"],
+      goatSchedule: ["Reading PandaScore's schedule…", "Matching the teams…"],
+      goatLive: ["Reading the high-rated live games…", "Finding the pros…"],
+      goatCompare: [
+        "Reading everyone's record…",
+        "Their last 20 matches…",
+        "Shared heroes and head to head…",
+      ],
       deaths: ["Reading ranked matches…", "Placing every death…", "Drawing the heat map…"],
       economy: [
         "Reading ranked matches…",

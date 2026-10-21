@@ -29,6 +29,7 @@ import { CopyValue } from "../copy-button";
 import { pct, TeamLogo } from "../parts";
 import { CompareRadar } from "./compare-radar";
 import { SyncPicks } from "./sync-picks";
+import { LoadingPanel } from "../../loading-panel";
 
 type T = Dictionary["dotahub"];
 type SearchParams = Promise<{ ids?: string | string[] }>;
@@ -531,7 +532,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold">{g.title}</h2>
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+      <Suspense fallback={<LoadingPanel kind="goatCompare" />}>
         <Body searchParams={searchParams} t={dict.dotahub} lang={lang} />
       </Suspense>
     </div>

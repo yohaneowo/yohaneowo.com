@@ -8,15 +8,15 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { getHeroes } from "@/lib/dota/data";
-import { type GoatPlayer, getGoatScene } from "@/lib/dota/goat";
-import { getPsTeamMatches, type PsPlayer, sameNick } from "@/lib/dota/pandascore";
-import { getProDetails, getTeamPage, type TeamMember, type TeamPage } from "@/lib/dota/pro";
+import { type GoatPlayer, getTeamView } from "@/lib/dota/goat";
+import { getTeamPage, type TeamPage } from "@/lib/dota/pro";
 import { cn } from "@/lib/utils";
 import { ago, duration, HeroImage, Notice, ResultBadge } from "../../../parts";
 import { AddManyToCompare, AddToCompare } from "../../compare-tray";
 import { pct, PlayerCard, PsOnlyCard, TeamLogo } from "../../parts";
 import { SeriesRow } from "../../series-row";
 import { MonthlyChart, type MonthRow } from "./team-charts";
+import { LoadingPanel } from "../../../loading-panel";
 
 type T = Dictionary["dotahub"];
 type Params = Promise<{ id: string }>;
@@ -95,69 +95,16 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
   const g = t.goat;
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) notFound();
-  const [page, scene, heroes] = await Promise.all([
-    getTeamPage(id).catch(() => undefined),
-    getGoatScene().catch(() => null),
+  const [view, heroes] = await Promise.all([
+    getTeamView(id),
     getHeroes().catch(() => ({}) as Awaited<ReturnType<typeof getHeroes>>),
   ]);
-  if (page === undefined) return <Notice>{g.unavailable}</Notice>;
-  if (page === null) return <Notice>{g.team.notFound}</Notice>;
+  if (view === undefined) return <Notice>{g.unavailable}</Notice>;
+  if (view === null) return <Notice>{g.team.notFound}</Notice>;
+  const { page, goat, odTeams, series, roster, stale, psOnly, details } = view;
   const { team, members, matches } = page;
   // "Now" for the month and year windows: when the data was fetched.
   const now = page.at;
-  const goat = scene?.teams.find((x) => x.id === id);
-  const series = goat?.ps ? await getPsTeamMatches(goat.ps.id).catch(() => null) : null;
-  const odTeams = new Map((scene?.teams ?? []).filter((x) => x.ps).map((x) => [x.ps!.id, x.id]));
-
-  const member = (m: TeamMember, ps?: PsPlayer): GoatPlayer => ({
-    key: `m-${m.accountId}`,
-    name: ps?.name ?? m.name,
-    teamId: id,
-    country: ps?.nationality ?? null,
-    role: 0,
-    ps,
-    accounts: [
-      {
-        accountId: m.accountId,
-        steamId: null,
-        name: m.name,
-        persona: null,
-        avatar: null,
-        country: null,
-        role: 0,
-        teamId: id,
-        lastMatch: null,
-        locked: false,
-        profile: null,
-      },
-    ],
-  });
-
-  // The roster: the team's players in the scene (PandaScore's roster matched to accounts when it has
-  // one). PandaScore's players still without an account are tried against everyone who has played
-  // for the team; without PandaScore, current members the register misses are added.
-  const registered = scene?.players.filter((p) => p.teamId === id && !p.stale) ?? [];
-  const stale = scene?.players.filter((p) => p.teamId === id && p.stale) ?? [];
-  const known = new Set([...registered, ...stale].flatMap((p) => p.accounts.map((a) => a.accountId)));
-  const psOnly: PsPlayer[] = [];
-  const extra: GoatPlayer[] = [];
-  for (const p of goat?.psOnly ?? []) {
-    const m = members.find((x) => !known.has(x.accountId) && sameNick(x.name, p.name));
-    if (m) {
-      known.add(m.accountId);
-      extra.push(member(m, p));
-    } else psOnly.push(p);
-  }
-  if (!goat?.ps)
-    extra.push(...members.filter((m) => m.current && !known.has(m.accountId)).map((m) => member(m)));
-  const roster = [...registered, ...extra];
-  const details = await getProDetails(
-    [...roster, ...stale].flatMap((p) => p.accounts.map((a) => a.accountId)),
-  ).catch(() => ({}) as Awaited<ReturnType<typeof getProDetails>>);
-  const position = (p: GoatPlayer) => details[p.accounts[0].accountId]?.position ?? p.ps?.role ?? 9;
-  roster.sort(
-    (a, b) => position(a) - position(b) || (b.accounts[0].lastMatch ?? 0) - (a.accounts[0].lastMatch ?? 0),
-  );
   const gamesFor = (p: GoatPlayer) =>
     members.find((m) => p.accounts.some((a) => a.accountId === m.accountId));
   const rosterIds = new Set([...roster, ...stale].flatMap((p) => p.accounts.map((a) => a.accountId)));
@@ -462,7 +409,7 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
 export default async function Page({ params }: { params: Params }) {
   const [dict, lang] = await Promise.all([getDictionary(), getLocale()]);
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+    <Suspense fallback={<LoadingPanel kind="goatTeam" />}>
       <Body params={params} t={dict.dotahub} lang={lang} />
     </Suspense>
   );

@@ -10,6 +10,7 @@ import { ago, Notice } from "../../parts";
 import { AutoRefresh } from "./auto-refresh";
 import { LiveBoard } from "./live-board";
 import { RefreshButton } from "./refresh-button";
+import { LoadingPanel } from "../../loading-panel";
 
 type T = Dictionary["dotahub"];
 
@@ -56,7 +57,7 @@ async function Body({ t }: { t: T }) {
 export default async function Page() {
   const dict = await getDictionary();
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+    <Suspense fallback={<LoadingPanel kind="goatLive" />}>
       <Body t={dict.dotahub} />
     </Suspense>
   );

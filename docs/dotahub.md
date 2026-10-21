@@ -83,6 +83,7 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
   1. admin 的已存资料（`getStoredDeaths` / `getStoredDetails` / `getStoredBracket`）加上快取（`STORED`：2 分钟后背景重抓，旧资料最多留 7 天）；新比赛在存进 admin 后的下一次浏览出现。
   2. STRATZ 的玩家资料（`getStratzRanked`、`getStratzProfile`、`getRankedHistory`、`getHeroLevels`、`getPracticeHistory`）用 `KEPT`（1 小时背景重抓、留 7 天），不再是一天就丢。
   3. `prewarm.ts`：总览与这四页（自己的和别人的）回应送出后用 `after()` 在背景把其他几页要的资料抓进快取。
+- GOAT：资料本来就是全站共用的快取（名单 6 小时、战队页 1 小时、赛程 5 分钟、直播 1 分钟，都是先给旧资料再背景更新）。另外战队列表送出后用 `after()` 依序预热排名前 10 的战队页（`goat.ts` 的 `getTeamView()`，页面与预热共用同一份计算，STRATZ 选手资料的快取以帐号清单为键，要完全一样才命中）；实测预热过的战队页约 1.1–1.6 秒，没预热的 3.4–4.4 秒（本机开发模式）。GOAT 六个页面也用 `LoadingPanel`（`goat*` 几种外形）。
 - 等待画面是 `loading-panel.tsx`：页面形状的骨架、来回跑的进度条、按时间切换的步骤文字（伺服器无法回报真实进度）与「第一次要等几秒」。
 
 ### GOAT（职业战队与选手）

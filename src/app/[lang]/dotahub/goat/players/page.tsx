@@ -5,6 +5,7 @@ import { getDictionary } from "@/i18n/server";
 import { getGoatScene, realName } from "@/lib/dota/goat";
 import { ago, Notice } from "../../parts";
 import { PlayerDirectory } from "./player-directory";
+import { LoadingPanel } from "../../loading-panel";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = (await getDictionary()).dotahub.goat;
@@ -49,7 +50,7 @@ async function Body() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+    <Suspense fallback={<LoadingPanel kind="goatPlayers" />}>
       <Body />
     </Suspense>
   );
