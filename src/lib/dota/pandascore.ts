@@ -259,3 +259,19 @@ export function sameNick(a: string, b: string) {
   if (x === y) return true;
   return Math.min(x.length, y.length) >= 4 && (x.includes(y) || y.includes(x));
 }
+
+// PandaScore's photos of players by name (retired ones too), one request for up to 50 names: the
+// normalized name → the picture (the entry with a photo when a name has several).
+export async function getPsPhotos(names: string[]): Promise<Record<string, string>> {
+  "use cache";
+  cacheLife("days");
+  const out: Record<string, string> = {};
+  for (let i = 0; i < names.length; i += 50) {
+    const chunk = names.slice(i, i + 50);
+    const list = await ps<RawPlayer[]>(
+      `/dota2/players?per_page=100&filter[name]=${encodeURIComponent(chunk.join(","))}`,
+    ).catch(() => [] as RawPlayer[]);
+    for (const p of list) if (p.image_url && !out[norm(p.name)]) out[norm(p.name)] = p.image_url;
+  }
+  return out;
+}

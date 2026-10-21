@@ -525,6 +525,11 @@ export const ROADMAP: RoadmapItem[] = [
         "Compare up to 4 side by side (records, last 20, radar, shared heroes, head to head), leading on to the economy and IMP compares",
         true,
       ),
+      step(
+        "传奇：TI 冠军与代表人物的帐号（人工名单、STRATZ 查证），近况、照片，对比选单也有",
+        "Legends: TI champions and icons (a hand-kept list checked on STRATZ), what they're up to, photos, in the compare menu too",
+        true,
+      ),
       step("用户审视后删减与调整", "Trim and adjust after review"),
     ],
     links: [{ label: { zh: "GOAT", en: "GOAT" }, href: "/dotahub/goat" }],

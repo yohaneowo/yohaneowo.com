@@ -671,6 +671,7 @@ const dotahubZh = {
     firstVisit: "第一次打开这位玩家要等几秒，之后会很快",
     firstVisitGoat: "资料过期时第一次打开要等几秒，之后会很快",
     steps: {
+      goatLegends: ["读取传奇名单…", "查每个帐号的近况…"],
       goatTeams: ["读取职业战队排名…", "对照 PandaScore 的阵容…", "整理每队的现役选手…"],
       goatTeam: ["读取战队资料与比赛…", "对照选手的帐号…", "读取赛程…"],
       goatPlayers: ["读取职业选手登记…", "合并同一个人的帐号…"],

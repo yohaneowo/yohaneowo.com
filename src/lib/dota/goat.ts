@@ -1,6 +1,8 @@
 import "server-only";
+import { type Era, eraOf, type Legend, LEGENDS } from "./legends";
 import {
   findPsTeam,
+  getPsPhotos,
   getPsTeamMatches,
   getPsTeams,
   norm,
@@ -9,6 +11,7 @@ import {
   sameNick,
 } from "./pandascore";
 import {
+  getAccountActivity,
   getProDetails,
   getProScene,
   getTeamPage,
@@ -175,3 +178,50 @@ export async function getTeamView(teamId: number): Promise<TeamView | null | und
 // The name to show for a PandaScore player's real name.
 export const realName = (p: PsPlayer | undefined) =>
   p ? [p.firstName, p.lastName].filter(Boolean).join(" ") || null : null;
+
+// ── 传奇 ─────────────────────────────────────────────────────────────────────────────────────
+
+export type LegendView = {
+  legend: Legend;
+  era: Era;
+  // On an active GOAT team's roster now: 现役 (hidden by default).
+  team: { id: number; name: string } | null;
+  photo: string | null;
+  persona: string | null;
+  seasonRank: number | null;
+  leaderboardRank: number | null;
+  matches: number | null;
+  lastMatch: number | null;
+};
+
+// The legends list with what the sources say about them now.
+export async function getLegendsView(): Promise<LegendView[]> {
+  const ids = LEGENDS.flatMap((l) => l.accounts);
+  const [scene, details, activity, photos] = await Promise.all([
+    getGoatScene().catch(() => null),
+    getProDetails(ids).catch(() => ({}) as Record<number, ProDetails>),
+    getAccountActivity(ids).catch(() => ({}) as Awaited<ReturnType<typeof getAccountActivity>>),
+    getPsPhotos(LEGENDS.map((l) => l.name)).catch(() => ({}) as Record<string, string>),
+  ]);
+  return LEGENDS.map((legend) => {
+    const main = legend.accounts[0];
+    const d = details[main];
+    const onTeam = scene?.players.find(
+      (p) => p.teamId && !p.stale && p.accounts.some((a) => legend.accounts.includes(a.accountId)),
+    );
+    const team = onTeam ? scene?.teams.find((t) => t.id === onTeam.teamId) : undefined;
+    // The newest activity across their accounts.
+    const last = Math.max(0, ...legend.accounts.map((id) => activity[id]?.lastMatch ?? 0));
+    return {
+      legend,
+      era: eraOf(legend),
+      team: team ? { id: team.id, name: team.name } : null,
+      photo: photos[norm(legend.name)] ?? d?.avatar ?? null,
+      persona: d?.persona ?? null,
+      seasonRank: d?.seasonRank ?? null,
+      leaderboardRank: d?.leaderboardRank ?? null,
+      matches: activity[main]?.matches ?? null,
+      lastMatch: last || null,
+    };
+  });
+}

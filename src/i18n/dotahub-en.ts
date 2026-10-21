@@ -706,6 +706,7 @@ const dotahubEn: typeof dotahubZh = {
     firstVisit: "The first visit for a player takes a few seconds; after that it's quick",
     firstVisitGoat: "After the data expires the first visit takes a few seconds; after that it's quick",
     steps: {
+      goatLegends: ["Reading the legends…", "Checking what each account is up to…"],
       goatTeams: [
         "Reading the team ratings…",
         "Matching PandaScore's rosters…",

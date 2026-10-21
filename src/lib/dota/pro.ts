@@ -516,3 +516,33 @@ export async function getLivePros(): Promise<{ games: LiveGame[]; at: number }> 
     }));
   return { games, at: Date.now() };
 }
+
+// How much an account plays: STRATZ's match count and last match (any lobby), ten a request. For
+// the 传奇 page: who still plays, and since when nobody has seen them.
+export async function getAccountActivity(
+  accountIds: number[],
+): Promise<Record<number, { matches: number | null; lastMatch: number | null }>> {
+  "use cache";
+  cacheLife("hours");
+  const ids = [...new Set(accountIds.map((id) => Math.trunc(id)).filter((id) => id > 0))];
+  const out: Record<number, { matches: number | null; lastMatch: number | null }> = {};
+  for (let i = 0; i < ids.length; i += 10) {
+    const chunk = ids.slice(i, i + 10);
+    // The newest match itself: STRATZ's lastMatchDate is empty for many accounts.
+    type Raw = { matchCount: number | null; matches: { startDateTime: number | null }[] | null } | null;
+    const data = await stratzQuery<Record<string, Raw>>(
+      `{ ${chunk
+        .map(
+          (id) =>
+            `a${id}: player(steamAccountId: ${id}) { matchCount matches(request: { take: 1 }) { startDateTime } }`,
+        )
+        .join(" ")} }`,
+      20_000,
+    ).catch(() => null);
+    for (const id of chunk) {
+      const p = data?.[`a${id}`];
+      if (p) out[id] = { matches: p.matchCount ?? null, lastMatch: p.matches?.[0]?.startDateTime ?? null };
+    }
+  }
+  return out;
+}

@@ -10,6 +10,7 @@ export type LoadingKind =
   | "imp"
   | "signature"
   | "goatTeams"
+  | "goatLegends"
   | "goatTeam"
   | "goatPlayers"
   | "goatSchedule"
@@ -33,7 +34,7 @@ function Outline({ kind }: { kind: LoadingKind }) {
         </div>
       </div>
     );
-  if (kind === "goatTeams")
+  if (kind === "goatTeams" || kind === "goatLegends")
     return (
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {[0, 1, 2, 3, 4, 5].map((i) => (
