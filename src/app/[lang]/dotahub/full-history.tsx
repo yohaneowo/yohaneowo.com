@@ -69,7 +69,7 @@ function Request({
           "inline-flex shrink-0 cursor-pointer items-center gap-1.5 transition-colors",
           compact
             ? "text-xs text-foreground underline underline-offset-2"
-            : "rounded-md border bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted",
+            : "rounded-md bg-amber-500 px-3.5 py-2 text-sm font-semibold text-amber-950 shadow-sm hover:bg-amber-400",
         )}
       >
         {!compact && <HistoryIcon className="size-4" aria-hidden />}
@@ -125,15 +125,20 @@ export function FullHistoryBanner({
   const [guest, setGuest] = useState(initial);
   if (guest?.historyDone) return null;
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed px-4 py-2.5 text-sm">
+    // Amber and up front: easy to miss otherwise, and it's the only way to 全部 for this player.
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm">
       {guest ? (
-        <p className="flex items-center gap-2 text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin" aria-hidden />
+        <p className="flex items-center gap-2 font-medium text-amber-800 dark:text-amber-200">
+          <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
           {guest.state === "queued" ? f.queued(guest.ahead) : f.reading(guest.read)}
         </p>
       ) : (
         <>
-          <p className="min-w-0 flex-1 text-muted-foreground">{f.only100(estimate)}</p>
+          <HistoryIcon className="size-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-amber-900 dark:text-amber-100">{f.only100(estimate)}</p>
+            <p className="text-xs text-amber-800/80 dark:text-amber-200/70">{f.offerHint}</p>
+          </div>
           <Request accountId={accountId} estimate={estimate} onQueued={setGuest} />
         </>
       )}

@@ -738,6 +738,7 @@ const dotahubEn: typeof dotahubZh = {
       estimate
         ? `Only STRATZ's newest 100 so far (this player has about ${estimate.toLocaleString()} ranked matches).`
         : "Only STRATZ's newest 100 so far.",
+    offerHint: "Once read, the death map, economy and IMP can all show All, for everyone.",
     readAll: "Read them all",
     confirmTitle: "Read all of this player's ranked matches?",
     confirmBody: (n: number, minutes: number) =>

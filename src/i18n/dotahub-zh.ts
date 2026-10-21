@@ -686,6 +686,7 @@ const dotahubZh = {
       estimate
         ? `目前只用了 STRATZ 最近 100 场（这位玩家大约有 ${estimate.toLocaleString()} 场天梯）。`
         : "目前只用了 STRATZ 最近 100 场。",
+    offerHint: "读完后死亡热力图、经济和 IMP 都能选「全部」，所有人都能看。",
     readAll: "读取全部",
     confirmTitle: "读取这位玩家的全部天梯？",
     confirmBody: (n: number, minutes: number) =>
