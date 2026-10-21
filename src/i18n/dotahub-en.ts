@@ -283,7 +283,7 @@ const dotahubEn: typeof dotahubZh = {
       "The heroes this player is really good at in ranked, with evidence, not just the ones they play most.",
     found: "Signature heroes",
     foundHint:
-      "One of two kinds of evidence: advantage (wins more, or higher IMP, than on their other heroes), or mastery (IMP steadily above the average for the hero and position at their rank, over several half-years, and no lower than their own level on other heroes). Both by probability: at least 80% sure.",
+      "One of two kinds of evidence: advantage (wins more, or higher IMP, than on their other heroes), or mastery (IMP steadily above the same hero and position's average, over several half-years). Both by probability: at least 80% sure.",
     none: "No signature hero with enough evidence yet. The heroes played a lot are under Skilled below.",
     labels: {
       current: "Current",
