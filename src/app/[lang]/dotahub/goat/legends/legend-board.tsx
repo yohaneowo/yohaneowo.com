@@ -20,10 +20,17 @@ export type LegendCard = {
   known: string | null;
   team: { id: number; name: string } | null;
   photo: string | null;
-  persona: string | null;
   seasonRank: number | null;
   leaderboardRank: number | null;
-  matches: number | null;
+  // The first is the main account.
+  accounts: {
+    id: number;
+    persona: string | null;
+    matches: number | null;
+    leaderboardRank: number | null;
+    anonymous: boolean;
+    lastPlayed: string | null;
+  }[];
   // How long ago the newest match was (worked out on the server), and whether it's recent.
   lastPlayed: string | null;
   recent: boolean;
@@ -140,14 +147,48 @@ export function LegendBoard({ cards }: { cards: LegendCard[] }) {
               {c.known && <span className="text-xs text-muted-foreground">{c.known}</span>}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border px-2 py-1.5 text-xs">
-              <span className="text-muted-foreground">{g.account.accountId}</span>
-              <CopyValue value={String(c.account)} label={g.account.accountId} />
-              {c.persona && <span className="max-w-32 truncate">{c.persona}</span>}
-              {c.matches != null && (
-                <span className="ml-auto text-muted-foreground tabular-nums">{l.matches(c.matches)}</span>
-              )}
-            </div>
+            <ul className="flex flex-col divide-y rounded-lg border text-sm">
+              {c.accounts.map((a, i) => (
+                <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-1.5">
+                  <span
+                    className={cn(
+                      "rounded px-1.5 text-[10px] leading-4 font-medium",
+                      i === 0
+                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {i === 0 ? g.account.main : g.account.alt}
+                  </span>
+                  <Link
+                    href={href(`/dotahub/players/${a.id}`)}
+                    className="max-w-40 truncate text-xs hover:underline"
+                    title={g.account.persona}
+                  >
+                    {a.persona ?? c.name}
+                  </Link>
+                  <CopyValue value={String(a.id)} label={g.account.accountId} />
+                  {a.leaderboardRank && i > 0 ? (
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      #{a.leaderboardRank}
+                    </span>
+                  ) : null}
+                  <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+                    {[
+                      a.matches != null ? l.matches(a.matches) : null,
+                      // STRATZ often still has the newest match of an account marked private.
+                      a.lastPlayed
+                        ? g.account.lastPlayed(a.lastPlayed)
+                        : a.anonymous
+                          ? g.account.anonymous
+                          : g.account.never,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
 
             <div className="flex flex-wrap items-center gap-1.5">
               <AddToCompare pick={{ id: c.account, name: c.name, avatar: c.photo }} />

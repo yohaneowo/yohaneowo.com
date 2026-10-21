@@ -188,16 +188,26 @@ export const realName = (p: PsPlayer | undefined) =>
 
 // ── 传奇 ─────────────────────────────────────────────────────────────────────────────────────
 
+export type LegendAccount = {
+  accountId: number;
+  persona: string | null;
+  lastMatch: number | null;
+  matches: number | null;
+  leaderboardRank: number | null;
+  anonymous: boolean;
+};
+
 export type LegendView = {
   legend: Legend;
   era: Era;
   // On an active GOAT team's roster now: 现役 (hidden by default).
   team: { id: number; name: string } | null;
   photo: string | null;
-  persona: string | null;
   seasonRank: number | null;
   leaderboardRank: number | null;
-  matches: number | null;
+  // The listed accounts (the first is the main one), then any other the pro register has for them
+  // while they're on a team.
+  accounts: LegendAccount[];
   lastMatch: number | null;
 };
 
@@ -224,10 +234,28 @@ export async function getLegendsView(): Promise<LegendView[]> {
       era: eraOf(legend),
       team: team ? { id: team.id, name: team.name } : null,
       photo: photos[norm(legend.name)] ?? d?.avatar ?? null,
-      persona: d?.persona ?? null,
       seasonRank: d?.seasonRank ?? null,
       leaderboardRank: d?.leaderboardRank ?? null,
-      matches: activity[main]?.matches ?? null,
+      accounts: [
+        ...legend.accounts.map((id) => ({
+          accountId: id,
+          persona: details[id]?.persona ?? null,
+          lastMatch: activity[id]?.lastMatch ?? null,
+          matches: activity[id]?.matches ?? null,
+          leaderboardRank: details[id]?.leaderboardRank ?? null,
+          anonymous: !!details[id]?.anonymous,
+        })),
+        ...(onTeam?.accounts ?? [])
+          .filter((a) => !legend.accounts.includes(a.accountId))
+          .map((a) => ({
+            accountId: a.accountId,
+            persona: a.persona,
+            lastMatch: a.lastMatch,
+            matches: null,
+            leaderboardRank: null,
+            anonymous: false,
+          })),
+      ],
       lastMatch: last || null,
     };
   });

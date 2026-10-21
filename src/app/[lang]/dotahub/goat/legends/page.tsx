@@ -19,6 +19,8 @@ const isRecent = (unix: number | null) => unix != null && Date.now() / 1000 - un
 // Past two months the month reads better than a count of days.
 const longAgo = (unix: number) => Date.now() / 1000 - unix > 60 * 86400;
 const month = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 7);
+const when = (unix: number | null, t: Parameters<typeof ago>[1]) =>
+  unix ? (longAgo(unix) ? month(unix) : ago(unix, t)) : null;
 
 async function Body() {
   await connection();
@@ -37,11 +39,17 @@ async function Body() {
       known: v.legend.known?.[lang] ?? null,
       team: v.team,
       photo: v.photo,
-      persona: v.persona,
       seasonRank: v.seasonRank,
       leaderboardRank: v.leaderboardRank,
-      matches: v.matches,
-      lastPlayed: v.lastMatch ? (longAgo(v.lastMatch) ? month(v.lastMatch) : ago(v.lastMatch, t)) : null,
+      accounts: v.accounts.map((a) => ({
+        id: a.accountId,
+        persona: a.persona,
+        matches: a.matches,
+        leaderboardRank: a.leaderboardRank,
+        anonymous: a.anonymous,
+        lastPlayed: when(a.lastMatch, t),
+      })),
+      lastPlayed: when(v.lastMatch, t),
       recent: isRecent(v.lastMatch),
     }))
     // Oldest champions first; the icons last.
