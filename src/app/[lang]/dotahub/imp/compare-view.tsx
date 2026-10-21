@@ -12,6 +12,7 @@ import { avg, FILTER_PAGE, FilterBar, perMinute, Section, signed, useFilterState
 import { CompareMenu, type CompareProps } from "../economy/compare/compare-menu";
 import { bestOf, SideTable } from "../economy/compare/compare-view";
 import { type FilteredSeries, filterSeries, isCrowd, type Series } from "../economy/compare/series";
+import { HistoryNotes } from "../economy/compare/history-notes";
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 // IMP in whole points, with its sign.
@@ -161,6 +162,7 @@ export function ImpCompareView({
         )}
       />
       <p className="text-xs text-muted-foreground">{sides.some(isCrowd) ? t.howCrowd : c.how}</p>
+      <HistoryNotes sides={sides} />
       {sides
         .filter((x) => x.progress && x.progress.count < x.progress.target)
         .map((x) => (

@@ -574,6 +574,10 @@ const dotahubZh = {
     peers: "常一起玩的人",
     full: "最多对比两个对象",
     you: "你",
+    notStored: (who: string) =>
+      `${who} 没有在本站连结 Steam：只有 STRATZ 最近 100 场天梯（选「全部」也一样）。`,
+    stillReading: (who: string, n: number) =>
+      `${who} 的历史比赛还在补（目前 ${n} 场），「全部」的场数会慢慢增加。`,
     couldNotLoad: "读不到对比对象的资料，先显示你自己的。",
     how: "所有图都套用同样的筛选；每个人用自己最近的场数。",
     numbers: "数字",

@@ -604,6 +604,10 @@ const dotahubEn: typeof dotahubZh = {
     peers: "People you play with",
     full: "Two at most",
     you: "You",
+    notStored: (who: string) =>
+      `${who} hasn't linked Steam here: only STRATZ's newest 100 ranked matches (All too).`,
+    stillReading: (who: string, n: number) =>
+      `${who}'s older matches are still being read (${n} so far); All grows as they come in.`,
     couldNotLoad: "Couldn't load who to compare with; showing yours only.",
     how: "Every chart uses the same filters; each player their own newest matches.",
     numbers: "Numbers",

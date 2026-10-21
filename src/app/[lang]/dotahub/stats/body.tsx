@@ -186,6 +186,7 @@ export async function StatsBody({
               matches: other.matches,
               sides: other.sides,
               avatar: profile.avatar,
+              history: { stored: Boolean(owner), complete: other.complete, count: other.matches.length },
             }
           : null;
       }),

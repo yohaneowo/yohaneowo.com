@@ -26,6 +26,7 @@ import {
   rankKey,
   type Series,
 } from "./series";
+import { HistoryNotes } from "./history-notes";
 
 const thousands = (n: number) => Math.round(n).toLocaleString("en-US");
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -315,6 +316,7 @@ export function CompareView({
         )}
       />
       <p className="text-xs text-muted-foreground">{crowd ? t.howCrowd : t.how}</p>
+      <HistoryNotes sides={sides} />
       {sides
         .filter((x) => x.progress && x.progress.count < x.progress.target)
         .map((x) => (
