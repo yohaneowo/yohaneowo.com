@@ -174,11 +174,15 @@ export function signatures(history: HistoryMatch[], now = Math.floor(Date.now() 
     const span = windows(rated, now);
     const persistent = span.total >= 2 && span.positive / span.total >= SIGNATURE.windowShare;
     const advantage = (winP ?? 0) >= SIGNATURE.probability || (impP ?? 0) >= SIGNATURE.probability;
+    // STRATZ's IMP is already against the same hero at the player's rank, so a strong player is
+    // above 0 on almost everything: mastery also needs the hero at least at their own level (their
+    // mean IMP on other heroes), so it picks the heroes that stand out for them.
     const mastered =
       m != null &&
       coverage >= SIGNATURE.minImpCoverage &&
       m.probability >= SIGNATURE.probability &&
-      persistent;
+      persistent &&
+      (baseImps.length < SIGNATURE.minBaseline || mean(imps) >= mean(baseImps));
 
     // Still standing out lately: each piece of evidence it has, checked again on the recent matches
     // with its own measure: the win rate or mean IMP against the other heroes of the same recent window
@@ -223,7 +227,8 @@ export function signatures(history: HistoryMatch[], now = Math.floor(Date.now() 
       // Not enough history yet: standing out recently (by the same measures, without the
       // half-years) makes a 潜力绝活; otherwise not shown.
       const recentMastery = recentImps.length
-        ? mastery(recentImps).probability >= SIGNATURE.probability
+        ? mastery(recentImps).probability >= SIGNATURE.probability &&
+          (baseImps.length < SIGNATURE.minBaseline || mean(recentImps) >= mean(baseImps))
         : false;
       if (advantage || recentMastery) {
         label = "potential";

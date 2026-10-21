@@ -253,13 +253,24 @@ const dotahubZh = {
     died: (minute: number, killer: string | null) => `第 ${minute} 分阵亡${killer ? `（${killer}）` : ""}`,
   },
   signature: {
+    noRecentRanked: (date: string) =>
+      `这个帐号近 180 天没有天梯比赛（最后一场是 ${date}），所以每个绝活都只能算历史绝活。`,
+    proElsewhere: (name: string, team: string | null) =>
+      `${name} 是${team ? ` ${team} 的` : ""}职业选手：可能在其他帐号打天梯，或主要在打训练赛与正式比赛（练习房的队长模式，不算天梯，见下方）。`,
+    toGoat: "在 GOAT 看他的战队与帐号",
+    practiceTitle: "训练赛与职业比赛",
+    practiceHint: (n: number, since: string) =>
+      `练习房里的队长模式（职业战队的训练赛与正式比赛都用这种房间）：STRATZ 记录到的最近 ${n} 场（${since} 起）。这些不是天梯，所以不进绝活的判断。`,
+    practiceRecent: "近 180 天",
+    alsoRanked: "也是天梯绝活",
+    hero: "英雄",
     title: "绝活",
     description:
       "你天梯里真正拿手的英雄：要有证据（比你的其他英雄好，或长期高于同英雄的平均），不是玩得多就算。",
     playerDescription: "这位玩家天梯里真正拿手的英雄：要有证据，不是玩得多就算。",
     found: "绝活",
     foundHint:
-      "两种证据之一：优势型（玩这个英雄比玩其他英雄更会赢，或 IMP 更高），精通型（IMP 长期高于同英雄、同位置的平均，好几个半年都是）。都按机率判断，至少 80% 有把握才算。",
+      "两种证据之一：优势型（玩这个英雄比玩其他英雄更会赢，或 IMP 更高），精通型（IMP 长期高于同段位玩这个英雄、这个位置的平均，好几个半年都是，而且不低于自己其他英雄的水准）。都按机率判断，至少 80% 有把握才算。",
     none: "还没有找到有足够证据的绝活。玩得多的英雄在下面的「高熟练」。",
     labels: {
       current: "当前绝活",
@@ -344,7 +355,6 @@ const dotahubZh = {
     notFound: "找不到这位玩家。",
     mine: "返回我的 DotaHub",
     noStratz: "STRATZ 查不到这位玩家的天梯比赛，可能没有公开比赛资料。",
-    loadingDeaths: "正在向 STRATZ 查询这位玩家的天梯比赛，第一次大约要 15 秒……",
     stratzRecent: "这位玩家没有在本站连结 Steam，所以直接向 STRATZ 查最近 100 场天梯（几小时更新一次）。",
     deathsDescription: "这位玩家在天梯比赛里死在地图哪里：越多次的地方颜色越深。资料来自 STRATZ，只算天梯。",
     peersDescription: "这位玩家最常一起玩的人（同一队至少 3 场）。",
@@ -646,6 +656,15 @@ const dotahubZh = {
     checked: (m: number) => (m ? `${m} 分钟前检查` : "刚刚检查"),
   },
   goat: goatZh,
+  loading: {
+    firstVisit: "第一次打开这位玩家要等几秒，之后会很快",
+    steps: {
+      deaths: ["读取天梯比赛…", "整理每一次死亡的位置…", "画热力图…"],
+      economy: ["读取天梯比赛…", "整理每分钟的经济与正补…", "计算和同段位的比较…"],
+      imp: ["读取天梯比赛…", "整理每分钟的 IMP…", "画图表…"],
+      signature: ["读取完整的天梯历史…", "按英雄与位置分组…", "计算证据与机率…", "整理绝活卡片…"],
+    },
+  },
   ago: {
     minutes: (n: number) => `${n} 分钟前`,
     hours: (n: number) => `${n} 小时前`,

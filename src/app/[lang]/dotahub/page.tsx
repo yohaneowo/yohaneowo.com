@@ -9,6 +9,7 @@ import { getDictionary, getLocale } from "@/i18n/server";
 import { cn } from "@/lib/utils";
 import { dotaViewer, syncDotaLink } from "./account";
 import { Overview } from "./overview";
+import { prewarm } from "./prewarm";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.title };
@@ -52,6 +53,7 @@ async function Body({ searchParams }: { searchParams: SearchParams }) {
   const viewer = await dotaViewer();
   // Make sure admin checks this account (death maps, DMs), e.g. one linked before admin did.
   if (viewer.state === "linked") await syncDotaLink(viewer);
+  if (viewer.state === "linked") await prewarm(viewer.accountId, { kind: "stored", userId: viewer.userId });
   return (
     <>
       {notice && (

@@ -159,3 +159,25 @@ html[data-theme-turn] .theme-toggle svg {
     animation: none;
   }
 }
+
+/* The DotaHub loading panel's bar, running left to right (loading-panel.tsx). Plain CSS: the panel
+   is a Suspense fallback, prerendered, where animation libraries can't run. */
+.loading-bar {
+  animation: loading-bar 1.4s ease-in-out infinite;
+}
+
+@keyframes loading-bar {
+  from {
+    left: -33%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar {
+    animation: none;
+    left: 33%;
+  }
+}

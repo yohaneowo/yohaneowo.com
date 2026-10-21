@@ -8,6 +8,8 @@ import { dotaViewer, syncDotaLink } from "../account";
 import { Notice } from "../parts";
 import { DeathsView, rangeParam } from "./deaths-view";
 import { PlayerChip } from "./player-chip";
+import { prewarm } from "../prewarm";
+import { LoadingPanel } from "../loading-panel";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.deaths.title };
@@ -27,6 +29,7 @@ async function Deaths({ searchParams }: { searchParams: SearchParams }) {
         </Link>
       </Notice>
     );
+  await prewarm(viewer.accountId, { kind: "stored", userId: viewer.userId });
   return (
     <DeathsView
       t={t}
@@ -66,7 +69,7 @@ export default async function DeathsPage({ searchParams }: { searchParams: Searc
         {/* The win rate for the chosen range and hero, put here by DeathsExplorer. */}
         <div id={DEATHS_TITLE_SLOT} className="shrink-0" />
       </div>
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+      <Suspense fallback={<LoadingPanel kind="deaths" />}>
         <Deaths searchParams={searchParams} />
       </Suspense>
     </div>

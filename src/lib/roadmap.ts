@@ -478,6 +478,11 @@ export const ROADMAP: RoadmapItem[] = [
         "A level board: Dota Plus hero levels (worldwide), with each player's ranked matches, win rate and average IMP on the hero",
         true,
       ),
+      step(
+        "当前 / 历史改用入选的证据检查近期；精通型也要不低于自己的水准；近期没有天梯时说明原因，并列出训练赛与职业比赛",
+        "Current or former by re-checking the evidence lately; mastery also at least the player's own level; a note when there's no recent ranked, and their scrims and pro matches",
+        true,
+      ),
       step("时间外验证脚本与参数校准", "Out-of-time validation and calibrating the thresholds"),
     ],
     links: [{ label: { zh: "绝活", en: "Signature heroes" }, href: "/dotahub/signature" }],

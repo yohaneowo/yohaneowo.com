@@ -1,10 +1,18 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import { z } from "zod";
 
 // admin's website DotaHub API: the linked Steam account (admin checks its ranked matches in the
 // background and queues the death-map DMs), the DM setting, and the stored deaths for the heat map.
 
 export class DotaAdminUnavailable extends Error {}
+
+// The stored matches (deaths, details, the bracket) are big and take admin seconds to put together,
+// so they're cached: refetched in the background after two minutes, and an older copy is served
+// at once meanwhile (for up to a week), so only the very first view of a player waits. A new match
+// shows up on the view after it's stored. (Errors from a cached call reach the caller as plain
+// Errors, which is all the callers expect.)
+const STORED = { stale: 30, revalidate: 120, expire: 7 * 24 * 3600 };
 
 function endpoint() {
   const base = process.env.ADMIN_API_URL;
@@ -157,6 +165,8 @@ export async function setDotaNotify(userId: string, notify: boolean) {
 // The stored ranked matches with details, newest first (limit 0: all of them); null when admin
 // doesn't know the account.
 export async function getStoredDetails(userId: string, limit: number) {
+  "use cache";
+  cacheLife(STORED);
   const data = detailsListSchema
     .nullable()
     .parse(await call(`/users/${encodeURIComponent(userId)}/details?limit=${limit}`));
@@ -199,12 +209,16 @@ export type BracketMatch = z.infer<typeof bracketSchema>["matches"][number];
 // The other nine players of the stored ranked matches (the player's bracket), newest first
 // (limit 0: all); null when admin doesn't know the account.
 export async function getStoredBracket(userId: string, limit: number) {
+  "use cache";
+  cacheLife(STORED);
   return bracketSchema
     .nullable()
     .parse(await call(`/users/${encodeURIComponent(userId)}/bracket?limit=${limit}`));
 }
 
 export async function getStoredDeaths(userId: string, limit: number) {
+  "use cache";
+  cacheLife(STORED);
   return deathsSchema
     .nullable()
     .parse(await call(`/users/${encodeURIComponent(userId)}/deaths?limit=${limit}`));

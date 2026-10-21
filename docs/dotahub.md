@@ -74,6 +74,17 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 - 页面：`signature/`（`body.tsx` 卡片与高熟练表、`leaderboard.tsx` 排行榜与 server action `actions.ts`），别人的在 `players/[id]/signature`。时间外验证脚本还没做（方案 8.2）。
 - 小导航另有「局内科研」（`research/`，规划中）。
 
+- **精通型也要不低于自己的水准**（2026-10-21）：STRATZ 的 IMP 本来就是跟同段位、同英雄比（各段位排行榜前 50 的平均 IMP 都在 3–15，没有随段位升高），所以 IMP > 0 已是「赢过同段位平均」，顶尖玩家几乎每个英雄都过（Yatoro 一度有 20 个精通型）。现在精通型（与潜力绝活的精通判断）还要该英雄平均 IMP ≥ 自己其他英雄的平均 IMP。
+- **没有近期天梯与训练赛**：帐号近 180 天没有天梯时，页面上方说明原因；是 GOAT 里的职业选手就连到他的战队。职业选手的比赛多是练习房的队长模式（`lobby_type 1`、模式 2：训练赛与正式比赛），不算天梯；`getPracticeHistory()` 抓最近 500 场，满 20 场就列「训练赛与职业比赛」表（每个英雄的场数、近 180 天、胜率、平均 IMP，也是天梯绝活的标出来），不进绝活判断。
+
+### 载入速度
+
+- 每个玩家第一次打开死亡热力图 / 经济 / IMP / 绝活要现场抓资料（实测最久 9 秒），之后约 0.2 秒。三层处理：
+  1. admin 的已存资料（`getStoredDeaths` / `getStoredDetails` / `getStoredBracket`）加上快取（`STORED`：2 分钟后背景重抓，旧资料最多留 7 天）；新比赛在存进 admin 后的下一次浏览出现。
+  2. STRATZ 的玩家资料（`getStratzRanked`、`getStratzProfile`、`getRankedHistory`、`getHeroLevels`、`getPracticeHistory`）用 `KEPT`（1 小时背景重抓、留 7 天），不再是一天就丢。
+  3. `prewarm.ts`：总览与这四页（自己的和别人的）回应送出后用 `after()` 在背景把其他几页要的资料抓进快取。
+- 等待画面是 `loading-panel.tsx`：页面形状的骨架、来回跑的进度条、按时间切换的步骤文字（伺服器无法回报真实进度）与「第一次要等几秒」。
+
 ### GOAT（职业战队与选手）
 
 不属于哪个玩家的页面：小导航的 GOAT 在别人的玩家页上也连到 `/dotahub/goat`。资料在 `src/lib/dota/pro.ts`，页面在 `dotahub/goat/`，文字在 `i18n/goat-zh.ts` / `goat-en.ts`（挂在 `dotahub.goat`）。

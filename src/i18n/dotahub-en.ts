@@ -265,6 +265,17 @@ const dotahubEn: typeof dotahubZh = {
     died: (minute: number, killer: string | null) => `died at ${minute}:00${killer ? ` (${killer})` : ""}`,
   },
   signature: {
+    noRecentRanked: (date: string) =>
+      `This account has no ranked match in the last 180 days (the last was on ${date}), so every signature hero can only be a former one.`,
+    proElsewhere: (name: string, team: string | null) =>
+      `${name} is a pro${team ? ` on ${team}` : ""}: they may play ranked on another account, or mostly scrims and official matches (captains mode in practice lobbies, not ranked; see below).`,
+    toGoat: "Their team and accounts in GOAT",
+    practiceTitle: "Scrims and pro matches",
+    practiceHint: (n: number, since: string) =>
+      `Captains mode in practice lobbies (where pro teams play scrims and official matches): the newest ${n} STRATZ has (since ${since}). They aren't ranked, so they don't count toward signature heroes.`,
+    practiceRecent: "Last 180 days",
+    alsoRanked: "Also a ranked signature",
+    hero: "Hero",
     title: "Signature heroes",
     description:
       "The heroes you're really good at in ranked, with evidence (better than on your other heroes, or steadily above the hero's average), not just the ones you play most.",
@@ -272,7 +283,7 @@ const dotahubEn: typeof dotahubZh = {
       "The heroes this player is really good at in ranked, with evidence, not just the ones they play most.",
     found: "Signature heroes",
     foundHint:
-      "One of two kinds of evidence: advantage (wins more, or higher IMP, than on their other heroes), or mastery (IMP steadily above the same hero and position's average, over several half-years). Both by probability: at least 80% sure.",
+      "One of two kinds of evidence: advantage (wins more, or higher IMP, than on their other heroes), or mastery (IMP steadily above the average for the hero and position at their rank, over several half-years, and no lower than their own level on other heroes). Both by probability: at least 80% sure.",
     none: "No signature hero with enough evidence yet. The heroes played a lot are under Skilled below.",
     labels: {
       current: "Current",
@@ -358,7 +369,6 @@ const dotahubEn: typeof dotahubZh = {
     notFound: "No such player.",
     mine: "Back to my DotaHub",
     noStratz: "STRATZ has no ranked matches for this player; their match data may not be public.",
-    loadingDeaths: "Asking STRATZ for this player's ranked matches; the first time takes about 15 seconds…",
     stratzRecent:
       "This player hasn't linked Steam here, so their newest 100 ranked matches come straight from STRATZ (refreshed every few hours).",
     deathsDescription:
@@ -682,6 +692,24 @@ const dotahubEn: typeof dotahubZh = {
     checked: (m: number) => (m ? `Checked ${m} min ago` : "Just checked"),
   },
   goat: goatEn,
+  loading: {
+    firstVisit: "The first visit for a player takes a few seconds; after that it's quick",
+    steps: {
+      deaths: ["Reading ranked matches…", "Placing every death…", "Drawing the heat map…"],
+      economy: [
+        "Reading ranked matches…",
+        "Gold and last hits minute by minute…",
+        "Comparing with the rank…",
+      ],
+      imp: ["Reading ranked matches…", "IMP minute by minute…", "Drawing the charts…"],
+      signature: [
+        "Reading the whole ranked history…",
+        "Grouping by hero and position…",
+        "Weighing the evidence…",
+        "Making the cards…",
+      ],
+    },
+  },
   ago: {
     minutes: (n: number) => `${n} min ago`,
     hours: (n: number) => `${n} h ago`,

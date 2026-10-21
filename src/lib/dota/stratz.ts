@@ -280,9 +280,13 @@ export type RankedMatch = StoredMatch & { details: MatchDetails | null };
 // kept for hours (STRATZ's quota is shared with admin's checks).
 export const RECENT_RANKED = 100;
 
+// A player's STRATZ data: refetched in the background after an hour, the older copy served at once
+// meanwhile for up to a week (the built-in "hours" profile drops it after a day).
+const KEPT = { stale: 300, revalidate: 3600, expire: 7 * 24 * 3600 };
+
 export async function getStratzRanked(accountId: number): Promise<RankedMatch[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife(KEPT);
   const token = process.env.STRATZ_API_TOKEN;
   if (!token) throw new Error("STRATZ_API_TOKEN is not set");
   const id = Math.trunc(accountId);
@@ -639,7 +643,7 @@ export async function getStratzProfile(
   accountId: number,
 ): Promise<{ name: string | null; avatar: string | null; tier: number | null } | null> {
   "use cache";
-  cacheLife("hours");
+  cacheLife(KEPT);
   const token = process.env.STRATZ_API_TOKEN;
   if (!token) return null;
   const started = Date.now();
@@ -678,7 +682,7 @@ export async function getStratzProfile(
 
 // A player's whole ranked history as STRATZ has it, lean (the 绝活 page): when, hero, won, IMP and
 // position of each match, newest first. HISTORY_PAGES pages of 100 per request (aliases), until a
-// page comes back short. Kept for hours.
+// page comes back short. Kept a week, refetched hourly (KEPT).
 export type HistoryMatch = {
   start: number;
   hero: number;
@@ -709,7 +713,7 @@ type RawHistory = {
 
 export async function getRankedHistory(accountId: number): Promise<HistoryMatch[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife(KEPT);
   const token = process.env.STRATZ_API_TOKEN;
   if (!token) throw new Error("STRATZ_API_TOKEN is not set");
   const id = Math.trunc(accountId);
@@ -766,6 +770,35 @@ export async function getRankedHistory(accountId: number): Promise<HistoryMatch[
     }
     if (short) break;
   }
+  return out;
+}
+
+// A player's newest captains mode matches in practice lobbies (up to 500, one request): where pros
+// play their scrims and tournament games, which ranked history leaves out. Kept like the ranked one.
+export async function getPracticeHistory(accountId: number): Promise<HistoryMatch[]> {
+  "use cache";
+  cacheLife(KEPT);
+  const id = Math.trunc(accountId);
+  const query = Array.from(
+    { length: 5 },
+    (_, i) =>
+      `p${i}: player(steamAccountId: ${id}) { matches(request: { take: ${HISTORY_PAGE}, skip: ${i * HISTORY_PAGE}, lobbyTypeIds: [1], gameModeIds: [2] }) { startDateTime players(steamAccountId: ${id}) { heroId isVictory imp position } } }`,
+  ).join(" ");
+  const data = await stratzQuery<NonNullable<RawHistory["data"]>>(`{ ${query} }`, 45_000);
+  const out: HistoryMatch[] = [];
+  for (let i = 0; i < 5; i++)
+    for (const m of data[`p${i}`]?.matches ?? []) {
+      const p = m.players?.[0];
+      if (!p || !m.startDateTime) continue;
+      const position = p.position?.startsWith("POSITION_") ? Number(p.position.slice(9)) : null;
+      out.push({
+        start: m.startDateTime,
+        hero: p.heroId,
+        won: p.isVictory,
+        imp: typeof p.imp === "number" ? p.imp : null,
+        pos: position && position >= 1 && position <= 5 ? position : null,
+      });
+    }
   return out;
 }
 
@@ -987,7 +1020,7 @@ export async function getHeroLevelBoard(heroId: number, tier: number): Promise<L
 // each level reached; the highest is the level now. Kept for hours.
 export async function getHeroLevels(accountId: number): Promise<Record<number, number>> {
   "use cache";
-  cacheLife("hours");
+  cacheLife(KEPT);
   const data = await stratzQuery<{
     player?: { dotaPlus: { heroId: number; level: number }[] | null } | null;
   }>(`{ player(steamAccountId: ${Math.trunc(accountId)}) { dotaPlus { heroId level } } }`, 20_000);

@@ -8,6 +8,8 @@ import { accountParam } from "../../../match-list";
 import { Notice } from "../../../parts";
 import { StatsBody } from "../../../stats/body";
 import { SIDE_PANEL_PAGE } from "../../../stats/panel";
+import { prewarm } from "../../../prewarm";
+import { LoadingPanel } from "../../../loading-panel";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ vs?: string | string[] }>;
@@ -27,6 +29,7 @@ async function Body({ params, searchParams }: { params: Params; searchParams: Se
   await redirectIfOwn(id, lang, "/dotahub/economy");
   // Linked here: admin's stored history; anyone else: STRATZ asked directly.
   const userId = await getSteamOwner(steamIdOf(id));
+  await prewarm(id, userId ? { kind: "stored", userId } : { kind: "stratz" });
   const vs = (await searchParams).vs;
   return (
     <StatsBody
@@ -66,13 +69,7 @@ export default async function PlayerPage({
         </Suspense>
         <p className="mt-1 text-sm text-muted-foreground">{t.economy.playerDescription}</p>
       </div>
-      <Suspense
-        fallback={
-          <div className="flex h-96 animate-pulse items-center justify-center rounded-xl bg-muted/40 text-sm text-muted-foreground">
-            {t.player.loadingDeaths}
-          </div>
-        }
-      >
+      <Suspense fallback={<LoadingPanel kind="economy" />}>
         <Body params={params} searchParams={searchParams} />
       </Suspense>
     </div>

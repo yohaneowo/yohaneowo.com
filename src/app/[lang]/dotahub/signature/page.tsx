@@ -7,6 +7,8 @@ import { dotaViewer } from "../account";
 import { ViewerChip } from "../deaths/player-chip";
 import { Notice } from "../parts";
 import { SignatureBody } from "./body";
+import { prewarm } from "../prewarm";
+import { LoadingPanel } from "../loading-panel";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.signature.title };
@@ -26,6 +28,7 @@ async function Body({ searchParams }: { searchParams: SearchParams }) {
         </Link>
       </Notice>
     );
+  await prewarm(viewer.accountId, { kind: "stored", userId: viewer.userId });
   const hero = Number((await searchParams).hero);
   return (
     <SignatureBody
@@ -54,7 +57,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
         </Suspense>
         <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
       </div>
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+      <Suspense fallback={<LoadingPanel kind="signature" />}>
         <Body searchParams={searchParams} />
       </Suspense>
     </div>

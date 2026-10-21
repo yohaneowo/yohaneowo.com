@@ -8,6 +8,8 @@ import { DeathsView, rangeParam } from "../../../deaths/deaths-view";
 import { PlayerChip } from "../../../deaths/player-chip";
 import { accountParam } from "../../../match-list";
 import { Notice } from "../../../parts";
+import { prewarm } from "../../../prewarm";
+import { LoadingPanel } from "../../../loading-panel";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ n?: string | string[] }>;
@@ -27,6 +29,7 @@ async function Deaths({ params, searchParams }: { params: Params; searchParams: 
   // Players who linked Steam here have their whole history stored; anyone else's newest ranked
   // matches are asked from STRATZ directly.
   const userId = await getSteamOwner(steamIdOf(id));
+  await prewarm(id, userId ? { kind: "stored", userId } : { kind: "stratz" });
   return (
     <DeathsView
       t={t}
@@ -72,13 +75,7 @@ export default async function PlayerDeathsPage({
         {/* The win rate for the chosen range and hero, put here by DeathsExplorer. */}
         <div id={DEATHS_TITLE_SLOT} className="shrink-0" />
       </div>
-      <Suspense
-        fallback={
-          <div className="flex h-96 animate-pulse items-center justify-center rounded-xl bg-muted/40 text-sm text-muted-foreground">
-            {t.player.loadingDeaths}
-          </div>
-        }
-      >
+      <Suspense fallback={<LoadingPanel kind="deaths" />}>
         <Deaths params={params} searchParams={searchParams} />
       </Suspense>
     </div>

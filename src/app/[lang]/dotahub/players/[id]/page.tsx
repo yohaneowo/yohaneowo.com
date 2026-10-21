@@ -6,6 +6,7 @@ import { redirectIfOwn } from "../../account";
 import { accountParam } from "../../match-list";
 import { Overview } from "../../overview";
 import { Notice } from "../../parts";
+import { prewarm } from "../../prewarm";
 
 type Params = Promise<{ id: string }>;
 
@@ -24,6 +25,7 @@ async function Player({ params }: { params: Params }) {
   await redirectIfOwn(id, lang, "/dotahub");
   // Linked here: admin's stored history (IMP chart); anyone else: STRATZ asked directly.
   const userId = await getSteamOwner(steamIdOf(id));
+  await prewarm(id, userId ? { kind: "stored", userId } : { kind: "stratz" });
   return (
     <Overview
       t={t}

@@ -5,7 +5,8 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getHeroes, getPlayer, type HeroInfo } from "@/lib/dota/data";
 import { type Signature, signatures, type SignatureLabel } from "@/lib/dota/signature";
-import { getHeroLevels, getRankedHistory, getStratzProfile } from "@/lib/dota/stratz";
+import { getGoatScene } from "@/lib/dota/goat";
+import { getHeroLevels, getPracticeHistory, getRankedHistory, getStratzProfile } from "@/lib/dota/stratz";
 import { cn } from "@/lib/utils";
 import { HeroImage, Notice, PlusBadge } from "../parts";
 import { LabelPillars } from "./label-pillars";
@@ -16,6 +17,9 @@ type T = Dictionary["dotahub"];
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const points = (v: number) => (Math.round(v) > 0 ? `+${Math.round(v)}` : String(Math.round(v)));
 const month = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 7);
+const day = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 10);
+// The start of the recent window (the report's 180 days).
+const recentFrom = () => Date.now() / 1000 - 180 * 86400;
 
 const BADGE: Record<SignatureLabel, string> = {
   current: "border-amber-500/60 bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -173,7 +177,31 @@ export async function SignatureBody({
   } catch {
     return <Notice>{t.unavailable}</Notice>;
   }
+  const [practice, scene] = await Promise.all([
+    getPracticeHistory(accountId).catch(() => []),
+    getGoatScene().catch(() => null),
+  ]);
   const report = signatures(history);
+  const since = recentFrom();
+  // No ranked match in the recent window at all: everything is historic, so say why (and, for a pro,
+  // where they play instead).
+  const lastRanked = history.length ? Math.max(...history.map((m) => m.start)) : null;
+  const pro = scene?.players.find((p) => p.accounts.some((a) => a.accountId === accountId));
+  const proTeam = pro?.teamId ? scene?.teams.find((x) => x.id === pro.teamId) : undefined;
+  // Practice lobby captains mode per hero: matches, wins, mean IMP (where STRATZ has it), recent.
+  const practiceRows = [...new Set(practice.map((m) => m.hero))]
+    .map((id) => {
+      const ms = practice.filter((m) => m.hero === id);
+      const imps = ms.filter((m) => m.imp != null).map((m) => m.imp!);
+      return {
+        hero: id,
+        matches: ms.length,
+        wins: ms.filter((m) => m.won).length,
+        imp: imps.length ? imps.reduce((a, b) => a + b, 0) / imps.length : null,
+        recent: ms.filter((m) => m.start >= since).length,
+      };
+    })
+    .sort((a, b) => b.matches - a.matches);
   const found = report.signatures.filter((s) => ["current", "historic", "potential"].includes(s.label));
   const skilled = report.signatures.filter((s) => s.label === "skilled" || s.label === "frequent");
   const s = t.signature;
@@ -199,6 +227,25 @@ export async function SignatureBody({
 
   return (
     <div className="flex flex-col gap-8">
+      {lastRanked && lastRanked < since && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm">
+          <p>{s.noRecentRanked(day(lastRanked))}</p>
+          {pro && (
+            <p className="mt-1 text-muted-foreground">
+              {s.proElsewhere(pro.name, proTeam?.name ?? null)}{" "}
+              <Link
+                href={localePath(
+                  lang,
+                  proTeam ? `/dotahub/goat/teams/${proTeam.id}` : "/dotahub/goat/players",
+                )}
+                className="text-foreground underline underline-offset-2"
+              >
+                {s.toGoat}
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
       <section className="flex flex-col gap-3">
         <div>
           <h2 className="font-medium">{s.found}</h2>
@@ -245,6 +292,53 @@ export async function SignatureBody({
           <p className="rounded-lg border px-4 py-6 text-center text-sm text-muted-foreground">{s.none}</p>
         )}
       </section>
+
+      {practice.length >= 20 && (
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="font-medium">{s.practiceTitle}</h2>
+            <p className="text-xs text-muted-foreground">
+              {s.practiceHint(practice.length, day(Math.min(...practice.map((m) => m.start))))}
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr className="border-b">
+                  <th className="px-3 py-2 font-normal">{s.hero}</th>
+                  <th className="px-3 py-2 text-right font-normal">{s.matches}</th>
+                  <th className="px-3 py-2 text-right font-normal">{s.practiceRecent}</th>
+                  <th className="px-3 py-2 text-right font-normal">{s.winRate}</th>
+                  <th className="px-3 py-2 text-right font-normal">{s.imp}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {practiceRows.slice(0, 12).map((r) => (
+                  <tr key={r.hero} className="border-b last:border-0">
+                    <td className="px-3 py-1.5">
+                      <span className="flex items-center gap-2">
+                        <HeroImage hero={heroes[r.hero]} lang={lang} className="h-6 w-10 rounded-sm" />
+                        {heroes[r.hero]?.[lang] ?? r.hero}
+                        {found.some((x) => x.hero === r.hero) && (
+                          <span className="rounded-full border border-amber-500/50 px-1.5 text-[10px] text-amber-600 dark:text-amber-400">
+                            {s.alsoRanked}
+                          </span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{r.matches}</td>
+                    <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">{r.recent}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{pct(r.wins / r.matches)}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">
+                      {r.imp == null ? "–" : points(r.imp)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {skilled.length > 0 && (
         <section className="flex flex-col gap-3">
