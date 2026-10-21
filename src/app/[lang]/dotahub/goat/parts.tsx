@@ -5,13 +5,23 @@ import { localePath, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { type GoatPlayer, realName } from "@/lib/dota/goat";
 import type { PsPlayer } from "@/lib/dota/pandascore";
-import type { ProDetails } from "@/lib/dota/pro";
+import type { ProDetails, ProSource } from "@/lib/dota/pro";
 import { cn } from "@/lib/utils";
 import { ago, Medal } from "../parts";
 import { AddToCompare } from "./compare-tray";
 import { CopyValue } from "./copy-button";
 
 type T = Dictionary["dotahub"];
+
+// OpenDota is down: say what's shown instead (what it last gave, or the stand-in).
+export function SourceNote({ source, at, t }: { source: ProSource; at: number; t: T }) {
+  if (source === "opendota") return null;
+  return (
+    <p className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+      {source === "kept" ? t.goat.source.kept(ago(at / 1000, t)) : t.goat.source.fallback}
+    </p>
+  );
+}
 
 export function TeamLogo({ src, name, size = 40 }: { src: string | null; name: string; size?: number }) {
   return (

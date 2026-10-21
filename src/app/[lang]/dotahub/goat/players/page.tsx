@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getDictionary } from "@/i18n/server";
 import { getGoatScene, realName } from "@/lib/dota/goat";
 import { ago, Notice } from "../../parts";
+import { SourceNote } from "../parts";
 import { PlayerDirectory } from "./player-directory";
 import { LoadingPanel } from "../../loading-panel";
 
@@ -23,6 +24,7 @@ async function Body() {
       <p className="text-xs text-muted-foreground">
         {t.goat.players.hint} {t.goat.updated(ago(scene.at / 1000, t))}
       </p>
+      <SourceNote source={scene.source} at={scene.at} t={t} />
       <PlayerDirectory
         rows={scene.players.map((p) => {
           const team = teams.get(p.teamId);

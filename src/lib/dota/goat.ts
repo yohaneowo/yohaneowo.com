@@ -14,6 +14,7 @@ import {
   getAccountActivity,
   getProDetails,
   getProScene,
+  type ProSource,
   getTeamPage,
   type ProDetails,
   type ProPlayer,
@@ -33,7 +34,13 @@ export type GoatTeam = ProTeam & {
   // PandaScore's players for the team with no account found yet.
   psOnly: PsPlayer[];
 };
-export type GoatScene = { teams: GoatTeam[]; players: GoatPlayer[]; at: number; psAt: number | null };
+export type GoatScene = {
+  teams: GoatTeam[];
+  players: GoatPlayer[];
+  at: number;
+  psAt: number | null;
+  source: ProSource;
+};
 
 export async function getGoatScene(): Promise<GoatScene> {
   const scene = await getProScene();
@@ -87,7 +94,7 @@ export async function getGoatScene(): Promise<GoatScene> {
         return false;
       });
   }
-  return { teams, players, at: scene.at, psAt: ps?.at ?? null };
+  return { teams, players, at: scene.at, psAt: ps?.at ?? null, source: scene.source };
 }
 
 // ── A team's page ────────────────────────────────────────────────────────────────────────────

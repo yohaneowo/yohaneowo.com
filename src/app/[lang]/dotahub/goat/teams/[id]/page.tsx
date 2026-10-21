@@ -13,7 +13,7 @@ import { getTeamPage, type TeamPage } from "@/lib/dota/pro";
 import { cn } from "@/lib/utils";
 import { ago, duration, HeroImage, Notice, ResultBadge } from "../../../parts";
 import { AddManyToCompare, AddToCompare } from "../../compare-tray";
-import { pct, PlayerCard, PsOnlyCard, TeamLogo } from "../../parts";
+import { pct, PlayerCard, PsOnlyCard, SourceNote, TeamLogo } from "../../parts";
 import { SeriesRow } from "../../series-row";
 import { MonthlyChart, type MonthRow } from "./team-charts";
 import { LoadingPanel } from "../../../loading-panel";
@@ -174,16 +174,19 @@ async function Body({ params, t, lang }: { params: Params; t: T; lang: Locale })
                 <p className="text-xs text-muted-foreground">{g.place}</p>
               </div>
             )}
-            <div>
-              <p className="text-3xl font-black tabular-nums">{Math.round(team.rating)}</p>
-              <p className="text-xs text-muted-foreground">{g.rating}</p>
-            </div>
+            {team.rating != null && (
+              <div>
+                <p className="text-3xl font-black tabular-nums">{Math.round(team.rating)}</p>
+                <p className="text-xs text-muted-foreground">{g.rating}</p>
+              </div>
+            )}
           </div>
         </header>
         <p className="text-xs text-muted-foreground">
           {g.updatedHourly(ago(page.at / 1000, t))}
           {goat?.ps ? ` · ${g.ps.source}` : ""}
         </p>
+        <SourceNote source={page.source} at={page.at} t={t} />
       </div>
 
       <Section title={g.team.currentRoster} hint={g.team.rosterHint}>

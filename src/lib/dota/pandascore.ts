@@ -235,9 +235,62 @@ export async function getPsTeams(names: string[]): Promise<{ teams: PsTeam[]; at
   return { teams, at: Date.now() };
 }
 
+export type PsRanked = {
+  id: number;
+  name: string;
+  acronym: string | null;
+  score: number;
+  wins: number;
+  games: number;
+};
+
+// The teams by their recent wins in big tournaments (an S-tier series won counts 3, A 2, B 1), from
+// the last thousand series (about six weeks): GOAT's order when OpenDota's ratings can't be had.
+export async function getPsRanking(): Promise<PsRanked[]> {
+  "use cache";
+  cacheLife({ stale: 60, revalidate: 6 * 3600, expire: 7 * 24 * 3600 });
+  const now = new Date();
+  const since = new Date(now.getTime() - 120 * 86400 * 1000).toISOString();
+  const weight: Record<string, number> = { s: 3, a: 2, b: 1 };
+  const by = new Map<number, PsRanked>();
+  for (let page = 1; page <= 10; page++) {
+    const past = await ps<RawMatch[]>(
+      `/dota2/matches/past?per_page=100&page=${page}&sort=-begin_at&range[begin_at]=${since},${now.toISOString()}`,
+    );
+    for (const m of past) {
+      if (m.status !== "finished") continue;
+      const points = weight[m.tournament?.tier ?? ""] ?? 0;
+      for (const { opponent: o } of m.opponents ?? []) {
+        const t = by.get(o.id) ?? {
+          id: o.id,
+          name: o.name.trim(),
+          acronym: trim(o.acronym),
+          score: 0,
+          wins: 0,
+          games: 0,
+        };
+        t.games++;
+        if (m.winner_id === o.id) {
+          t.wins++;
+          t.score += points;
+        }
+        by.set(o.id, t);
+      }
+    }
+    if (past.length < 100) break;
+  }
+  return [...by.values()]
+    .filter((t) => t.score > 0)
+    .sort((a, b) => b.score - a.score || b.wins / b.games - a.wins / a.games);
+}
+
 // OpenDota's team name (and tag) → PandaScore's team: the same name, the same name without
 // "Team"/"Gaming"…, or the same acronym.
-export function findPsTeam(teams: PsTeam[], name: string, tag: string | null) {
+export function findPsTeam<T extends { name: string; acronym: string | null }>(
+  teams: T[],
+  name: string,
+  tag: string | null,
+) {
   const n = norm(name);
   const c = core(name);
   const t = norm(tag);

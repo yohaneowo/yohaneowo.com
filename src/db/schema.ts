@@ -177,3 +177,11 @@ export const coinhubWorkspace = pgTable("coinhub_workspace", {
   data: jsonb().notNull(),
   ...timestamps,
 });
+
+// DotaHub: the last good answer from a source that can go down (OpenDota's pro scene, a team's
+// page), by key (lib/dota/kept.ts). Survives the source failing and a deploy emptying the cache.
+export const dotaSnapshot = pgTable("dota_snapshot", {
+  key: text().primaryKey(),
+  data: jsonb().notNull(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});

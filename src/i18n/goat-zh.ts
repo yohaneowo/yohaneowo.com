@@ -16,6 +16,11 @@ const goatZh = {
   updated: (ago: string) => `资料每 6 小时自动更新，上次 ${ago}`,
   updatedHourly: (ago: string) => `资料每小时自动更新，上次 ${ago}`,
   unavailable: "暂时拿不到职业资料（OpenDota 没有回应），请稍后再试。",
+  source: {
+    kept: (ago: string) => `OpenDota 暂时没有回应，显示的是 ${ago}的资料。`,
+    fallback:
+      "OpenDota 暂时没有回应，这里先用其他来源代替：战队按 PandaScore 近期大赛的胜场排序（没有积分），队员与比赛来自 STRATZ。",
+  },
   search: "搜寻战队、选手或帐号 ID",
   noResults: "没有符合的结果。",
   // Teams

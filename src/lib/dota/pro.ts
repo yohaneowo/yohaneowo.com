@@ -1,12 +1,16 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { getJson } from "./data";
+import { keep, kept } from "./kept";
+import { findPsTeam, getPsRanking } from "./pandascore";
 import { stratzQuery } from "./stratz";
 
 // The pro scene for GOAT: OpenDota's team ratings, its register of pro accounts (who plays for which
 // team, with every known account of a player) and team pages; STRATZ adds what OpenDota lacks about
 // a player (real name, position, sponsor, links, the season rank and leaderboard place). All of it
 // is cached and refetched in the background, so the teams and rosters keep themselves up to date.
+// When OpenDota is down, the last good answer kept in the database stands in; with none kept, the
+// scene and team pages are put together from PandaScore's results and STRATZ.
 
 const OPENDOTA = "https://api.opendota.com/api";
 
@@ -21,7 +25,8 @@ export type ProTeam = {
   name: string;
   tag: string;
   logo: string | null;
-  rating: number;
+  // OpenDota's rating; null when the data came from elsewhere.
+  rating: number | null;
   wins: number;
   losses: number;
   lastMatch: number;
@@ -55,7 +60,10 @@ export type ProPlayer = {
   accounts: ProAccount[];
 };
 
-export type ProScene = { teams: ProTeam[]; players: ProPlayer[]; at: number };
+// Where the data came from: OpenDota now, what OpenDota last gave (kept), or the stand-in.
+export type ProSource = "opendota" | "kept" | "fallback";
+
+export type ProScene = { teams: ProTeam[]; players: ProPlayer[]; at: number; source: ProSource };
 
 type RawTeam = {
   team_id: number;
@@ -126,7 +134,21 @@ function account(p: RawPro): ProAccount {
 // The active teams by rating and their players (plus pros without an active team who still play).
 export async function getProScene(): Promise<ProScene> {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 6 * 3600, expire: 7 * 24 * 3600 });
+  try {
+    const scene = await openDotaScene();
+    cacheLife({ stale: 60, revalidate: 6 * 3600, expire: 7 * 24 * 3600 });
+    await keep("pro-scene", scene).catch(() => {});
+    return scene;
+  } catch {
+    // Tried again in a quarter of an hour.
+    cacheLife({ stale: 60, revalidate: 900, expire: 7 * 24 * 3600 });
+    const last = await kept<ProScene>("pro-scene").catch(() => null);
+    if (last) return { ...last.data, source: "kept" };
+    return fallbackScene();
+  }
+}
+
+async function openDotaScene(): Promise<ProScene> {
   const [teams, pros] = await Promise.all([
     getJson<RawTeam[]>(`${OPENDOTA}/teams`),
     getJson<RawPro[]>(`${OPENDOTA}/proPlayers`),
@@ -147,6 +169,8 @@ export async function getProScene(): Promise<ProScene> {
       lastMatch: t.last_match_time,
       rank: i + 1,
     }));
+  // An empty answer is OpenDota failing, not a scene to keep.
+  if (!active.length) throw new Error("no active teams");
   const ids = new Set(active.map((t) => t.id));
   const accounts = pros
     .filter(
@@ -189,8 +213,17 @@ export async function getProScene(): Promise<ProScene> {
   }
   // Still nobody: STRATZ's members of the team who played in its last two weeks of matches.
   const stillMissing = missing.filter((t) => !accounts.some((a) => a.teamId === t.id));
-  for (let i = 0; i < stillMissing.length; i += 10) {
-    const chunk = stillMissing.slice(i, i + 10);
+  accounts.push(...(await stratzMembers(stillMissing, new Set(accounts.map((a) => a.accountId)))));
+  return { teams: active, players: groupPlayers(accounts), at: Date.now(), source: "opendota" };
+}
+
+// The members STRATZ has for each team who played in its last two weeks of matches (up to five,
+// the latest first), ten teams a request. Not someone in `taken` (already on another team): an
+// old team keeps its members on STRATZ after a roster moves on (TEAM VISION's became PARIVISION's).
+async function stratzMembers(teams: { id: number; lastMatch: number }[], taken: Set<number>) {
+  const accounts: ProAccount[] = [];
+  for (let i = 0; i < teams.length; i += 10) {
+    const chunk = teams.slice(i, i + 10);
     type Members = {
       members: {
         steamAccountId: number;
@@ -213,18 +246,13 @@ export async function getProScene(): Promise<ProScene> {
     ).catch(() => null);
     for (const t of chunk) {
       const members = (data?.[`t${t.id}`]?.members ?? [])
-        // Not someone already on another team: an old team keeps its members on STRATZ after a
-        // roster moves on (TEAM VISION's became PARIVISION's).
-        .filter(
-          (m) =>
-            (m.lastMatchDateTime ?? 0) >= t.lastMatch - 14 * 86400 &&
-            !accounts.some((a) => a.accountId === m.steamAccountId),
-        )
+        .filter((m) => (m.lastMatchDateTime ?? 0) >= t.lastMatch - 14 * 86400 && !taken.has(m.steamAccountId))
         .sort((a, b) => (b.lastMatchDateTime ?? 0) - (a.lastMatchDateTime ?? 0))
         .slice(0, 5);
       for (const m of members) {
         const s = m.steamAccount;
         const position = Number(s?.proSteamAccount?.position?.replace("POSITION_", ""));
+        taken.add(m.steamAccountId);
         accounts.push({
           accountId: m.steamAccountId,
           steamId: null,
@@ -241,7 +269,58 @@ export async function getProScene(): Promise<ProScene> {
       }
     }
   }
-  return { teams: active, players: groupPlayers(accounts), at: Date.now() };
+  return accounts;
+}
+
+type StratzTeam = {
+  id: number;
+  name: string | null;
+  tag: string | null;
+  logo: string | null;
+  winCount: number | null;
+  lossCount: number | null;
+  lastMatchDateTime: number | null;
+};
+
+// The stand-in scene: the teams PandaScore saw win the most in big tournaments lately, found on
+// STRATZ by name (its team ids are OpenDota's), with their members there. No ratings, no free agents.
+async function fallbackScene(): Promise<ProScene> {
+  const ranking = (await getPsRanking()).slice(0, TOP_TEAMS);
+  const teams: ProTeam[] = [];
+  for (let i = 0; i < ranking.length; i += 10) {
+    const chunk = ranking.slice(i, i + 10);
+    type Found = Record<string, { search: { teams: StratzTeam[] | null } | null } | null>;
+    const data = await stratzQuery<Found>(
+      `{ ${chunk
+        .map(
+          (r, k) =>
+            `s${k}: stratz { search(request: { query: ${JSON.stringify(r.name)}, searchType: [TEAMS], take: 5 }) { teams { id name tag logo winCount lossCount lastMatchDateTime } } }`,
+        )
+        .join(" ")} }`,
+      20_000,
+    );
+    chunk.forEach((r, k) => {
+      const found = (data[`s${k}`]?.search?.teams ?? [])
+        .filter((x) => x.name)
+        .map((x) => ({ ...x, name: x.name!.trim(), acronym: x.tag }));
+      const team = findPsTeam(found, r.name, r.acronym);
+      if (!team || teams.some((x) => x.id === team.id)) return;
+      teams.push({
+        id: team.id,
+        name: team.name,
+        tag: (team.tag ?? "").trim(),
+        logo: clean(team.logo),
+        rating: null,
+        wins: team.winCount ?? 0,
+        losses: team.lossCount ?? 0,
+        lastMatch: team.lastMatchDateTime ?? 0,
+        rank: teams.length + 1,
+      });
+    });
+  }
+  if (!teams.length) throw new Error("no stand-in scene");
+  const accounts = await stratzMembers(teams, new Set());
+  return { teams, players: groupPlayers(accounts), at: Date.now(), source: "fallback" };
 }
 
 // ── A team's page ────────────────────────────────────────────────────────────────────────────
@@ -276,12 +355,27 @@ export type TeamPage = {
   matches: TeamMatch[];
   heroes: TeamHero[];
   at: number;
+  source: ProSource;
 };
 
 export async function getTeamPage(teamId: number): Promise<TeamPage | null> {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 3600, expire: 7 * 24 * 3600 });
   const id = Math.trunc(teamId);
+  try {
+    const page = await openDotaTeamPage(id);
+    cacheLife({ stale: 60, revalidate: 3600, expire: 7 * 24 * 3600 });
+    if (page) await keep(`team:${id}`, page).catch(() => {});
+    return page;
+  } catch {
+    cacheLife({ stale: 60, revalidate: 900, expire: 7 * 24 * 3600 });
+    const last = await kept<TeamPage>(`team:${id}`).catch(() => null);
+    if (last) return { ...last.data, source: "kept" };
+    return stratzTeamPage(id);
+  }
+}
+
+// All of it or nothing: a page missing its matches isn't one to keep.
+async function openDotaTeamPage(id: number): Promise<TeamPage | null> {
   const team = await getJson<RawTeam | null>(`${OPENDOTA}/teams/${id}`, { notFound: "null" });
   if (!team?.team_id) return null;
   type RawMember = {
@@ -307,9 +401,9 @@ export async function getTeamPage(teamId: number): Promise<TeamPage | null> {
   };
   type RawHero = { hero_id: number; games_played: number; wins: number };
   const [members, matches, heroes] = await Promise.all([
-    getJson<RawMember[]>(`${OPENDOTA}/teams/${id}/players`).catch(() => [] as RawMember[]),
-    getJson<RawMatch[]>(`${OPENDOTA}/teams/${id}/matches`).catch(() => [] as RawMatch[]),
-    getJson<RawHero[]>(`${OPENDOTA}/teams/${id}/heroes`).catch(() => [] as RawHero[]),
+    getJson<RawMember[]>(`${OPENDOTA}/teams/${id}/players`),
+    getJson<RawMatch[]>(`${OPENDOTA}/teams/${id}/matches`),
+    getJson<RawHero[]>(`${OPENDOTA}/teams/${id}/heroes`),
   ]);
   return {
     team: {
@@ -353,6 +447,101 @@ export async function getTeamPage(teamId: number): Promise<TeamPage | null> {
       .filter((h) => h.games > 0)
       .sort((a, b) => b.games - a.games),
     at: Date.now(),
+    source: "opendota",
+  };
+}
+
+// The stand-in team page from STRATZ: the team, its last hundred matches, and the members and
+// heroes counted from those (OpenDota counts all of the team's matches).
+async function stratzTeamPage(id: number): Promise<TeamPage | null> {
+  type Side = { id: number; name: string | null; logo: string | null } | null;
+  type Raw = {
+    team:
+      | (StratzTeam & {
+          members: {
+            steamAccountId: number;
+            lastMatchDateTime: number | null;
+            steamAccount: { name: string | null; proSteamAccount: { name: string | null } | null } | null;
+          }[];
+          matches: {
+            id: number;
+            didRadiantWin: boolean | null;
+            durationSeconds: number | null;
+            startDateTime: number;
+            radiantTeamId: number | null;
+            radiantTeam: Side;
+            direTeam: Side;
+            league: { id: number; displayName: string | null } | null;
+            radiantKills: number[] | null;
+            direKills: number[] | null;
+            players: { isRadiant: boolean; heroId: number; steamAccountId: number }[] | null;
+          }[];
+        })
+      | null;
+  };
+  const data = await stratzQuery<Raw>(
+    `{ team(teamId: ${id}) { id name tag logo winCount lossCount lastMatchDateTime members(take: 40) { steamAccountId lastMatchDateTime steamAccount { name proSteamAccount { name } } } matches(request: { take: 100, skip: 0 }) { id didRadiantWin durationSeconds startDateTime radiantTeamId radiantTeam { id name logo } direTeam { id name logo } league { id displayName } radiantKills direKills players { isRadiant heroId steamAccountId } } } }`,
+    20_000,
+  );
+  const team = data.team;
+  if (!team?.id) return null;
+  const lastMatch = team.lastMatchDateTime ?? 0;
+  const sum = (kills: number[] | null) => (kills ?? []).reduce((a, b) => a + b, 0);
+  const games = new Map<number, { games: number; wins: number }>();
+  const heroes = new Map<number, TeamHero>();
+  const matches: TeamMatch[] = team.matches.map((m) => {
+    const radiant = m.radiantTeamId === id;
+    const won = radiant === !!m.didRadiantWin;
+    for (const p of m.players ?? []) {
+      if (p.isRadiant !== radiant) continue;
+      const g = games.get(p.steamAccountId) ?? { games: 0, wins: 0 };
+      games.set(p.steamAccountId, { games: g.games + 1, wins: g.wins + Number(won) });
+      const h = heroes.get(p.heroId) ?? { heroId: p.heroId, games: 0, wins: 0 };
+      heroes.set(p.heroId, { ...h, games: h.games + 1, wins: h.wins + Number(won) });
+    }
+    const opponent = radiant ? m.direTeam : m.radiantTeam;
+    const [ours, theirs] = radiant ? [m.radiantKills, m.direKills] : [m.direKills, m.radiantKills];
+    return {
+      matchId: m.id,
+      start: m.startDateTime,
+      duration: m.durationSeconds ?? 0,
+      won,
+      radiant,
+      score: [sum(ours), sum(theirs)],
+      league: clean(m.league?.displayName),
+      leagueId: m.league?.id ?? 0,
+      opponentId: opponent?.id ?? null,
+      opponent: clean(opponent?.name),
+      opponentLogo: clean(opponent?.logo),
+    };
+  });
+  return {
+    team: {
+      id: team.id,
+      name: (team.name ?? String(id)).trim(),
+      tag: (team.tag ?? "").trim(),
+      logo: clean(team.logo),
+      rating: null,
+      wins: team.winCount ?? 0,
+      losses: team.lossCount ?? 0,
+      lastMatch,
+    },
+    members: team.members
+      .map((m) => ({
+        accountId: m.steamAccountId,
+        name: (
+          clean(m.steamAccount?.proSteamAccount?.name) ??
+          clean(m.steamAccount?.name) ??
+          String(m.steamAccountId)
+        ).trim(),
+        ...(games.get(m.steamAccountId) ?? { games: 0, wins: 0 }),
+        current: (m.lastMatchDateTime ?? 0) >= lastMatch - 14 * 86400,
+      }))
+      .filter((m) => m.games > 0 || m.current),
+    matches: matches.sort((a, b) => b.start - a.start),
+    heroes: [...heroes.values()].sort((a, b) => b.games - a.games),
+    at: Date.now(),
+    source: "fallback",
   };
 }
 

@@ -5,6 +5,7 @@ import { getDictionary } from "@/i18n/server";
 import { getGoatScene, getTeamView } from "@/lib/dota/goat";
 import { getPsSchedule } from "@/lib/dota/pandascore";
 import { ago, Notice } from "../parts";
+import { SourceNote } from "./parts";
 import { TeamGrid } from "./team-grid";
 import { LoadingPanel } from "../loading-panel";
 
@@ -35,6 +36,7 @@ async function Body() {
         {t.goat.teamsHint} {t.goat.updated(ago(scene.at / 1000, t))}
         {scene.psAt ? ` · ${t.goat.ps.source}` : ""}
       </p>
+      <SourceNote source={scene.source} at={scene.at} t={t} />
       <TeamGrid
         teams={scene.teams.map((team) => {
           const next = team.ps

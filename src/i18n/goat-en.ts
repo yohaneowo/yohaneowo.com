@@ -16,6 +16,11 @@ const goatEn: typeof goatZh = {
   updated: (ago: string) => `Updates itself every 6 hours; last ${ago}`,
   updatedHourly: (ago: string) => `Updates itself every hour; last ${ago}`,
   unavailable: "Pro data isn't available right now (OpenDota isn't answering). Try again later.",
+  source: {
+    kept: (ago: string) => `OpenDota isn't answering; this is what it gave ${ago}.`,
+    fallback:
+      "OpenDota isn't answering, so other sources stand in: teams by their recent wins in big tournaments on PandaScore (no ratings), players and matches from STRATZ.",
+  },
   search: "Search teams, players or account IDs",
   noResults: "Nothing matches.",
   rank: (n: number) => `#${n}`,

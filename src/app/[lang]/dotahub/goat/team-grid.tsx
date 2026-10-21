@@ -15,7 +15,7 @@ export type GridTeam = {
   name: string;
   tag: string;
   logo: string | null;
-  rating: number;
+  rating: number | null;
   wins: number;
   losses: number;
   lastMatch: string;
@@ -106,10 +106,12 @@ export function TeamGrid({ teams }: { teams: GridTeam[] }) {
                         {g.lastMatch} {team.lastMatch}
                       </p>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-lg font-semibold tabular-nums">{Math.round(team.rating)}</p>
-                      <p className="text-[11px] text-muted-foreground">{g.rating}</p>
-                    </div>
+                    {team.rating != null && (
+                      <div className="shrink-0 text-right">
+                        <p className="text-lg font-semibold tabular-nums">{Math.round(team.rating)}</p>
+                        <p className="text-[11px] text-muted-foreground">{g.rating}</p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="tabular-nums">{g.record(team.wins, team.losses)}</span>

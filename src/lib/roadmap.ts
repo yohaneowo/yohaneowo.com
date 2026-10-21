@@ -530,6 +530,11 @@ export const ROADMAP: RoadmapItem[] = [
         "Legends: TI champions and icons (a hand-kept list checked on STRATZ), what they're up to, photos, in the compare menu too",
         true,
       ),
+      step(
+        "OpenDota 挂掉时不开天窗：存下上次的资料，没有就用 PandaScore 与 STRATZ 拼代用资料",
+        "Still up when OpenDota is down: the last good data kept, else a stand-in from PandaScore and STRATZ",
+        true,
+      ),
       step("用户审视后删减与调整", "Trim and adjust after review"),
     ],
     links: [{ label: { zh: "GOAT", en: "GOAT" }, href: "/dotahub/goat" }],
