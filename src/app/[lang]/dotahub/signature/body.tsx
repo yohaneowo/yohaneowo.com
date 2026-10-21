@@ -230,6 +230,10 @@ export async function SignatureBody({
       {lastRanked && lastRanked < since && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm">
           <p>{s.noRecentRanked(day(lastRanked))}</p>
+          {/* On the leaderboard now: still playing, the matches are just hidden. */}
+          {player?.data.leaderboard_rank ? (
+            <p className="mt-1 font-medium">{s.stillRanked(player.data.leaderboard_rank)}</p>
+          ) : null}
           {pro && (
             <p className="mt-1 text-muted-foreground">
               {s.proElsewhere(pro.name, proTeam?.name ?? null)}{" "}

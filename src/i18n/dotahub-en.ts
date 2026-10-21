@@ -266,9 +266,11 @@ const dotahubEn: typeof dotahubZh = {
   },
   signature: {
     noRecentRanked: (date: string) =>
-      `This account has no ranked match in the last 180 days (the last was on ${date}), so every signature hero can only be a former one.`,
+      `No ranked match of this account in the last 180 days can be seen (the last one visible is from ${date}), so every signature hero can only be a former one. Either they haven't played, or they turned off Expose Public Match Data: then their ranked matches show up on no third-party site.`,
+    stillRanked: (rank: number) =>
+      `They're #${rank} on Valve's ranked leaderboard right now, so they most likely still play; their matches just aren't public (reading them all can't bring them back).`,
     proElsewhere: (name: string, team: string | null) =>
-      `${name} is a pro${team ? ` on ${team}` : ""}: they may play ranked on another account, or mostly scrims and official matches (captains mode in practice lobbies, not ranked; see below).`,
+      `${name} is a pro${team ? ` on ${team}` : ""}: scrims and official matches (captains mode in practice lobbies, not ranked) are always public; see below.`,
     toGoat: "Their team and accounts in GOAT",
     practiceTitle: "Scrims and pro matches",
     practiceHint: (n: number, since: string) =>

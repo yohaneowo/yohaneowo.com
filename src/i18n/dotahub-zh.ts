@@ -254,9 +254,11 @@ const dotahubZh = {
   },
   signature: {
     noRecentRanked: (date: string) =>
-      `这个帐号近 180 天没有天梯比赛（最后一场是 ${date}），所以每个绝活都只能算历史绝活。`,
+      `看不到这个帐号近 180 天的天梯比赛（最后一场看得到的是 ${date}），所以每个绝活都只能算历史绝活。可能是没打，也可能是关闭了「公开比赛资料」：那样天梯比赛不会出现在任何第三方网站。`,
+    stillRanked: (rank: number) =>
+      `他目前在 Valve 官方天梯排行第 ${rank} 名，所以很可能还在打，只是比赛资料不公开（读取全部也补不回来）。`,
     proElsewhere: (name: string, team: string | null) =>
-      `${name} 是${team ? ` ${team} 的` : ""}职业选手：可能在其他帐号打天梯，或主要在打训练赛与正式比赛（练习房的队长模式，不算天梯，见下方）。`,
+      `${name} 是${team ? ` ${team} 的` : ""}职业选手：训练赛与正式比赛（练习房的队长模式，不算天梯）一定公开，见下方。`,
     toGoat: "在 GOAT 看他的战队与帐号",
     practiceTitle: "训练赛与职业比赛",
     practiceHint: (n: number, since: string) =>
