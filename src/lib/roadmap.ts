@@ -613,6 +613,16 @@ export const ROADMAP: RoadmapItem[] = [
         "Choosing: by match id, recent matches, the same hero in your matches and pros'; a way in from the match page",
         true,
       ),
+      step(
+        "进阶：同段位平均曲线与出装时间、局势（胜率与经济差、BP、对线结果）、时间分配、逐场团战与死亡分析",
+        "Deeper: rank-average curves and item timings, the game's course (win chance, leads, draft, lanes), time use, every teamfight and death",
+        true,
+      ),
+      step(
+        "进阶：装备前后效果、技能使用率、伤害类型与控制、眼位品质、移动与抱团、金钱来源随时间与手上的钱、属性",
+        "Deeper: item effects, ability use, damage types and disables, ward quality, movement and grouping, gold over time and on hand, attributes",
+        true,
+      ),
       step("用户审视后删减与调整", "Trim and adjust after review"),
     ],
     links: [{ label: { zh: "局内科研", en: "In-game lab" }, href: "/dotahub/research" }],

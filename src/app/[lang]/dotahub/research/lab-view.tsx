@@ -54,9 +54,39 @@ import {
   ResourcesBody,
   VisionBody,
 } from "./sections-late";
+import {
+  AttributesBlock,
+  BaselineNote,
+  ContextBody,
+  DamageDeepBlock,
+  DeathAnalysisBlock,
+  FightBreakdownBlock,
+  GoldDeepBlock,
+  ItemEffectsBlock,
+  LaneTradesBlock,
+  MovementDeepBlock,
+  SkillEfficiencyBlock,
+  TimeBody,
+  VisionQualityBlock,
+} from "./sections-deep";
+import {
+  contextInsight,
+  DEEP_METRICS,
+  deepFightsInsight,
+  deepGoldInsight,
+  deepItemsInsight,
+  deepLaningInsight,
+  deepMovementInsight,
+  deepSkillsInsight,
+  deepSummary,
+  deepVisionInsight,
+  timeInsight,
+} from "./advanced";
 
 const SECTIONS = [
+  "context",
   "timeline",
+  "time",
   "laning",
   "items",
   "skills",
@@ -236,43 +266,101 @@ function SectionFor({ k, open, onToggle }: { k: SectionKey; open: boolean; onTog
   const { t } = ctx;
   const insight = useMemo(() => {
     const { a, b, assets, names } = ctx;
+    const join = (...parts: string[]) => parts.filter(Boolean).join(" ");
     switch (k) {
+      case "context":
+        return contextInsight(a, b, t);
       case "timeline":
         return timelineInsight(a, b, t);
+      case "time":
+        return timeInsight(a, b, t);
       case "laning":
-        return laningInsight(a, b, t);
+        return join(laningInsight(a, b, t), deepLaningInsight(a, b, t));
       case "items":
-        return itemsInsight(a, b, assets, t, names);
+        return join(itemsInsight(a, b, assets, t, names), deepItemsInsight(a, b, assets, t, names));
       case "skills":
-        return skillsInsight(a, b, t, names);
+        return join(skillsInsight(a, b, t, names), deepSkillsInsight(a, b, t, names));
       case "fights":
-        return fightsInsight(a, b, t);
+        return join(fightsInsight(a, b, t), deepFightsInsight(a, b, t));
       case "damage":
         return damageInsight(a, b, t, names);
       case "vision":
-        return visionInsight(a, b, t);
+        return join(visionInsight(a, b, t), deepVisionInsight(a, b, t));
       case "movement":
-        return movementInsight(a, b, t);
+        return join(movementInsight(a, b, t), deepMovementInsight(a, b, t));
       case "resources":
         return resourcesInsight(a, b, t);
       case "gold":
-        return goldInsight(a, b, t);
+        return join(goldInsight(a, b, t), deepGoldInsight(a, b, t));
       default:
         return miscInsight(a, b, t);
     }
   }, [ctx, k, t]);
   const body = {
-    timeline: <TimelineBody />,
-    laning: <LaningBody />,
-    items: <ItemsBody />,
-    skills: <SkillsBody />,
-    fights: <FightsBody />,
-    damage: <DamageBody />,
-    vision: <VisionBody />,
-    movement: <MovementBody />,
+    context: <ContextBody />,
+    timeline: (
+      <>
+        <BaselineNote />
+        <TimelineBody />
+      </>
+    ),
+    time: <TimeBody />,
+    laning: (
+      <>
+        <LaningBody />
+        <LaneTradesBlock />
+      </>
+    ),
+    items: (
+      <>
+        <ItemsBody />
+        <ItemEffectsBlock />
+      </>
+    ),
+    skills: (
+      <>
+        <SkillsBody />
+        <SkillEfficiencyBlock />
+      </>
+    ),
+    fights: (
+      <>
+        <FightsBody />
+        <FightBreakdownBlock />
+        <DeathAnalysisBlock />
+      </>
+    ),
+    damage: (
+      <>
+        <DamageBody />
+        <DamageDeepBlock />
+      </>
+    ),
+    vision: (
+      <>
+        <VisionBody />
+        <VisionQualityBlock />
+      </>
+    ),
+    movement: (
+      <>
+        <MovementBody />
+        <MovementDeepBlock />
+      </>
+    ),
     resources: <ResourcesBody />,
-    gold: <GoldBody />,
-    misc: <MiscBody />,
+    gold: (
+      <>
+        <GoldBody />
+        <GoldDeepBlock />
+      </>
+    ),
+    misc: (
+      <>
+        <MiscBody />
+        <AttributesBlock />
+      </>
+    ),
   }[k];
   return (
     <Section id={k} title={t.sections[k]} insight={insight} open={open} onToggle={onToggle}>
@@ -291,8 +379,14 @@ function useInsightContext() {
 function Summary() {
   const { a, b, assets, t } = useInsightContext();
   const names = useNames();
-  const lines = useMemo(() => summary(a, b, assets, t, names), [a, b, assets, t, names]);
-  const diffs = useMemo(() => (b ? biggestDiffs(a, b).slice(0, 8) : []), [a, b]);
+  const lines = useMemo(
+    () =>
+      [...summary(a, b, assets, t, names), ...deepSummary(a, b, assets, t, names)].filter(
+        (l, i, all) => all.indexOf(l) === i,
+      ),
+    [a, b, assets, t, names],
+  );
+  const diffs = useMemo(() => (b ? biggestDiffs(a, b, DEEP_METRICS).slice(0, 10) : []), [a, b]);
   return (
     <section className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
       <h2 className="font-semibold">{b ? t.summary.title : t.summary.single}</h2>

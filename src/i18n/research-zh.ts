@@ -90,6 +90,8 @@ const researchZh = {
   },
 
   sections: {
+    context: "局势",
+    time: "时间分配",
     timeline: "时间线",
     laning: "对线期",
     items: "出装",
@@ -392,7 +394,178 @@ const researchZh = {
     award: "STRATZ 评选",
   },
 
+  deep: {
+    // The game's course.
+    winProb: "我方胜率（STRATZ 预测，点：绿是击杀、红是死亡）",
+    nwLead: "我方经济领先",
+    xpLead: "我方经验领先",
+    draft: "选人与禁用",
+    pick: "选",
+    ban: "禁",
+    ours: "我方",
+    theirs: "对方",
+    laneOutcomes: "三路对线结果（STRATZ）",
+    laneResults: { stompWin: "大胜", win: "小胜", tie: "平", loss: "小败", stompLoss: "大败" } as Record<
+      string,
+      string
+    >,
+    contextLine: (who: string, max: string, min: string, at: string, swing: string, lane: string) =>
+      `${who} 方胜率最高 ${max}、最低 ${min}，变化最大在 ${at}（${swing}）；自己那路对线 ${lane}。`,
+    noContext: "没有胜率资料（STRATZ 未解析）。",
+    // Time.
+    activities: {
+      farmLane: "线上打钱",
+      farmJungle: "野区打钱",
+      fight: "参战",
+      move: "移动",
+      base: "在基地",
+      dead: "死亡",
+    } as Record<string, string>,
+    shares: "全场时间分配",
+    phases: "各阶段的时间分配",
+    phaseNames: ["0–10 分", "10–20 分", "20–30 分", "30 分后"],
+    band: "时间带（每格 10 秒，跟着上面的时间范围）",
+    timeHint:
+      "按每 10 秒内发生的事判断：有击杀、死亡、助攻，或双方伤害合计超过 250 算参战；有补刀算打钱；其余看所在位置。是估计。",
+    timeLine: (who: string, farm: string, fight: string, move: string, dead: string) =>
+      `${who}：打钱 ${farm}、参战 ${fight}、移动 ${move}、死亡 ${dead}。`,
+    noTime: "没有 STRATZ 解析，算不出时间分配。",
+    // The rank average.
+    baseline: "同段位平均",
+    baselineNote: (bracket: string, position: string, n: string) =>
+      `虚线灰色：${bracket}${position}的同英雄平均（STRATZ，${n} 场）`,
+    brackets: {
+      HERALD_GUARDIAN: "先锋–卫士",
+      CRUSADER_ARCHON: "中军–统帅",
+      LEGEND_ANCIENT: "传奇–万古",
+      DIVINE_IMMORTAL: "超凡–冠绝",
+    } as Record<string, string>,
+    position: (n: number) => ` ${n} 号位`,
+    vsAverage: (label: string, m: number, diff: string) => `${label} 第 ${m} 分钟净值比同段位平均 ${diff}。`,
+    avgTime: "同段位平均",
+    // Items.
+    effects: "关键装备前后各 5 分钟的变化",
+    before: "之前",
+    after: "之后",
+    gpm: "每分钟金钱",
+    lhpm: "每分钟正补",
+    dpm: "每分钟英雄伤害",
+    fightUse: "主动装备在团战里的使用",
+    usedIn: (used: number, fights: number) => `${used}/${fights} 场`,
+    itemEffect: (who: string, item: string, a: string, b: string) =>
+      `${who} 出 ${item} 后每分钟正补从 ${a} 变成 ${b}。`,
+    // Skills.
+    efficiency: "技能使用率（以冷却估计）",
+    casts: "施放",
+    possible: "最多可放",
+    ratio: "使用率",
+    effHint: "按每级冷却与存活时间估计最多能放几次；冷却缩减没算，所以可能超过 100%。",
+    ultFights: "大招在团战里",
+    ultLine: (who: string, ult: string, used: number, fights: number) =>
+      `${who} 参与的 ${fights} 场团战里有 ${used} 场放了 ${ult}。`,
+    hitsPerCast: "每次施法命中的英雄数",
+    perCast: "每次",
+    // Fights.
+    breakdown: "逐场团战拆解",
+    distEnemy: "开打时离最近敌人",
+    near: "身边友 / 敌",
+    first: "首次出手 / 首次挨打（开打后）",
+    burst: "3 秒爆发",
+    used: "用了的技能与物品",
+    carried: "身上的装备",
+    dealtTaken: "造成 / 承受",
+    deaths: "死亡分析",
+    kind: "类型",
+    kinds: { fight: "团战", gank: "被抓", pickoff: "被单杀", other: "其他" } as Record<string, string>,
+    buyback: "买活钱",
+    swing: "胜率变化",
+    deathKinds: (who: string, fight: number, gank: number, pick: number, alone: number) =>
+      `${who} 死在团战 ${fight} 次、被抓 ${gank} 次、被单杀 ${pick} 次，${alone} 次身边没有队友。`,
+    costlyDeath: (at: string, drop: string) => `代价最大的一次在 ${at}（胜率掉 ${drop}）。`,
+    seconds: (n: number) => `${n} 秒`,
+    units: (n: number) => `${n} 码`,
+    yes: "够",
+    no: "不够",
+    // Damage.
+    types: "伤害类型（造成 / 承受）",
+    physical: "物理",
+    magical: "魔法",
+    pure: "纯粹",
+    disables: "控制（造成 / 承受）",
+    stun: "眩晕",
+    disable: "禁锢等",
+    slow: "减速",
+    times: "次",
+    secs: "秒",
+    healIn: "每分钟受到的治疗",
+    selfHeal: "自我治疗",
+    allyHeal: "治疗队友",
+    // Vision.
+    quality: "眼位品质",
+    roles: { defensive: "防守眼", river: "河道眼", aggressive: "进攻眼", base: "基地" } as Record<
+      string,
+      string
+    >,
+    beforeObjective: "团战或肉山前 2 分钟内插的",
+    avgLife: "平均存活（假眼 / 真眼）",
+    dewardedShare: "被排比例",
+    visionLine: (who: string, agg: number, def: number, obj: number, dew: string) =>
+      `${who} 进攻眼 ${agg}、防守与河道 ${def}，${obj} 个插在团战或肉山前，被排 ${dew}。`,
+    // Movement.
+    distance: "各阶段移动距离",
+    perMin: "每分钟",
+    group: "和队友在一起的时间（存活时）",
+    alone: "独自",
+    one: "1 位队友",
+    two: "2 位以上",
+    tps: "TP 落点",
+    smokes: "开雾",
+    moveLine: (who: string, perMin: string, alone: string, tps: number) =>
+      `${who} 每分钟移动 ${perMin} 码，${alone} 的时间身边没有队友，TP ${tps} 次。`,
+    // Laning.
+    trades: "前 10 分钟的英雄伤害交换",
+    dealt: "造成",
+    taken: "承受",
+    vsOpp: "对对线对手",
+    lowHp: "前 10 分钟最低血量",
+    outcome: "STRATZ 对线结果",
+    tradeLine: (who: string, out: string, inn: string) =>
+      `${who} 前 10 分钟造成 ${out}、承受 ${inn} 英雄伤害。`,
+    // Gold.
+    overTime: "每分钟金钱来源",
+    sources: {
+      creeps: "小兵",
+      neutrals: "野怪",
+      heroes: "击杀助攻",
+      buildings: "建筑",
+      roshan: "肉山",
+      runes: "神符",
+      couriers: "信使",
+      wards: "排眼",
+      other: "其他",
+    } as Record<string, string>,
+    unspent: "手上没花掉的钱（每分钟平均）",
+    bank: "平均 / 最高 / 超过 1500 的时间",
+    bankLine: (who: string, avg: string, share: string) =>
+      `${who} 平均手上留着 ${avg} 金，${share} 的时间超过 1500。`,
+    // Attributes.
+    attributes: "属性成长",
+    str: "力量",
+    agi: "敏捷",
+    int: "智力",
+  },
+
   metrics: {
+    farmPct: "打钱时间",
+    fightPct: "参战时间",
+    movePct: "移动时间",
+    unspentAvg: "手上平均金钱",
+    alonePct: "独自的时间",
+    distPm: "每分钟移动距离",
+    trade10: "前 10 分钟造成英雄伤害",
+    taken10: "前 10 分钟承受英雄伤害",
+    ultUse: "大招团战使用率",
+    stunDealt: "每分钟眩晕敌人秒数",
     gpm: "GPM",
     xpm: "XPM",
     lhpm: "每分钟正补",

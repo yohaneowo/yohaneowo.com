@@ -346,6 +346,8 @@ export function LineCompare({
   integer = false,
   xMax,
   extra,
+  baseline,
+  marks,
 }: {
   title: string;
   // The per-minute values of a side (index = minute), or null when the side has none.
@@ -359,6 +361,10 @@ export function LineCompare({
   xMax?: number;
   // More lines per side (lane opponents…): name, values, dashed.
   extra?: (s: LabSide, side: SideKey) => { name: string; values: number[] }[];
+  // The same hero's rank average for the side (grey, dashed; drawn once when both share it).
+  baseline?: (s: LabSide) => (number | null)[] | null;
+  // Events marked on the side's line (kills, deaths…).
+  marks?: (s: LabSide, side: SideKey) => { t: number; color: string }[];
 }) {
   const { align, range, cursor, assets, lang, t } = useLab();
   const sides = useSides();
@@ -391,6 +397,46 @@ export function LineCompare({
           lineStyle: { width: 1.5, type: "dashed", color: SIDE_COLOR[k], opacity: 0.6 },
           itemStyle: { color: SIDE_COLOR[k] },
         });
+      const evs = marks?.(s, k) ?? [];
+      if (evs.length)
+        lines.push({
+          name: `${k === "a" ? t.insight.a : t.insight.b} ·`,
+          type: "scatter",
+          symbolSize: 7,
+          data: evs
+            .map((e) => {
+              const x = xOf(s, e.t, align);
+              const m = e.t / 60;
+              const i = Math.min(values.length - 1, Math.max(0, Math.floor(m)));
+              const y =
+                values[i] + ((values[Math.min(values.length - 1, i + 1)] ?? values[i]) - values[i]) * (m - i);
+              return x == null
+                ? null
+                : { value: [x, y], itemStyle: { color: e.color, borderColor: "#fff", borderWidth: 1 } };
+            })
+            .filter((v) => v != null),
+          tooltip: { show: false },
+        });
+    }
+    // The rank average: one line per distinct baseline.
+    const drawn = new Set<string>();
+    for (const [k, s] of sides) {
+      const bl = baseline?.(s);
+      const meta = s.advanced.baseline;
+      if (!bl?.length || !meta) continue;
+      const id = `${s.heroId}-${meta.position}-${meta.bracket}`;
+      if (drawn.has(id) && align.kind === "time") continue;
+      drawn.add(id);
+      lines.push({
+        name: `${t.deep.baseline}${sides.length > 1 && drawn.size > 1 ? ` (${k === "a" ? t.insight.a : t.insight.b})` : ""}`,
+        type: "line",
+        data: bl
+          .map((v, m) => [xOf(s, m * 60, align), v] as [number | null, number | null])
+          .filter((p): p is [number, number] => p[0] != null && p[1] != null),
+        showSymbol: false,
+        lineStyle: { width: 1.5, type: "dashed", color: "#9ca3af" },
+        itemStyle: { color: "#9ca3af" },
+      });
     }
     return {
       animation: false,
@@ -424,7 +470,7 @@ export function LineCompare({
       },
       series: lines,
     };
-  }, [sides, series, extra, align, range, title, format, step, t, itemName, integer, xMax]);
+  }, [sides, series, extra, align, range, title, format, step, t, itemName, integer, xMax, baseline, marks]);
   if (!option.series || (option.series as unknown[]).length === 0) return null;
   return (
     <div style={{ height }} className="min-w-0">
@@ -636,7 +682,7 @@ export function Bars({
               style={{ width: `${(r.value / top) * 100}%`, background: color }}
             />
           </span>
-          <span className="w-20 shrink-0 text-right tabular-nums">
+          <span className="min-w-20 shrink-0 text-right whitespace-nowrap tabular-nums">
             {format(r.value)}
             {r.note && <span className="ml-1 text-muted-foreground">{r.note}</span>}
           </span>

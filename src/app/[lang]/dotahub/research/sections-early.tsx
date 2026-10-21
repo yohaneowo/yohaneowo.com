@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import type { LabSide } from "@/lib/dota/lab";
+import type { BaselineKey } from "@/lib/dota/lab-extra";
 import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
 import { firstBuys, laneGap10, minutesOf, num, signed, xOf } from "./insights";
@@ -24,6 +25,16 @@ import {
 // ── Timeline ─────────────────────────────────────────────────────────────────────────────────
 
 const pctFmt = (v: number) => `${Math.round(v * 100)}%`;
+
+// The rank average's curve for a stat (stable, so the charts don't redraw).
+const bl = (key: BaselineKey) => (s: LabSide) => s.advanced.baseline?.minutes[key] ?? null;
+const blNw = bl("networth");
+const blXp = bl("xp");
+const blLh = bl("cs");
+const blDn = bl("dn");
+const blLevel = bl("level");
+const blHd = bl("heroDamage");
+const blTd = bl("towerDamage");
 
 export function TimelineBody() {
   const { t } = useLab();
@@ -54,14 +65,14 @@ export function TimelineBody() {
   const gold = useCallback((s: LabSide) => s.minutes.gold, []);
   return (
     <div className="grid gap-x-6 gap-y-4 lg:grid-cols-2">
-      <LineCompare title={tl.netWorth} series={nw} />
-      <LineCompare title={tl.xp} series={xp} />
-      <LineCompare title={tl.lh} series={lh} />
-      <LineCompare title={tl.dn} series={dn} />
-      <LineCompare title={tl.level} series={level} step integer />
+      <LineCompare title={tl.netWorth} series={nw} baseline={blNw} />
+      <LineCompare title={tl.xp} series={xp} baseline={blXp} />
+      <LineCompare title={tl.lh} series={lh} baseline={blLh} />
+      <LineCompare title={tl.dn} series={dn} baseline={blDn} />
+      <LineCompare title={tl.level} series={level} step integer baseline={blLevel} />
       <LineCompare title={tl.gold} series={gold} />
-      <LineCompare title={tl.heroDamage} series={hd} />
-      <LineCompare title={tl.towerDamage} series={td} />
+      <LineCompare title={tl.heroDamage} series={hd} baseline={blHd} />
+      <LineCompare title={tl.towerDamage} series={td} baseline={blTd} />
       <LineCompare title={tl.nwShare} series={share} format={pctFmt} />
       <LineCompare title={tl.hp} series={hp} format={pctFmt} />
       <LineCompare title={tl.imp} series={imp} />

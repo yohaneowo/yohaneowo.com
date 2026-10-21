@@ -1,6 +1,19 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import { getHeroes, getJson, getMatch } from "./data";
+import {
+  buildExtra,
+  getCooldowns,
+  getLabBaseline,
+  HEAVY_EXTRA,
+  type LabAdvanced,
+  LIGHT_EXTRA,
+  STATS_EXTRA,
+  type SzHeavyExtra,
+  type SzDamage,
+  type SzLightExtra,
+  type SzStatsExtra,
+} from "./lab-extra";
 import { mapZone, type MapZone } from "./map";
 import { stratzQuery } from "./stratz";
 
@@ -169,7 +182,7 @@ type OdMatch = {
 // ── What STRATZ gives ────────────────────────────────────────────────────────────────────────
 
 type SzPos = { time: number; x: number; y: number };
-type SzLight = {
+type SzLight = SzLightExtra & {
   parsedDateTime: number | null;
   rank: number | null;
   players: {
@@ -184,6 +197,8 @@ type SzLight = {
       assistEvents: { time: number; target: number }[] | null;
       deathEvents: { time: number; attacker: number }[] | null;
       playerUpdatePositionEvents: SzPos[] | null;
+      // Everyone's hero damage dealt: the damage taken by the player is in the others' lists.
+      heroDamageEvents: SzDamage[] | null;
     } | null;
   }[];
 };
@@ -191,86 +206,93 @@ type SzHeavy = {
   playerSlot: number;
   imp: number | null;
   award: string | null;
-  playbackData: {
-    abilityLearnEvents:
-      { time: number; abilityId: number; levelObtained: number; isTalent: boolean }[] | null;
-    abilityUsedEvents: { time: number; abilityId: number; target: number | null }[] | null;
-    itemUsedEvents: { time: number; itemId: number; target: number | null }[] | null;
-    playerUpdateLevelEvents: { time: number; level: number }[] | null;
-    playerUpdateHealthEvents: { time: number; hp: number; maxHp: number; mp: number; maxMp: number }[] | null;
-    killEvents:
-      | {
-          time: number;
-          target: number;
-          byAbility: number | null;
-          byItem: number | null;
-          isSolo: boolean | null;
-          isGank: boolean | null;
-          isSmoke: boolean | null;
-          isInvisible: boolean | null;
-          isTpRecently: boolean | null;
-          isRuneEffected: boolean | null;
-        }[]
-      | null;
-    deathEvents:
-      | {
-          time: number;
-          attacker: number;
-          byAbility: number | null;
-          byItem: number | null;
-          positionX: number;
-          positionY: number;
-          goldLost: number | null;
-          goldFed: number | null;
-          timeDead: number | null;
-          isWardWalkThrough: boolean | null;
-          isAttemptTpOut: boolean | null;
-          isDieBack: boolean | null;
-          isBurst: boolean | null;
-          isEngagedOnDeath: boolean | null;
-          hasHealAvailable: boolean | null;
-          isTracked: boolean | null;
-          isFeed: boolean | null;
-        }[]
-      | null;
-    assistEvents: { time: number; target: number; positionX: number; positionY: number }[] | null;
-    runeEvents: { time: number; rune: string; action: string; positionX: number; positionY: number }[] | null;
-    buyBackEvents: { time: number; cost: number | null; deathTimeRemaining: number | null }[] | null;
-    purchaseEvents: { time: number; itemId: number }[] | null;
-    csEvents:
-      | {
-          time: number;
-          npcId: number | null;
-          isCreep: boolean | null;
-          isNeutral: boolean | null;
-          isAncient: boolean | null;
-          positionX: number;
-          positionY: number;
-          gold: number | null;
-        }[]
-      | null;
-  } | null;
-  stats: {
-    wards: { time: number; type: number; positionX: number; positionY: number }[] | null;
-    wardDestruction: { time: number; isWard: boolean | null; gold: number | null }[] | null;
-    tripsFountainPerMinute: number[] | null;
-    impPerMinute: number[] | null;
-    heroDamageReceivedPerMinute: number[] | null;
-    actionReport: Record<string, number | null> | null;
-  } | null;
+  playbackData:
+    | (SzHeavyExtra & {
+        abilityLearnEvents:
+          { time: number; abilityId: number; levelObtained: number; isTalent: boolean }[] | null;
+        abilityUsedEvents: { time: number; abilityId: number; target: number | null }[] | null;
+        itemUsedEvents: { time: number; itemId: number; target: number | null }[] | null;
+        playerUpdateLevelEvents: { time: number; level: number }[] | null;
+        playerUpdateHealthEvents:
+          { time: number; hp: number; maxHp: number; mp: number; maxMp: number }[] | null;
+        killEvents:
+          | {
+              time: number;
+              target: number;
+              byAbility: number | null;
+              byItem: number | null;
+              isSolo: boolean | null;
+              isGank: boolean | null;
+              isSmoke: boolean | null;
+              isInvisible: boolean | null;
+              isTpRecently: boolean | null;
+              isRuneEffected: boolean | null;
+            }[]
+          | null;
+        deathEvents:
+          | {
+              time: number;
+              attacker: number;
+              byAbility: number | null;
+              byItem: number | null;
+              positionX: number;
+              positionY: number;
+              goldLost: number | null;
+              goldFed: number | null;
+              timeDead: number | null;
+              isWardWalkThrough: boolean | null;
+              isAttemptTpOut: boolean | null;
+              isDieBack: boolean | null;
+              isBurst: boolean | null;
+              isEngagedOnDeath: boolean | null;
+              hasHealAvailable: boolean | null;
+              isTracked: boolean | null;
+              isFeed: boolean | null;
+            }[]
+          | null;
+        assistEvents: { time: number; target: number; positionX: number; positionY: number }[] | null;
+        runeEvents:
+          { time: number; rune: string; action: string; positionX: number; positionY: number }[] | null;
+        buyBackEvents: { time: number; cost: number | null; deathTimeRemaining: number | null }[] | null;
+        purchaseEvents: { time: number; itemId: number }[] | null;
+        csEvents:
+          | {
+              time: number;
+              npcId: number | null;
+              isCreep: boolean | null;
+              isNeutral: boolean | null;
+              isAncient: boolean | null;
+              positionX: number;
+              positionY: number;
+              gold: number | null;
+            }[]
+          | null;
+      })
+    | null;
+  stats:
+    | (SzStatsExtra & {
+        wards: { time: number; type: number; positionX: number; positionY: number }[] | null;
+        wardDestruction: { time: number; isWard: boolean | null; gold: number | null }[] | null;
+        tripsFountainPerMinute: number[] | null;
+        impPerMinute: number[] | null;
+        heroDamageReceivedPerMinute: number[] | null;
+        actionReport: Record<string, number | null> | null;
+      })
+    | null;
 };
 
-const HEAVY = `playerSlot imp award playbackData { abilityLearnEvents { time abilityId levelObtained isTalent } abilityUsedEvents { time abilityId target } itemUsedEvents { time itemId target } playerUpdateLevelEvents { time level } playerUpdateHealthEvents { time hp maxHp mp maxMp } killEvents { time target byAbility byItem isSolo isGank isSmoke isInvisible isTpRecently isRuneEffected } deathEvents { time attacker byAbility byItem positionX positionY goldLost goldFed timeDead isWardWalkThrough isAttemptTpOut isDieBack isBurst isEngagedOnDeath hasHealAvailable isTracked isFeed } assistEvents { time target positionX positionY } runeEvents { time rune action positionX positionY } buyBackEvents { time cost deathTimeRemaining } purchaseEvents { time itemId } csEvents { time npcId isCreep isNeutral isAncient positionX positionY gold } } stats { wards { time type positionX positionY } wardDestruction { time isWard gold } tripsFountainPerMinute impPerMinute heroDamageReceivedPerMinute actionReport { moveToPosition moveToTarget attackPosition attackTarget castPosition castTarget castNoTarget heldPosition glyphCast scanUsed pingUsed } }`;
+const HEAVY = `playerSlot imp award playbackData { abilityLearnEvents { time abilityId levelObtained isTalent } abilityUsedEvents { time abilityId target } itemUsedEvents { time itemId target } playerUpdateLevelEvents { time level } playerUpdateHealthEvents { time hp maxHp mp maxMp } killEvents { time target byAbility byItem isSolo isGank isSmoke isInvisible isTpRecently isRuneEffected } deathEvents { time attacker byAbility byItem positionX positionY goldLost goldFed timeDead isWardWalkThrough isAttemptTpOut isDieBack isBurst isEngagedOnDeath hasHealAvailable isTracked isFeed } assistEvents { time target positionX positionY } runeEvents { time rune action positionX positionY } buyBackEvents { time cost deathTimeRemaining } purchaseEvents { time itemId } csEvents { time npcId isCreep isNeutral isAncient positionX positionY gold } ${HEAVY_EXTRA} } stats { ${STATS_EXTRA} wards { time type positionX positionY } wardDestruction { time isWard gold } tripsFountainPerMinute impPerMinute heroDamageReceivedPerMinute actionReport { moveToPosition moveToTarget attackPosition attackTarget castPosition castTarget castNoTarget heldPosition glyphCast scanUsed pingUsed } }`;
 
 async function stratzLight(matchId: number): Promise<SzLight | null> {
   const data = await stratzQuery<{ match: SzLight | null }>(
-    `{ match(id: ${matchId}) { parsedDateTime rank players { playerSlot heroId isRadiant lane position steamAccountId playbackData { killEvents { time target positionX positionY } assistEvents { time target } deathEvents { time attacker } playerUpdatePositionEvents { time x y } } } } }`,
+    `{ match(id: ${matchId}) { parsedDateTime rank ${LIGHT_EXTRA} players { playerSlot heroId isRadiant lane position steamAccountId playbackData { killEvents { time target positionX positionY } assistEvents { time target } deathEvents { time attacker } playerUpdatePositionEvents { time x y } heroDamageEvents { time attacker target value byAbility byItem damageType isPhysicalAttack isSourceMainHero isTargetMainHero } } } } }`,
     30_000,
   );
   return data.match;
 }
 
-// One player's events; by account when known (one player's worth), else all ten and pick the slot.
+// One player's events; by account when known (STRATZ knows anonymous players' accounts too), else
+// all ten and pick the slot.
 async function stratzHeavy(matchId: number, slot: number, accountId: number | null): Promise<SzHeavy | null> {
   const filter = accountId ? `(steamAccountId: ${accountId})` : "";
   const data = await stratzQuery<{ match: { players: SzHeavy[] } | null }>(
@@ -516,6 +538,7 @@ export type LabSide = {
   actions: Record<string, number>;
   pings: number | null;
   firstBlood: { t: number; mine: boolean; victim: boolean } | null;
+  advanced: LabAdvanced;
 };
 
 export type LabAssets = {
@@ -632,11 +655,22 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
   }
 
   const accountId = p.account_id && p.account_id !== 4294967295 ? p.account_id : null;
-  const [heroes, catalog, light, heavy] = await Promise.all([
+  const [heroes, catalog, light, cooldownsAll] = await Promise.all([
     getHeroes(),
     getCatalog(),
     stratzLight(id).catch(() => null),
-    stratzHeavy(id, slot, accountId).catch(() => null),
+    getCooldowns().catch(() => ({}) as Record<string, number[]>),
+  ]);
+  const lightMine = light?.players.find((x) => x.playerSlot === slot);
+  const medal = Math.floor((light?.rank ?? p.rank_tier ?? 80) / 10);
+  const [heavy, baseline] = await Promise.all([
+    stratzHeavy(id, slot, lightMine?.steamAccountId ?? accountId).catch(() => null),
+    getLabBaseline(
+      p.hero_id,
+      Number(lightMine?.position?.replace("POSITION_", "")) || null,
+      medal,
+      catalog.itemById,
+    ).catch(() => null),
   ]);
   const stratzParsed = Boolean(light?.parsedDateTime && heavy?.playbackData);
   if (stratzParsed) cacheLife("days");
@@ -1034,6 +1068,47 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
   const enemyNw = perMinute(duration, (m) => sumT(foes, m));
   const fin = minutesLen - 1;
 
+  const advanced = buildExtra({
+    duration,
+    radiant,
+    heroId: p.hero_id,
+    slot,
+    teamHeroes,
+    foeHeroes,
+    path,
+    everyone: (light?.players ?? []).map((x) => ({
+      slot: x.playerSlot,
+      radiant: x.isRadiant,
+      positions: x.playbackData?.playerUpdatePositionEvents ?? [],
+    })),
+    incoming: (light?.players ?? [])
+      .filter((x) => x.isRadiant !== radiant)
+      .flatMap((x) => x.playbackData?.heroDamageEvents ?? [])
+      .filter((d) => d.target === p.hero_id),
+    light,
+    heavy: pb ?? null,
+    stats: heavy?.stats ?? null,
+    odPicks:
+      (raw as { picks_bans?: { is_pick: boolean; hero_id: number; team: number; order: number }[] | null })
+        .picks_bans ?? null,
+    odTeamfights: raw.teamfights ?? [],
+    index,
+    teamfights,
+    deaths: fights
+      .filter((f) => f.kind === "death")
+      .map((f) => ({ t: f.t, timeDead: f.timeDead, enemies: f.enemies })),
+    fightTimes: fights.map((f) => f.t),
+    netWorth: p.networth_t ?? p.gold_t,
+    laneAbs: lane,
+    itemKey,
+    abilityKey,
+    baseline,
+    cooldowns: Object.fromEntries(
+      Object.entries(cooldownsAll).filter(
+        ([k]) => learned.some((l) => l.key === k) || abilityUses.some((u) => u.key === k),
+      ),
+    ),
+  });
   const side: LabSide = {
     matchId: id,
     slot,
@@ -1210,7 +1285,17 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     >,
     pings: p.pings ?? null,
     firstBlood,
+    advanced,
   };
+
+  const adv = advanced;
+  for (const f of adv.fightDetails) {
+    f.abilities.forEach((a) => (catalog.itemByKey[a.key] ? items : abilities).add(a.key));
+    f.items.forEach((a) => items.add(a.key));
+    f.carried.forEach((k) => items.add(k));
+  }
+  for (const e of adv.inventory) [...e.items, ...e.backpack, e.neutral].forEach((k) => k && items.add(k));
+  for (const d of adv.damage) if (d.by) (catalog.itemByKey[d.by] ? items : abilities).add(d.by);
 
   // Damage sources and hits are ability or item keys ("null" is a right-click).
   for (const x of [...side.damage.dealtBySource, ...side.damage.receivedBySource, ...side.damage.hits]) {

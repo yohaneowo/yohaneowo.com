@@ -296,9 +296,9 @@ export type Diff = { key: string; a: number; b: number; fmt: Fmt; score: number;
 
 // The differences that stand out, largest first: relative for counts and rates, in points for
 // shares, in proportion to the slower time for timings.
-export function biggestDiffs(a: LabSide, b: LabSide): Diff[] {
+export function biggestDiffs(a: LabSide, b: LabSide, extra: Metric[] = []): Diff[] {
   const out: Diff[] = [];
-  for (const m of METRICS) {
+  for (const m of [...METRICS, ...extra]) {
     const va = m.get(a);
     const vb = m.get(b);
     if (va == null || vb == null) continue;
