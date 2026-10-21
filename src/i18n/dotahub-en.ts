@@ -1,4 +1,5 @@
 import type dotahubZh from "./dotahub-zh";
+import goatEn from "./goat-en";
 
 const dotahubEn: typeof dotahubZh = {
   title: "DotaHub",
@@ -13,6 +14,7 @@ const dotahubEn: typeof dotahubZh = {
     economy: "Economy",
     imp: "IMP",
     signature: "Signature",
+    goat: "GOAT",
     research: "In-game lab",
     planned: "Planned",
   },
@@ -679,6 +681,7 @@ const dotahubEn: typeof dotahubZh = {
     periods: { day: "today", hour: "this hour", minute: "this minute" },
     checked: (m: number) => (m ? `Checked ${m} min ago` : "Just checked"),
   },
+  goat: goatEn,
   ago: {
     minutes: (n: number) => `${n} min ago`,
     hours: (n: number) => `${n} h ago`,

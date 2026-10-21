@@ -485,6 +485,43 @@ export const ROADMAP: RoadmapItem[] = [
     started: "2026-10-21",
   },
   {
+    id: "dotahub-goat",
+    status: "building",
+    area: "dotahub",
+    title: { zh: "DotaHub：GOAT（职业战队与选手）", en: "DotaHub: GOAT (pro teams and players)" },
+    summary: {
+      zh: "自动更新的职业战队与现役阵容，重点是每位选手的帐号（含小号），并能拿他们跟你或彼此对比。",
+      en: "Pro teams and their rosters, updating themselves, centred on every account a player uses (alts too), to compare with you or each other.",
+    },
+    why: {
+      zh: "想知道职业选手用哪些帐号、最近在打什么，跟自己差多少。",
+      en: "To know which accounts pros play on, what they're playing lately, and how far you are from them.",
+    },
+    steps: [
+      step(
+        "战队：OpenDota 评分排序，现役阵容（登记表、战队成员、STRATZ 三层备援）",
+        "Teams by OpenDota's rating with current rosters (the register, the team's members, then STRATZ)",
+        true,
+      ),
+      step(
+        "战队页：选手帐号卡（主帐号与小号、真名、位置、天梯名次）、每月战绩、常用英雄、近期比赛、对手与赛事、前选手",
+        "Team pages: player account cards (main and alts, name, position, leaderboard place), months, heroes, matches, opponents, tournaments, former players",
+        true,
+      ),
+      step("选手目录：搜寻、筛选与排序", "A player directory to search, filter and sort", true),
+      step("正在比赛：高分直播对局里的职业选手", "Live: pros in high-rated live games", true),
+      step(
+        "对比：最多 4 人并排（战绩、近 20 场、雷达、共同英雄、交手纪录），并接到经济与 IMP 对比",
+        "Compare up to 4 side by side (records, last 20, radar, shared heroes, head to head), leading on to the economy and IMP compares",
+        true,
+      ),
+      step("用户审视后删减与调整", "Trim and adjust after review"),
+    ],
+    links: [{ label: { zh: "GOAT", en: "GOAT" }, href: "/dotahub/goat" }],
+    added: "2026-10-21",
+    started: "2026-10-21",
+  },
+  {
     id: "dotahub-research",
     status: "considering",
     area: "dotahub",

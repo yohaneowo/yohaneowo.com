@@ -17,7 +17,7 @@ export class DotaUnavailable extends Error {}
 // the pages can show a notice instead of failing: OpenDota sometimes stalls on single endpoints.
 // Errors thrown inside a "use cache" function reach the caller as plain Errors, so pages treat any
 // error from these calls as "unavailable" rather than checking the class.
-async function getJson<T>(url: string, options: { notFound?: "null" } = {}): Promise<T> {
+export async function getJson<T>(url: string, options: { notFound?: "null" } = {}): Promise<T> {
   const host = new URL(url).host;
   const source = sourceOf(url);
   const started = Date.now();

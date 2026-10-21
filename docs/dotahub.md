@@ -74,6 +74,16 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 - 页面：`signature/`（`body.tsx` 卡片与高熟练表、`leaderboard.tsx` 排行榜与 server action `actions.ts`），别人的在 `players/[id]/signature`。时间外验证脚本还没做（方案 8.2）。
 - 小导航另有「局内科研」（`research/`，规划中）。
 
+### GOAT（职业战队与选手）
+
+不属于哪个玩家的页面：小导航的 GOAT 在别人的玩家页上也连到 `/dotahub/goat`。资料在 `src/lib/dota/pro.ts`，页面在 `dotahub/goat/`，文字在 `i18n/goat-zh.ts` / `goat-en.ts`（挂在 `dotahub.goat`）。
+
+- **资料（自动更新）**：`getProScene()` 每 6 小时在背景重抓 OpenDota `/teams`（评分，近 120 天有比赛的前 80 队）与 `/proPlayers`（约 5 MB 的职业帐号登记表，只留现役战队与近 90 天有比赛的无队选手）。同名同队的帐号合为一人（`groupPlayers`），最近有比赛的是主帐号、其余是小号。登记表里没人的战队依序用 OpenDota `/teams/{id}/players` 的现役成员、再用 STRATZ `team.members`（战队最后一场前后 14 天有出赛的，最多 5 人）补。`getTeamPage()` 每小时（战队资讯、成员、比赛、英雄），`getProDetails()` 用 STRATZ 别名一次 10 人补真名、位置、赞助、Twitch / X、赛季段位与排行榜名次，`getLivePros()` 每分钟（OpenDota `/live` 里有职业选手的对局）。
+- **页面**：战队（排名卡片，可搜战队、选手、帐号 ID）；战队页（帐号卡、每月战绩堆叠长条、常用英雄、近 20 场、近 365 天的对手与赛事、前选手）；选手目录（搜寻、位置 / 国家筛选、四种排序，展开看全部帐号）；正在比赛（每 60 秒 `router.refresh()`）；对比（`?ids=` 最多 4 人）。
+- **对比**：清单存在浏览器（`compare-tray.tsx`，localStorage，`useSyncExternalStore`），各页的「加入对比」与底部对比栏；对比页的网址是准（`SyncPicks` 让清单跟着网址）。对比页：OpenDota 的总战绩、最近 20 场平均（KDA、GPM、XPM、正补、伤害、时长，每列最佳标金色）、雷达（每轴以最高者为满分）、各自常用英雄、每人都 ≥ 10 场的共同英雄、两两的同队 / 敌对（`/peers`），并连到经济 / IMP 对比（`?vs=`，最多 2 人，需连结 Steam）。帐号卡也有「跟我比经济 / IMP」。
+- **坑**：`MAX_COMPARE`、`compareHref` 放在 `compare-ids.ts`，因为服务端从 `"use client"` 档案 import 到的常数只是参照（曾让对比页拿到空清单）。战队页是动态路由，跟比赛页一样要 `export const instant = false`（根版面的客户端 hook 读路径）。资料抓取时间（`page.at`）当「现在」，渲染时不能呼叫 `Date.now()`。
+- **还没接的来源**：Liquipedia（资料 API 要申请金钥，wiki API 有严格的频率限制）与 PandaScore（要 token）。要更准的阵容异动或赛程再考虑。
+
 ### 死亡热力图
 
 - 地图：OpenDota 的 `detailed_740` 底图；STRATZ 的位置是地图格子，64–192，y 往北增加：`left = (x − 64) / 128`、`top = (192 − y) / 128`。

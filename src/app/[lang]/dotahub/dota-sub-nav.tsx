@@ -8,6 +8,7 @@ import {
   CoinsIcon,
   FlameIcon,
   FlaskConicalIcon,
+  CrownIcon,
   ListIcon,
   StarIcon,
   SwordsIcon,
@@ -43,6 +44,8 @@ export function DotaSubNav() {
           badge: t.nav.planned,
         },
         { href: `${base}/peers`, label: t.nav.peers, icon: <UsersIcon aria-hidden /> },
+        // The pro scene isn't anyone's page, so it stays the same on a player's.
+        { href: "/dotahub/goat", label: t.nav.goat, icon: <CrownIcon aria-hidden /> },
       ]}
       end={
         <div className="ml-auto flex shrink-0 items-center gap-4 pl-4">

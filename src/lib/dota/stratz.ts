@@ -877,7 +877,7 @@ export type LevelRow = {
 const LEVEL_TAKE = 50;
 const LEVEL_POOL_PAGES = 30;
 
-async function stratzQuery<T>(query: string, timeout: number): Promise<T> {
+export async function stratzQuery<T>(query: string, timeout: number): Promise<T> {
   const token = process.env.STRATZ_API_TOKEN;
   if (!token) throw new Error("STRATZ_API_TOKEN is not set");
   const started = Date.now();

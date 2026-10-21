@@ -1,4 +1,6 @@
 // DotaHub texts (Chinese); dotahub-en.ts must have the same shape.
+import goatZh from "./goat-zh";
+
 const dotahubZh = {
   title: "DotaHub",
   description: "连结 Steam 看自己的 Dota 2：段位、胜率、最近比赛、常用英雄、比赛详情与常一起玩的队友。",
@@ -11,6 +13,7 @@ const dotahubZh = {
     economy: "经济",
     imp: "IMP",
     signature: "绝活",
+    goat: "GOAT",
     research: "局内科研",
     planned: "规划中",
   },
@@ -642,6 +645,7 @@ const dotahubZh = {
     periods: { day: "今天", hour: "这小时", minute: "这分钟" },
     checked: (m: number) => (m ? `${m} 分钟前检查` : "刚刚检查"),
   },
+  goat: goatZh,
   ago: {
     minutes: (n: number) => `${n} 分钟前`,
     hours: (n: number) => `${n} 小时前`,
