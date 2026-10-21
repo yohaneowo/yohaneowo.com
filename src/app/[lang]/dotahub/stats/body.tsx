@@ -19,17 +19,23 @@ import { ImpCompareView } from "../imp/compare-view";
 import { ImpExplorer } from "../imp/imp-explorer";
 import { Notice } from "../parts";
 import { bracketVolatility, loadBracket, loadDetailMatches, loadRank } from "./load";
+import { getGoatScene } from "@/lib/dota/goat";
 
 const BRACKET_HEROES = 8;
 const PEER_SUGGESTIONS = 12;
 
 // Name, avatar and rank tier: OpenDota's profile, STRATZ's when OpenDota is down.
 async function profileOf(accountId: number) {
-  const player = await getPlayer(accountId).catch(() => null);
+  const [player, scene] = await Promise.all([
+    getPlayer(accountId).catch(() => null),
+    getGoatScene().catch(() => null),
+  ]);
   const profile = player?.data.profile;
   const fallback = profile?.personaname ? null : await getStratzProfile(accountId).catch(() => null);
+  // A pro by the name they play under (Batyuk, not their Steam name).
+  const pro = scene?.players.find((p) => p.accounts.some((a) => a.accountId === accountId));
   return {
-    name: profile?.personaname || fallback?.name || String(accountId),
+    name: pro?.name || profile?.personaname || fallback?.name || String(accountId),
     avatar: profile?.avatarfull ?? fallback?.avatar ?? null,
     tier: player?.data.rank_tier ?? fallback?.tier ?? null,
   };

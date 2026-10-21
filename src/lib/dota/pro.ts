@@ -213,7 +213,13 @@ export async function getProScene(): Promise<ProScene> {
     ).catch(() => null);
     for (const t of chunk) {
       const members = (data?.[`t${t.id}`]?.members ?? [])
-        .filter((m) => (m.lastMatchDateTime ?? 0) >= t.lastMatch - 14 * 86400)
+        // Not someone already on another team: an old team keeps its members on STRATZ after a
+        // roster moves on (TEAM VISION's became PARIVISION's).
+        .filter(
+          (m) =>
+            (m.lastMatchDateTime ?? 0) >= t.lastMatch - 14 * 86400 &&
+            !accounts.some((a) => a.accountId === m.steamAccountId),
+        )
         .sort((a, b) => (b.lastMatchDateTime ?? 0) - (a.lastMatchDateTime ?? 0))
         .slice(0, 5);
       for (const m of members) {

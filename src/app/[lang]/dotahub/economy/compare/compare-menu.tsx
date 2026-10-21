@@ -10,6 +10,7 @@ import type { HeroInfo } from "@/lib/dota/data";
 import { cn } from "@/lib/utils";
 import { HeroPicker } from "../../deaths/hero-picker";
 import { Medal, medalName } from "../../parts";
+import { GoatTab } from "./goat-tab";
 import { MAX_TARGETS, ME_COLOR, parseAccount, parseRankKey, rankKey, type SeriesKind } from "./series";
 
 export type CompareTarget = {
@@ -90,7 +91,7 @@ function Face({
 }
 
 // Who to compare with: the page's player VS up to two others, picked from a menu of friends (the
-// people played with most, or a pasted id) and ranks (that rank's players of the hero in the
+// people played with most, or a pasted id), pros (GOAT's teams) and ranks (that rank's players of the hero in the
 // filters, or 我的对局: the other nine of the player's own matches). In the side panel just the
 // faces (names on hover); above the content on narrower screens, with names. The choice lives in
 // the address (?vs=…).
@@ -126,7 +127,7 @@ export function CompareMenu({
   const t = dict.dotahub.compare;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"friends" | "ranks">("friends");
+  const [tab, setTab] = useState<"friends" | "ranks" | "goat">("friends");
   const [input, setInput] = useState("");
   const [error, setError] = useState(false);
   // The rank's hero: the filter's until another is picked here (again each time the menu opens).
@@ -183,7 +184,7 @@ export function CompareMenu({
       className="max-h-[70vh] w-[min(92vw,400px)] gap-3 overflow-y-auto [&_button]:cursor-pointer [&_button:disabled]:cursor-not-allowed"
     >
       <div role="tablist" className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
-        {(["friends", "ranks"] as const).map((v) => (
+        {(["friends", "ranks", "goat"] as const).map((v) => (
           <button
             key={v}
             type="button"
@@ -197,12 +198,14 @@ export function CompareMenu({
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {v === "friends" ? t.friends : t.ranks}
+            {t.tabs[v]}
           </button>
         ))}
       </div>
       {full && <p className="text-xs text-muted-foreground">{t.full}</p>}
-      {tab === "friends" ? (
+      {tab === "goat" ? (
+        <GoatTab targets={targets} full={full} ownerId={ownerId} onToggle={toggle} />
+      ) : tab === "friends" ? (
         <div className="flex flex-col gap-2">
           <form
             className="flex gap-2"
