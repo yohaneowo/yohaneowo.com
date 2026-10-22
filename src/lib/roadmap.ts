@@ -201,6 +201,39 @@ export const ROADMAP: RoadmapItem[] = [
 
   // ── 开发中 / 测试中 ──────────────────────────────────────────────────────────────────────────
   {
+    id: "tradehub-accounts",
+    status: "building",
+    area: "coinhub",
+    title: { zh: "TradeHub：交易所帐户与复盘", en: "TradeHub: exchange accounts and the journal" },
+    summary: {
+      zh: "绑自己的只读 API（先 Binance 现货与币本位合约），把真实成交画在 K 线上，看余额、持仓、成本与同步状态，再对每笔成交写几句计划与复盘。",
+      en: "Connect your own read-only API key (Binance spot and COIN-M futures first), see your real fills on the chart with balances, positions, cost and sync status, and write a few lines of plan and review per trade.",
+    },
+    why: {
+      zh: "看盘时想直接看到自己在哪里买卖、仓位和成本怎么变，不用切回交易所；记下理由才有东西可以复盘。",
+      en: "To see where you bought and sold and how the position and cost moved while looking at the chart, without switching to the exchange; writing the reasons down is what makes a review possible.",
+    },
+    steps: [
+      step(
+        "admin：只读 API 绑定（加密保存，开了提现的 key 拒绝）、背景同步成交、余额、币本位持仓与收支、对账",
+        "admin: read-only key binding (stored encrypted, keys that can withdraw refused), background sync of fills, balances, COIN-M positions and income, reconciliation",
+        true,
+      ),
+      step(
+        "网站：帐户分页（余额、持仓、同步状态、绑定管理）、图表上的成交标记、成交时间线",
+        "Site: an account tab (balances, positions, sync status, key management), fill markers on the chart, a fills timeline",
+      ),
+      step(
+        "现货成本（移动加权平均）与持仓变化；笔记挂在标的或成交上",
+        "Spot cost (moving weighted average) and position changes; notes on a symbol or a fill",
+      ),
+      step("Bybit、OKX、Pionex 与 U 本位合约", "Bybit, OKX, Pionex and USDⓈ-M futures"),
+    ],
+    links: [{ label: { zh: "TradeHub", en: "TradeHub" }, href: "/tradehub" }],
+    added: "2026-10-22",
+    started: "2026-10-22",
+  },
+  {
     id: "dotahub",
     status: "shipped",
     area: "dotahub",

@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 // The page container. TradeHub fills the viewport, so it gets no width limit or padding. This is
 // decided from the route rather than with a `:has([data-fullbleed])` selector on <main>: the
 // selector sometimes stayed matched after a client-side navigation away from TradeHub, leaving the
-// next page stretched to the window edges until a reload.
-const FULL_BLEED = /^\/(zh|en)\/tradehub(\/|$)/;
+// next page stretched to the window edges until a reload. The language prefix is optional: the
+// browser's Chinese URLs have none (`/tradehub`), while the server sees the rewritten `/zh/tradehub`.
+const FULL_BLEED = /^(\/(zh|en))?\/tradehub(\/|$)/;
 
 export function MainFrame({ children }: { children: React.ReactNode }) {
   const path = usePathname() ?? "";
