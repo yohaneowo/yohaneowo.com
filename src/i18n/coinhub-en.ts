@@ -202,6 +202,7 @@ const coinhubEn: typeof coinhubZh = {
     color: "Color",
     opacity: "Opacity",
     customColor: "Custom colour",
+    line: "Line",
     lineWidth: "Width",
     lineStyle: "Style",
     solid: "Solid",

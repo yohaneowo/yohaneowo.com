@@ -162,6 +162,96 @@ export function ColorGrid({ value, onChange }: { value?: string; onChange: (colo
   );
 }
 
+export type LineStyleValue = { color: string; width: number; style: "solid" | "dashed" | "dotted" };
+
+const DASH_PREVIEW: Record<LineStyleValue["style"], string | undefined> = {
+  solid: undefined,
+  dashed: "4 3",
+  dotted: "1.5 2.5",
+};
+
+// A line's look in one button — a swatch and a preview of its width and style — that opens the
+// palette, opacity, thickness and line style together, like TradingView's line setting.
+export function LinePicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: LineStyleValue;
+  onChange: (next: LineStyleValue) => void;
+  label?: string;
+}) {
+  const { t } = useLocale();
+  const d = t.coinhub.drawing;
+  const preview = (width: number, style: LineStyleValue["style"], stroke = "currentColor") => (
+    <svg width="22" height="8" viewBox="0 0 22 8" aria-hidden>
+      <line
+        x1="1"
+        y1="4"
+        x2="21"
+        y2="4"
+        stroke={stroke}
+        strokeWidth={width}
+        strokeDasharray={DASH_PREVIEW[style]}
+        strokeLinecap={style === "dotted" ? "round" : undefined}
+      />
+    </svg>
+  );
+  return (
+    <Popover>
+      <PopoverTrigger
+        className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs hover:bg-muted"
+        aria-label={label}
+      >
+        <span className="size-4 rounded-sm border" style={{ background: value.color }} />
+        {preview(value.width, value.style, value.color)}
+      </PopoverTrigger>
+      <PopoverContent className="w-auto">
+        <div className="flex flex-col gap-3">
+          <ColorGrid value={value.color} onChange={(color) => onChange({ ...value, color })} />
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <span>{d.lineWidth}</span>
+            <div className="grid grid-cols-4 gap-1">
+              {[1, 2, 3, 4].map((width) => (
+                <button
+                  key={width}
+                  type="button"
+                  className={cn(
+                    "flex h-8 items-center justify-center rounded-md border text-foreground hover:bg-muted",
+                    value.width === width && "bg-foreground text-background hover:bg-foreground",
+                  )}
+                  onClick={() => onChange({ ...value, width })}
+                >
+                  {preview(width, "solid")}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <span>{d.lineStyle}</span>
+            <div className="grid grid-cols-3 gap-1">
+              {(["solid", "dashed", "dotted"] as const).map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  className={cn(
+                    "flex h-8 items-center justify-center rounded-md border text-foreground hover:bg-muted",
+                    value.style === style && "bg-foreground text-background hover:bg-foreground",
+                  )}
+                  title={d[style]}
+                  onClick={() => onChange({ ...value, style })}
+                >
+                  {preview(2, style)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function Tip({ label, children }: { label: string; children: React.ReactElement }) {
   return (
     <Tooltip>

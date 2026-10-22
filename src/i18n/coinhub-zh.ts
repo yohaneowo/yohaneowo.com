@@ -201,6 +201,7 @@ const coinhubZh = {
     color: "颜色",
     opacity: "透明度",
     customColor: "自订颜色",
+    line: "线条",
     lineWidth: "线宽",
     lineStyle: "线型",
     solid: "实线",
