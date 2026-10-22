@@ -6,3 +6,6 @@ Disallow: /dotahub/players/
 Disallow: /en/dotahub/players/
 Disallow: /dotahub/matches/
 Disallow: /en/dotahub/matches/
+# The GOAT comparison takes any combination of players in ?ids=, endless pages each costing calls.
+Disallow: /dotahub/goat/compare
+Disallow: /en/dotahub/goat/compare

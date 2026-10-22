@@ -23,7 +23,8 @@ function logDotaHub(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (!DOTAHUB.test(pathname) || request.headers.has("next-router-prefetch")) return;
   const signedIn = request.cookies.getAll().some((c) => c.name.includes("session_token"));
-  const agent = (request.headers.get("user-agent") ?? "").slice(0, 90);
+  // Long enough to keep a crawler's name, which comes at the end (…; Googlebot/2.1; +http://…).
+  const agent = (request.headers.get("user-agent") ?? "").slice(0, 160);
   console.log(
     `[dotahub] ${pathname} ${signedIn ? "user" : "anon"} ${request.headers.get("cf-ipcountry") ?? "-"} ${request.headers.has("rsc") ? "rsc" : "page"} ua="${agent}"`,
   );
