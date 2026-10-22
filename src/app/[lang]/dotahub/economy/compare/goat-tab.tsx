@@ -24,7 +24,9 @@ export function GoatTab({
   ownerId: number;
   onToggle: (key: string, label: string) => void;
 }) {
-  const t = useLocale().t.dotahub.compare;
+  const dict = useLocale().t.dotahub;
+  const t = dict.compare;
+  const legendsName = dict.goat.legends.group;
   const [picks, setPicks] = useState<GoatPick[] | null>(cached);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState("");
@@ -36,14 +38,15 @@ export function GoatTab({
       .then((list) => {
         if (stop) return;
         if (!list) return setFailed(true);
-        cached = list;
-        setPicks(list);
+        // The legends group comes unnamed (the action can't read the language).
+        cached = list.map((p) => (p.team.id < 0 ? { ...p, team: { ...p.team, name: legendsName } } : p));
+        setPicks(cached);
       })
       .catch(() => !stop && setFailed(true));
     return () => {
       stop = true;
     };
-  }, []);
+  }, [legendsName]);
 
   if (failed) return <p className="text-xs text-muted-foreground">{t.goatFailed}</p>;
   if (!picks)
@@ -77,7 +80,7 @@ export function GoatTab({
           {teams.map((team) => (
             <div key={team.id} className="flex flex-col py-2 first:pt-0 last:pb-0">
               <span className="mb-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="w-5 text-right tabular-nums">#{team.rank}</span>
+                <span className="w-5 text-right tabular-nums">{team.rank > 0 ? `#${team.rank}` : ""}</span>
                 {team.logo ? (
                   <Image
                     src={team.logo}

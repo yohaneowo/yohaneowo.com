@@ -1,6 +1,5 @@
 "use server";
 
-import { getDictionary } from "@/i18n/server";
 import { getGoatScene, getLegendsView } from "@/lib/dota/goat";
 
 export type GoatPick = {
@@ -10,16 +9,19 @@ export type GoatPick = {
   team: { id: number; name: string; logo: string | null; rank: number };
 };
 
+// The team id of the legends group.
+const LEGENDS_GROUP = -1;
+
 // The current pros of the ranked teams, for the economy / IMP compare menu's GOAT tab: one entry a
 // player (their main account), by team place. Asked only when the tab opens (the scene is cached).
 export async function goatPicks(): Promise<GoatPick[] | null> {
-  const [scene, legends, dict] = await Promise.all([
+  const [scene, legends] = await Promise.all([
     getGoatScene().catch(() => null),
     getLegendsView().catch(() => []),
-    getDictionary(),
   ]);
-  // The legends not on a team now, as a group of their own ahead of the teams (place 0).
-  const group = { id: -1, name: dict.dotahub.goat.legends.group, logo: null, rank: 0 };
+  // The legends not on a team now, as a group of their own ahead of the teams (place 0). Unnamed:
+  // a Server Action can't read the route's language (next/root-params), so the tab names it.
+  const group = { id: LEGENDS_GROUP, name: "", logo: null, rank: 0 };
   const legendPicks: GoatPick[] = legends
     .filter((l) => !l.team)
     .map((l) => ({ id: l.legend.accounts[0], name: l.legend.name, avatar: l.photo, team: group }));
