@@ -202,7 +202,7 @@ export const ROADMAP: RoadmapItem[] = [
   // ── 开发中 / 测试中 ──────────────────────────────────────────────────────────────────────────
   {
     id: "tradehub-accounts",
-    status: "building",
+    status: "shipped",
     area: "coinhub",
     title: { zh: "TradeHub：交易所帐户与复盘", en: "TradeHub: exchange accounts and the journal" },
     summary: {
@@ -233,6 +233,7 @@ export const ROADMAP: RoadmapItem[] = [
     links: [{ label: { zh: "TradeHub", en: "TradeHub" }, href: "/tradehub" }],
     added: "2026-10-22",
     started: "2026-10-22",
+    shipped: "2026-10-23",
   },
   {
     id: "dotahub",
@@ -691,7 +692,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: "dotahub-trends",
-    status: "building",
+    status: "shipped",
     area: "dotahub",
     title: {
       zh: "DotaHub：胜率变化、比赛筛选、IMP 与段位交叉",
@@ -735,6 +736,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
     added: "2026-10-23",
     started: "2026-10-23",
+    shipped: "2026-10-23",
   },
   {
     id: "dotahub-next",
