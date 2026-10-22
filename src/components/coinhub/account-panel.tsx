@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react";
+import { ChevronRightIcon, Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -446,17 +446,24 @@ function fmtDate(ms: number) {
 
 // The currencies the holdings can be valued in (USD exchange rates from the valuation API).
 const CURRENCIES = ["USD", "TWD", "CNY", "HKD", "JPY", "KRW", "EUR", "GBP", "SGD", "AUD", "CAD", "MYR"];
-const WALLETS = ["spot", "funding", "earn", "coinm"] as const;
+const WALLETS = ["coinm", "funding", "earn", "spot"] as const;
+type Wallet = (typeof WALLETS)[number];
+// A wallet header cycles its rows: all → none → the top three → all.
+type Fold = "all" | "none" | "top";
+const NEXT_FOLD: Record<Fold, Fold> = { all: "none", none: "top", top: "all" };
+const TOP = 3;
 
 // Balances by wallet with each asset's value in the chosen currency (coins at Binance's spot price,
-// stocks at Yahoo's, futures wallets with their unrealized profit), the total on top, and the
-// futures positions.
+// stocks at Yahoo's, futures wallets with their unrealized profit), the total on top, a picker for
+// one wallet or the overview, and the futures positions.
 function Wallets({ connection }: { connection: TradeConnection }) {
   const { t, lang } = useLocale();
   const tr = t.coinhub.account;
   const wallets = useTrade((s) => s.wallets[connection.id]);
   const valuation = useTrade((s) => s.valuation);
   const currency = useTerminal((s) => s.trade.currency);
+  const [view, setView] = useState<"all" | Wallet>("all");
+  const [folds, setFolds] = useState<Partial<Record<Wallet, Fold>>>({});
   useEffect(() => {
     loadWallets(connection.id).catch(() => {});
   }, [connection.id]);
@@ -492,10 +499,26 @@ function Wallets({ connection }: { connection: TradeConnection }) {
       unknown: rows.some((r) => r.value === null),
     };
   }).filter((g) => g.rows.length);
-  const total = groups.reduce((sum, g) => sum + g.subtotal, 0);
-  const unknown = groups.some((g) => g.unknown);
+  const shown = view === "all" ? groups : groups.filter((g) => g.wallet === view);
+  const total = shown.reduce((sum, g) => sum + g.subtotal, 0);
+  const unknown = shown.some((g) => g.unknown);
   return (
     <div className="flex flex-col gap-3 px-3 py-2">
+      <div className="flex flex-wrap gap-1">
+        {(["all", ...WALLETS] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={cn(
+              "rounded-md px-2 py-0.5 hover:bg-muted",
+              view === key ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground",
+            )}
+            onClick={() => setView(key)}
+          >
+            {tr.walletTabs[key]}
+          </button>
+        ))}
+      </div>
       <div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{tr.total}</span>
@@ -517,78 +540,105 @@ function Wallets({ connection }: { connection: TradeConnection }) {
         </div>
         <p className="text-muted-foreground">{tr.valueHint}</p>
       </div>
-      {groups.map((g) => (
-        <div key={g.wallet}>
-          <div className="mb-1 flex justify-between font-medium">
-            <span>{tr.wallets[g.wallet]}</span>
-            <span className="text-muted-foreground tabular-nums">
-              {rate === null ? "" : money(g.subtotal)}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            {g.rows.map(({ b, value }) => (
-              <div key={b.asset} className="flex items-center justify-between gap-2 py-0.5">
+      {shown.map((g) => {
+        const fold = folds[g.wallet] ?? "all";
+        const rows = fold === "none" ? [] : fold === "top" ? g.rows.slice(0, TOP) : g.rows;
+        const cycle = () => setFolds((f) => ({ ...f, [g.wallet]: NEXT_FOLD[fold] }));
+        return (
+          <div key={g.wallet}>
+            <button
+              type="button"
+              className="mb-1 flex w-full items-center justify-between rounded font-medium hover:bg-muted/60"
+              onClick={cycle}
+              title={tr.foldHint}
+            >
+              <span className="inline-flex items-center gap-1">
+                <ChevronRightIcon
+                  className={cn("size-3.5 transition-transform", fold !== "none" && "rotate-90")}
+                />
+                {tr.wallets[g.wallet]}
+                <span className="font-normal text-muted-foreground">· {g.rows.length}</span>
+              </span>
+              <span className="text-muted-foreground tabular-nums">
+                {rate === null ? "" : money(g.subtotal)}
+              </span>
+            </button>
+            <div className="flex flex-col">
+              {rows.map(({ b, value }) => (
+                <div key={b.asset} className="flex items-center justify-between gap-2 py-0.5">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 hover:text-primary hover:underline"
+                    onClick={() => void openAssetChart(b.asset, tr.noChart)}
+                  >
+                    <CoinIcon asset={b.asset} />
+                    {b.asset.replace(/^EQ_/, "")}
+                  </button>
+                  <span className="text-right tabular-nums">
+                    <span className="block">
+                      {fmtDec(b.total)}
+                      {b.unrealized && Number(b.unrealized) !== 0
+                        ? ` (${Number(b.unrealized) > 0 ? "+" : ""}${fmtDec(b.unrealized)})`
+                        : ""}
+                    </span>
+                    <span className="block text-muted-foreground">{value === null ? "–" : money(value)}</span>
+                  </span>
+                </div>
+              ))}
+              {fold === "top" && g.rows.length > TOP && (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 hover:text-primary hover:underline"
-                  onClick={() => void openAssetChart(b.asset, tr.noChart)}
+                  className="py-0.5 text-left text-muted-foreground hover:text-foreground"
+                  onClick={cycle}
                 >
-                  <CoinIcon asset={b.asset} />
-                  {b.asset.replace(/^EQ_/, "")}
+                  {tr.more(g.rows.length - TOP)}
                 </button>
-                <span className="text-right tabular-nums">
-                  <span className="block">
-                    {fmtDec(b.total)}
-                    {b.unrealized && Number(b.unrealized) !== 0
-                      ? ` (${Number(b.unrealized) > 0 ? "+" : ""}${fmtDec(b.unrealized)})`
-                      : ""}
-                  </span>
-                  <span className="block text-muted-foreground">{value === null ? "–" : money(value)}</span>
-                </span>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
-        </div>
-      ))}
-      <div>
-        <div className="mb-1 font-medium">{tr.positions}</div>
-        {wallets.positions.length === 0 ? (
-          <p className="text-muted-foreground">{tr.noPositions}</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {wallets.positions.map((p) => {
-              const long = Number(p.qty) >= 0;
-              const pnl = Number(p.unrealizedPnl ?? 0);
-              return (
-                <div
-                  key={`${p.product}:${p.symbol}:${p.positionSide}`}
-                  className="rounded-md border px-2 py-1.5"
-                >
-                  <div className="flex justify-between">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 font-medium hover:text-primary hover:underline"
-                      onClick={() => void openPositionChart(p.symbol, tr.noChart)}
-                    >
-                      <CoinIcon asset={p.symbol.replace(/USD_.*$/, "")} />
-                      {p.symbol}
-                    </button>
-                    <span className={long ? UP : DOWN}>
-                      {fmtDec(p.qty)} {tr.contracts} · {p.leverage ?? "–"}x {p.marginType ?? ""}
-                    </span>
+        );
+      })}
+      {(view === "all" || view === "coinm") && (
+        <div>
+          <div className="mb-1 font-medium">{tr.positions}</div>
+          {wallets.positions.length === 0 ? (
+            <p className="text-muted-foreground">{tr.noPositions}</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {wallets.positions.map((p) => {
+                const long = Number(p.qty) >= 0;
+                const pnl = Number(p.unrealizedPnl ?? 0);
+                return (
+                  <div
+                    key={`${p.product}:${p.symbol}:${p.positionSide}`}
+                    className="rounded-md border px-2 py-1.5"
+                  >
+                    <div className="flex justify-between">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 font-medium hover:text-primary hover:underline"
+                        onClick={() => void openPositionChart(p.symbol, tr.noChart)}
+                      >
+                        <CoinIcon asset={p.symbol.replace(/USD_.*$/, "")} />
+                        {p.symbol}
+                      </button>
+                      <span className={long ? UP : DOWN}>
+                        {fmtDec(p.qty)} {tr.contracts} · {p.leverage ?? "–"}x {p.marginType ?? ""}
+                      </span>
+                    </div>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-muted-foreground">
+                      <Row label={tr.entry} value={fmtDec(p.entryPrice, 4)} />
+                      <Row label={tr.mark} value={fmtDec(p.markPrice, 4)} />
+                      <Row label={tr.upnl} value={fmtDec(p.unrealizedPnl, 6)} tone={pnl >= 0 ? UP : DOWN} />
+                      <Row label={tr.liq} value={fmtDec(p.liquidationPrice, 4)} />
+                    </dl>
                   </div>
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-muted-foreground">
-                    <Row label={tr.entry} value={fmtDec(p.entryPrice, 4)} />
-                    <Row label={tr.mark} value={fmtDec(p.markPrice, 4)} />
-                    <Row label={tr.upnl} value={fmtDec(p.unrealizedPnl, 6)} tone={pnl >= 0 ? UP : DOWN} />
-                    <Row label={tr.liq} value={fmtDec(p.liquidationPrice, 4)} />
-                  </dl>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
