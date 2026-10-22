@@ -43,7 +43,7 @@ import {
   getState,
   type ChartConfig,
 } from "@/lib/coinhub/store";
-import { trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
+import { costBasis, fillSources, loadWallets, trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 import { COMPARE_COLORS, Legend } from "./legend";
 import { SelectionToolbar } from "./selection-toolbar";
@@ -328,21 +328,68 @@ export function ChartPanel({
     return { alerts: alerts.filter((a) => a.symbolId === symbol.id && !a.line), orders };
   }, [symbol, alerts, paper]);
 
-  useEffect(() => {
-    if (!controller || status.loading) return;
-    controller.setAlertLines(lines.alerts, lines.orders);
-  }, [controller, lines, status.loading]);
-
   // The user's real fills on this symbol, from the exchange account the panel uses.
   const tradeShow = useTerminal((s) => s.trade.show);
   const tradeConnection = useTerminal((s) => s.trade.connection);
   const connections = useTrade((s) => s.connections);
-  const fillConnection = tradeShow ? (tradeConnection ?? connections?.[0]?.id ?? null) : null;
+  const accountId = tradeConnection ?? connections?.[0]?.id ?? null;
+  const fillConnection = tradeShow || settings.showHoldingLines ? accountId : null;
   const fills = useChartFills(symbol, fillConnection);
   useEffect(() => {
     if (!controller) return;
-    controller.setFillMarks(fills);
-  }, [controller, fills]);
+    controller.setFillMarks(tradeShow ? fills : []);
+  }, [controller, fills, tradeShow]);
+
+  // Lines at what the account holds here: the cost of a spot / stock holding (from the fills), a
+  // futures position's break-even and liquidation prices (from the exchange).
+  const wallets = useTrade((s) => (accountId === null ? undefined : s.wallets[accountId]));
+  useEffect(() => {
+    if (accountId === null || !settings.showHoldingLines) return;
+    loadWallets(accountId).catch(() => {});
+  }, [accountId, settings.showHoldingLines]);
+  const holdingLines = useMemo(() => {
+    if (!symbol || !settings.showHoldingLines) return [];
+    const l = c.account.lines;
+    const out: Array<{ id: string; price: number; text: string; color: string; draggable: boolean }> = [];
+    const cost = costBasis(fills);
+    if (cost)
+      out.push({
+        id: "cost",
+        price: cost.avg,
+        text: `${l.cost} ${fmtNumber(cost.qty, 6)}`,
+        color: "#2962ff",
+        draggable: false,
+      });
+    const futures = fillSources(symbol).find((s) => s.product === "coinm");
+    const position =
+      futures && wallets?.positions.find((p) => p.symbol === futures.symbol && Number(p.qty) !== 0);
+    if (position) {
+      const breakEven = Number(position.breakEvenPrice ?? position.entryPrice);
+      if (breakEven > 0)
+        out.push({
+          id: "breakEven",
+          price: breakEven,
+          text: `${l.breakEven} ${position.symbol}`,
+          color: "#2962ff",
+          draggable: false,
+        });
+      const liquidation = Number(position.liquidationPrice);
+      if (liquidation > 0)
+        out.push({
+          id: "liquidation",
+          price: liquidation,
+          text: `${l.liquidation} ${position.symbol}`,
+          color: "#f23645",
+          draggable: false,
+        });
+    }
+    return out;
+  }, [symbol, settings.showHoldingLines, fills, wallets, c]);
+
+  useEffect(() => {
+    if (!controller || status.loading) return;
+    controller.setAlertLines(lines.alerts, [...lines.orders, ...holdingLines]);
+  }, [controller, lines, holdingLines, status.loading]);
 
   const sel = selection?.chart === index ? selection.overlay : null;
   const precision = symbol?.pricePrecision ?? 2;

@@ -54,6 +54,7 @@ export interface TradePosition {
   markPrice: string | null;
   unrealizedPnl: string | null;
   liquidationPrice: string | null;
+  breakEvenPrice: string | null;
   leverage: number | null;
   marginType: string | null;
   updatedAt: number | null;
@@ -355,6 +356,27 @@ export function useChartFills(symbol: CoinSymbol | null, connection: number | nu
     return all.length ? all.sort((a, b) => a.time - b.time) : EMPTY;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `version` stands for the store's fills
   }, [keys, version]);
+}
+
+// The average cost of what's still held after these spot / stock fills (oldest first): buys move
+// the average, sells take quantity out at it; null when nothing is held. Fees aren't counted.
+export function costBasis(fills: TradeFill[]): { qty: number; avg: number } | null {
+  let qty = 0;
+  let avg = 0;
+  for (const f of fills) {
+    if (f.product === "coinm") continue;
+    const q = Number(f.qty);
+    const price = Number(f.price);
+    if (!(q > 0) || !(price > 0)) continue;
+    if (f.side === "BUY") {
+      avg = (avg * qty + price * q) / (qty + q);
+      qty += q;
+    } else {
+      qty = Math.max(0, qty - q);
+      if (qty === 0) avg = 0;
+    }
+  }
+  return qty > 1e-12 && avg > 0 ? { qty, avg } : null;
 }
 
 // A decimal string for display: at most `max` decimals, no trailing zeros, thousands separators

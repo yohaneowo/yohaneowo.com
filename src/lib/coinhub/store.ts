@@ -65,6 +65,9 @@ export interface ChartSettings {
   showHighLow: boolean;
   // Wheel over the price axis scales it like TradingView (up = zoom in); off: KLineChart's default.
   axisWheelTradingView: boolean;
+  // Lines at what the account holds on this symbol: the cost of a spot / stock holding, a futures
+  // position's break-even and liquidation prices.
+  showHoldingLines: boolean;
   showLastPrice: boolean;
   countdown: boolean;
   showLegendValues: boolean;
@@ -213,6 +216,7 @@ export const DEFAULT_SETTINGS: ChartSettings = {
   grid: "both",
   showHighLow: true,
   axisWheelTradingView: true,
+  showHoldingLines: true,
   showLastPrice: true,
   countdown: true,
   showLegendValues: true,

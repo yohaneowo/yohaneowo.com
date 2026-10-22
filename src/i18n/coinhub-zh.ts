@@ -451,6 +451,7 @@ const coinhubZh = {
     gridNone: "无",
     highLow: "最高最低价标记",
     axisWheel: "价格轴滚轮方向跟 TradingView 一样（往上滚是放大）",
+    holdingLines: "持仓价格线（现货成本价、合约损益平衡价与强平价）",
     lastPrice: "最新价格线",
     countdown: "K 线收盘倒计时",
     legendValues: "显示 OHLC 数值",
@@ -567,6 +568,7 @@ const coinhubZh = {
     marker:
       "图上的标记：买入是最低价下面的 B，卖出是最高价上面的 S；实心是现货或股票，空心是币本位合约；同一根 K 线的成交合并成一个，点它看明细。",
     noChart: "没有这个标的的图表。",
+    lines: { cost: "成本", breakEven: "损益平衡", liquidation: "强平" },
     syncLine: (done: number, total: number, fills: number) =>
       `${done} / ${total} 个标的已读完历史，共 ${fills} 笔成交`,
     syncErrors: "读取失败的标的",

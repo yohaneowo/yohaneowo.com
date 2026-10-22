@@ -453,6 +453,7 @@ const coinhubEn: typeof coinhubZh = {
     gridNone: "None",
     highLow: "High and low price labels",
     axisWheel: "Price-axis wheel like TradingView (up zooms in)",
+    holdingLines: "Holding lines (spot cost, futures break-even and liquidation)",
     lastPrice: "Last price line",
     countdown: "Countdown to bar close",
     legendValues: "OHLC values",
@@ -568,6 +569,7 @@ const coinhubEn: typeof coinhubZh = {
     marker:
       "On the chart: a buy is a B under the candle's low, a sell an S over its high; solid for spot and stocks, hollow for COIN-M futures; the fills of one candle share a mark, click it for the list.",
     noChart: "No chart for this symbol.",
+    lines: { cost: "Cost", breakEven: "Break-even", liquidation: "Liq." },
     syncLine: (done: number, total: number, fills: number) =>
       `${done} / ${total} symbols fully read, ${fills} fills`,
     syncErrors: "Symbols that failed",

@@ -443,6 +443,7 @@ function SettingsBody() {
           {toggle("showHighLow", s.highLow)}
           {toggle("countdown", s.countdown)}
           {toggle("axisWheelTradingView", s.axisWheel)}
+          {toggle("showHoldingLines", s.holdingLines)}
           <Row label={s.timezone}>
             <select
               className="h-8 rounded-md border bg-background px-2 text-sm"
