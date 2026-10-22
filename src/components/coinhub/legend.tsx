@@ -10,6 +10,9 @@ import { fmtNumber, fmtCompact } from "@/lib/coinhub/format";
 import type { ChartConfig, ChartSettings } from "@/lib/coinhub/store";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 
+// The colours the chart panel gives compared symbols, by their place in the list.
+export const COMPARE_COLORS = ["#ff9800", "#e91e63", "#00bcd4", "#9c27b0", "#4caf50"];
+
 const PALETTE = ["#2962ff", "#ff6d00", "#e91e63", "#00bcd4", "#9c27b0", "#4caf50"];
 
 type Pane = { id: string; top: number; height: number };
@@ -26,6 +29,8 @@ interface LegendProps {
   onToggle: (id: string) => void;
   onSettings: (id: string) => void;
   onRemove: (id: string) => void;
+  onCompareToggle: (id: string) => void;
+  onCompareRemove: (id: string) => void;
 }
 
 function figureColor(
@@ -138,6 +143,8 @@ export function Legend({
   onToggle,
   onSettings,
   onRemove,
+  onCompareToggle,
+  onCompareRemove,
 }: LegendProps) {
   const { t } = useLocale();
   void tick;
@@ -202,12 +209,49 @@ export function Legend({
             </span>
           )}
         </div>
-        {compare.map((c) => (
-          <div key={c.id} className="flex items-center gap-1.5 text-xs">
-            <span className="inline-block size-2 rounded-full" style={{ background: c.color }} />
-            <span>{c.display}</span>
-          </div>
-        ))}
+        {config.compare.map((id, i) => {
+          const series = compare.find((c) => c.id === id);
+          const hidden = (config.compareHidden ?? []).includes(id);
+          const price = series && bar ? series.closes[series.bucket(bar.timestamp)] : undefined;
+          return (
+            <div
+              key={id}
+              className={cn(
+                "group/legend pointer-events-auto flex items-center gap-1.5 rounded px-1 text-xs hover:bg-background/80",
+                hidden && "opacity-50",
+              )}
+            >
+              <span
+                className="inline-block size-2 rounded-full"
+                style={{ background: series?.color ?? COMPARE_COLORS[i % COMPARE_COLORS.length] }}
+              />
+              <span>{series?.display ?? id.split(":")[1]}</span>
+              {settings.showLegendValues && price !== undefined && (
+                <span className="tabular-nums" style={{ color: series?.color }}>
+                  {fmtNumber(price, price >= 100 ? 2 : 4)}
+                </span>
+              )}
+              <span className="hidden items-center gap-0.5 group-hover/legend:flex">
+                <button
+                  type="button"
+                  className="rounded p-0.5 hover:bg-muted"
+                  title={hidden ? t.coinhub.legend.show : t.coinhub.legend.hide}
+                  onClick={() => onCompareToggle(id)}
+                >
+                  {hidden ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  className="rounded p-0.5 hover:bg-muted"
+                  title={t.coinhub.legend.remove}
+                  onClick={() => onCompareRemove(id)}
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              </span>
+            </div>
+          );
+        })}
         {byPane(CANDLE_PANE).map(row)}
       </div>
       {panes

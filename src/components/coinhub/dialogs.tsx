@@ -442,6 +442,7 @@ function SettingsBody() {
           {toggle("showLastPrice", s.lastPrice)}
           {toggle("showHighLow", s.highLow)}
           {toggle("countdown", s.countdown)}
+          {toggle("axisWheelTradingView", s.axisWheel)}
           <Row label={s.timezone}>
             <select
               className="h-8 rounded-md border bg-background px-2 text-sm"

@@ -451,6 +451,7 @@ const coinhubEn: typeof coinhubZh = {
     gridHorizontal: "Horizontal",
     gridNone: "None",
     highLow: "High and low price labels",
+    axisWheel: "Price-axis wheel like TradingView (up zooms in)",
     lastPrice: "Last price line",
     countdown: "Countdown to bar close",
     legendValues: "OHLC values",

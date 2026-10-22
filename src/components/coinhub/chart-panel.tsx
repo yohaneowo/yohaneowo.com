@@ -45,11 +45,9 @@ import {
 } from "@/lib/coinhub/store";
 import { trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
-import { Legend } from "./legend";
+import { COMPARE_COLORS, Legend } from "./legend";
 import { SelectionToolbar } from "./selection-toolbar";
 import { openDialog, registry, ui, useUi } from "./ui-store";
-
-const COMPARE_COLORS = ["#ff9800", "#e91e63", "#00bcd4", "#9c27b0", "#4caf50"];
 
 function themeColors(dark: boolean): ThemeColors {
   const font = getComputedStyle(document.body).fontFamily || "sans-serif";
@@ -260,19 +258,24 @@ export function ChartPanel({
   }, [controller, config.scale, config.invert]);
 
   useEffect(() => {
+    controller?.setAxisWheel(settings.axisWheelTradingView);
+  }, [controller, settings.axisWheelTradingView]);
+
+  useEffect(() => {
     if (!controller || !symbol) return;
     let cancelled = false;
+    const hidden = new Set(config.compareHidden ?? []);
     Promise.all(config.compare.map((id) => resolveSymbol(id))).then((list) => {
       if (cancelled) return;
       const symbols = list.flatMap((s, i) =>
-        s ? [{ symbol: s, color: COMPARE_COLORS[i % COMPARE_COLORS.length] }] : [],
+        s && !hidden.has(s.id) ? [{ symbol: s, color: COMPARE_COLORS[i % COMPARE_COLORS.length] }] : [],
       );
       void controller.setCompare(symbols);
     });
     return () => {
       cancelled = true;
     };
-  }, [controller, symbol, config.compare, config.interval]);
+  }, [controller, symbol, config.compare, config.compareHidden, config.interval]);
 
   useEffect(() => {
     controller?.setDrawingOptions({
@@ -372,6 +375,21 @@ export function ChartPanel({
     }));
   const removeIndicator = (id: string) =>
     updateChart(index, (cfg) => ({ indicators: cfg.indicators.filter((i) => i.id !== id) }));
+  // Compared symbols: hidden ones stay in the legend; removing the last one leaves the percentage scale.
+  const toggleCompare = (id: string) =>
+    updateChart(index, (cfg) => {
+      const hidden = cfg.compareHidden ?? [];
+      return { compareHidden: hidden.includes(id) ? hidden.filter((h) => h !== id) : [...hidden, id] };
+    });
+  const removeCompare = (id: string) =>
+    updateChart(index, (cfg) => {
+      const compare = cfg.compare.filter((c) => c !== id);
+      return {
+        compare,
+        compareHidden: (cfg.compareHidden ?? []).filter((h) => h !== id),
+        ...(compare.length === 0 && cfg.scale === "percentage" ? { scale: "normal" as const } : {}),
+      };
+    });
 
   return (
     <div
@@ -412,6 +430,8 @@ export function ChartPanel({
           onToggle={toggleIndicator}
           onSettings={(id) => openDialog({ type: "indicatorSettings", chart: index, id })}
           onRemove={removeIndicator}
+          onCompareToggle={toggleCompare}
+          onCompareRemove={removeCompare}
         />
       )}
       {status.loading && (

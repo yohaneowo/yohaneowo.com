@@ -41,6 +41,8 @@ export interface ChartConfig {
   scale: ScaleMode;
   invert: boolean;
   compare: string[];
+  // Compared symbols hidden from the chart but kept in the legend (eye off).
+  compareHidden?: string[];
 }
 
 export type LayoutKey = "1" | "2h" | "2v" | "3" | "4";
@@ -61,6 +63,8 @@ export interface ChartSettings {
   wicks: boolean;
   grid: "both" | "vertical" | "horizontal" | "none";
   showHighLow: boolean;
+  // Wheel over the price axis scales it like TradingView (up = zoom in); off: KLineChart's default.
+  axisWheelTradingView: boolean;
   showLastPrice: boolean;
   countdown: boolean;
   showLegendValues: boolean;
@@ -206,6 +210,7 @@ export const DEFAULT_SETTINGS: ChartSettings = {
   wicks: true,
   grid: "both",
   showHighLow: true,
+  axisWheelTradingView: true,
   showLastPrice: true,
   countdown: true,
   showLegendValues: true,

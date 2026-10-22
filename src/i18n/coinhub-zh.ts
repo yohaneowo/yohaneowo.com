@@ -449,6 +449,7 @@ const coinhubZh = {
     gridHorizontal: "横向",
     gridNone: "无",
     highLow: "最高最低价标记",
+    axisWheel: "价格轴滚轮方向跟 TradingView 一样（往上滚是放大）",
     lastPrice: "最新价格线",
     countdown: "K 线收盘倒计时",
     legendValues: "显示 OHLC 数值",

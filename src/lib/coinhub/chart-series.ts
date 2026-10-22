@@ -125,6 +125,8 @@ export interface CompareSeries {
   // close by bucketed timestamp (a plain object: the chart deep-copies extendData, which would turn
   // a Map into {})
   closes: Record<number, number>;
+  // The bar's bucket start, to look a close up by a main-chart timestamp.
+  bucket: (t: number) => number;
 }
 
 export interface CompareExtend {

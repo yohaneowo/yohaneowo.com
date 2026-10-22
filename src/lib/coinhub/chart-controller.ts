@@ -161,6 +161,7 @@ export class ChartController {
     });
     this.resizeObserver.observe(el);
     el.addEventListener("contextmenu", this.onContextMenu);
+    el.addEventListener("wheel", this.onWheel, { capture: true, passive: false });
     el.addEventListener("click", this.onClick);
   }
 
@@ -170,6 +171,7 @@ export class ChartController {
     this.resizeObserver.disconnect();
     this.el.removeEventListener("contextmenu", this.onContextMenu);
     this.el.removeEventListener("click", this.onClick);
+    this.el.removeEventListener("wheel", this.onWheel, { capture: true });
     dispose(this.chart);
     this.listeners.clear();
   }
@@ -556,6 +558,7 @@ export class ChartController {
             display: symbol.display,
             color,
             closes: Object.fromEntries(bars.map((b) => [bucketStart(interval, b.timestamp), b.close])),
+            bucket: (t: number) => bucketStart(interval, t),
           });
         } catch {
           // Skip symbols that fail to load.
@@ -998,6 +1001,38 @@ export class ChartController {
     const point = Array.isArray(p) ? p[0] : (p as { timestamp?: number; value?: number });
     return { price: point?.value ?? null, timestamp: point?.timestamp ?? null };
   }
+
+  // KLineChart scales the price axis the opposite way to TradingView (wheel up shrinks the range).
+  // With this on, a wheel over the price axis is re-sent with its direction flipped.
+  private flipAxisWheel = true;
+
+  setAxisWheel(tradingViewLike: boolean) {
+    this.flipAxisWheel = tradingViewLike;
+  }
+
+  private onWheel = (event: WheelEvent) => {
+    if (!this.flipAxisWheel || (event as WheelEvent & { flipped?: boolean }).flipped || event.deltaY === 0)
+      return;
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+    const axis = this.chart.getSize(CANDLE_PANE, "yAxis");
+    const root = this.el.getBoundingClientRect();
+    if (!axis) return;
+    const x = event.clientX - root.left;
+    if (x < axis.left || x > axis.left + axis.width) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const flipped = new WheelEvent("wheel", {
+      deltaX: event.deltaX,
+      deltaY: -event.deltaY,
+      deltaMode: event.deltaMode,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      bubbles: true,
+      cancelable: true,
+    });
+    (flipped as WheelEvent & { flipped?: boolean }).flipped = true;
+    event.target?.dispatchEvent(flipped);
+  };
 
   private onContextMenu = (event: MouseEvent) => {
     event.preventDefault();
