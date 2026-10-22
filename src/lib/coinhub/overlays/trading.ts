@@ -70,9 +70,9 @@ function priceTagLine(name: string): OverlayTemplate {
 }
 
 // A real fill (or the fills of one candle) from the user's exchange account, drawn like Binance's
-// own marks: a hexagon badge with "B" under the candle's low for a buy, "S" over its high for a
-// sell (the point is that low or high). Futures fills are hollow. Not draggable; a click opens the
-// fills list.
+// own marks: a rounded square with a small point towards the candle and a thin line up to its
+// wick — "B" under the low for a buy, "S" over the high for a sell (the point is that low or
+// high). Futures fills are hollow. Not draggable; a click opens the fills list.
 export type FillMarkOptions = {
   side: "BUY" | "SELL";
   text: string;
@@ -87,28 +87,42 @@ const fillMark: OverlayTemplate = tool(
     const { x, y } = coordinates[0];
     const buy = o.side === "BUY";
     const color = buy ? "#0ecb81" : "#f6465d";
-    const w = 18;
-    const h = 20;
-    const gap = 4;
-    const top = buy ? y + gap : y - gap - h;
-    // Points at the top and bottom, flat sides.
-    const hex = [
-      { x, y: top },
-      { x: x + w / 2, y: top + h / 4 },
-      { x: x + w / 2, y: top + (3 * h) / 4 },
-      { x, y: top + h },
-      { x: x - w / 2, y: top + (3 * h) / 4 },
-      { x: x - w / 2, y: top + h / 4 },
-    ];
+    const size = 18;
+    const lead = 8;
+    const tip = 4;
+    // d: +1 draws downwards (under a low), −1 upwards (over a high).
+    const d = buy ? 1 : -1;
+    const tipY = y + d * lead;
+    const boxStart = tipY + d * tip;
+    const boxTop = buy ? boxStart : boxStart - size;
+    const fill = o.hollow
+      ? { style: "stroke_fill", color: alpha(color, 0.18), borderColor: color, borderSize: 1.5 }
+      : { style: "fill", color };
     const figures: OverlayFigure[] = [
+      line(
+        [
+          { x, y },
+          { x, y: tipY },
+        ],
+        { color, size: 1 },
+      ),
       {
         type: "polygon",
-        attrs: { coordinates: hex },
-        styles: o.hollow
-          ? { style: "stroke_fill", color: alpha(color, 0.18), borderColor: color, borderSize: 1.5 }
-          : { style: "fill", color },
+        attrs: {
+          coordinates: [
+            { x, y: tipY },
+            { x: x - tip - 1, y: boxStart + d * 1.5 },
+            { x: x + tip + 1, y: boxStart + d * 1.5 },
+          ],
+        },
+        styles: fill,
       },
-      label(x, top + h / 2, o.text, {
+      {
+        type: "rect",
+        attrs: { x: x - size / 2, y: boxTop, width: size, height: size },
+        styles: { ...fill, borderRadius: 4 },
+      },
+      label(x, boxTop + size / 2, o.text, {
         color: o.hollow ? color : "#fff",
         size: 11,
         align: "center",
