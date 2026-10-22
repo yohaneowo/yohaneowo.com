@@ -160,9 +160,10 @@ export interface TerminalState {
   alertLog: AlertLog[];
   indicatorTemplates: Array<{ name: string; indicators: IndicatorConfig[] }>;
   paper: PaperAccount;
-  // The user's exchange accounts (lib/coinhub/trade.ts): whether the charts mark their fills, and
-  // which connection the marks and the account panel use (null: the first).
-  trade: { show: boolean; connection: number | null };
+  // The user's exchange accounts (lib/coinhub/trade.ts): whether the charts mark their fills, which
+  // connection the marks and the account panel use (null: the first), and the currency the
+  // holdings are valued in.
+  trade: { show: boolean; connection: number | null; currency: string };
   // The floating market-indicators panel over the chart. x/y are its left/top in px inside the
   // chart area; null means the default spot (top right). `collapsed` lists folded group keys.
   marketPanel: { open: boolean; x: number | null; y: number | null; collapsed: string[] };
@@ -266,7 +267,7 @@ function initialState(): TerminalState {
     alertLog: [],
     indicatorTemplates: [],
     paper: { balance: 10_000, initial: 10_000, positions: [], orders: [], fills: [] },
-    trade: { show: true, connection: null },
+    trade: { show: true, connection: null, currency: "USD" },
     marketPanel: { open: false, x: null, y: null, collapsed: [] },
     favoritesBar: true,
   };

@@ -111,6 +111,8 @@ export interface TradeState {
   // Fills by connection, product and symbol; all of a symbol's fills, oldest first.
   fills: Record<string, { rows: TradeFill[]; at: number }>;
   ip: string | null;
+  // USD prices of the wallet assets and USD exchange rates (api/coinhub/valuation), a minute old at most.
+  valuation: { prices: Record<string, number>; rates: Record<string, number>; at: number } | null;
   // The panel's tab, switched to the fills when a mark on the chart is clicked.
   tab: "overview" | "wallets" | "fills" | "sync";
   // Fills to point out in the list (a mark on the chart was clicked).
@@ -126,6 +128,7 @@ let state: TradeState = {
   wallets: {},
   fills: {},
   ip: null,
+  valuation: null,
   tab: "overview",
   highlight: [],
 };
@@ -268,6 +271,23 @@ export function loadFills(
     .finally(() => inflight.delete(key));
   inflight.set(key, promise);
   return promise;
+}
+
+const VALUATION_TTL = 60_000;
+let valuedAssets = "";
+
+// Prices and rates for these assets; asked again when the assets change or a minute has passed.
+export async function loadValuation(assets: string[]) {
+  const key = assets.join(",");
+  const have = trade.get().valuation;
+  if (have && key === valuedAssets && Date.now() - have.at < VALUATION_TTL) return have;
+  const response = await fetch(`/api/coinhub/valuation?assets=${encodeURIComponent(key)}`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = (await response.json()) as { prices: Record<string, number>; rates: Record<string, number> };
+  const entry = { prices: data.prices, rates: data.rates, at: Date.now() };
+  valuedAssets = key;
+  trade.set({ valuation: entry });
+  return entry;
 }
 
 export async function loadIp() {

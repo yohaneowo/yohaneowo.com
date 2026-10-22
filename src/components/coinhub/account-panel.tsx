@@ -23,11 +23,13 @@ import {
   loadConnections,
   loadFills,
   loadIp,
+  loadValuation,
   loadWallets,
   refreshConnection,
   setTracked,
   trade,
   TradeApiError,
+  type TradeBalance,
   type TradeConnection,
   type TradeFill,
   type TradeProduct,
@@ -265,7 +267,7 @@ function ConnectionView({
             onChange={(e) => {
               const id = Number(e.target.value);
               trade.set({ selected: id });
-              setState({ trade: { show: true, connection: id } });
+              setState((s) => ({ trade: { ...s.trade, connection: id } }));
             }}
           >
             {all.map((c) => (
@@ -442,50 +444,112 @@ function fmtDate(ms: number) {
   }).format(ms);
 }
 
-// Balances by wallet and the futures positions.
+// The currencies the holdings can be valued in (USD exchange rates from the valuation API).
+const CURRENCIES = ["USD", "TWD", "CNY", "HKD", "JPY", "KRW", "EUR", "GBP", "SGD", "AUD", "CAD", "MYR"];
+const WALLETS = ["spot", "funding", "earn", "coinm"] as const;
+
+// Balances by wallet with each asset's value in the chosen currency (coins at Binance's spot price,
+// stocks at Yahoo's, futures wallets with their unrealized profit), the total on top, and the
+// futures positions.
 function Wallets({ connection }: { connection: TradeConnection }) {
-  const { t } = useLocale();
+  const { t, lang } = useLocale();
   const tr = t.coinhub.account;
   const wallets = useTrade((s) => s.wallets[connection.id]);
+  const valuation = useTrade((s) => s.valuation);
+  const currency = useTerminal((s) => s.trade.currency);
   useEffect(() => {
     loadWallets(connection.id).catch(() => {});
   }, [connection.id]);
+  const assetKey = useMemo(
+    () => [...new Set((wallets?.balances ?? []).map((b) => b.asset))].sort().join(","),
+    [wallets],
+  );
+  useEffect(() => {
+    if (assetKey) loadValuation(assetKey.split(",")).catch(() => {});
+  }, [assetKey]);
   if (!wallets) return <p className="px-3 py-2 text-muted-foreground">{tr.noBalances}</p>;
-  const byWallet = (["spot", "funding", "earn", "coinm"] as const).map((w) => ({
-    wallet: w,
-    rows: wallets.balances.filter((b) => b.wallet === w),
-  }));
+  const rate = valuation?.rates[currency] ?? (currency === "USD" ? 1 : null);
+  const valueOf = (b: TradeBalance) => {
+    const price = valuation?.prices[b.asset];
+    if (price === undefined || rate === null) return null;
+    return (Number(b.total) + Number(b.unrealized ?? 0)) * price * rate;
+  };
+  const money = (v: number) =>
+    new Intl.NumberFormat(lang === "zh" ? "zh-TW" : "en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: Math.abs(v) >= 100 ? 0 : 2,
+    }).format(v);
+  const groups = WALLETS.map((wallet) => {
+    const rows = wallets.balances
+      .filter((b) => b.wallet === wallet)
+      .map((b) => ({ b, value: valueOf(b) }))
+      .sort((x, y) => (y.value ?? -1) - (x.value ?? -1));
+    return {
+      wallet,
+      rows,
+      subtotal: rows.reduce((sum, r) => sum + (r.value ?? 0), 0),
+      unknown: rows.some((r) => r.value === null),
+    };
+  }).filter((g) => g.rows.length);
+  const total = groups.reduce((sum, g) => sum + g.subtotal, 0);
+  const unknown = groups.some((g) => g.unknown);
   return (
     <div className="flex flex-col gap-3 px-3 py-2">
-      {byWallet
-        .filter((g) => g.rows.length)
-        .map((g) => (
-          <div key={g.wallet}>
-            <div className="mb-1 font-medium">{tr.wallets[g.wallet]}</div>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-              {g.rows.map((b) => (
-                <Row
-                  key={b.asset}
-                  label={
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 hover:text-primary hover:underline"
-                      onClick={() => void openAssetChart(b.asset, tr.noChart)}
-                    >
-                      <CoinIcon asset={b.asset} />
-                      {b.asset.replace(/^EQ_/, "")}
-                    </button>
-                  }
-                  value={
-                    b.unrealized && Number(b.unrealized) !== 0
-                      ? `${fmtDec(b.total)} (${Number(b.unrealized) > 0 ? "+" : ""}${fmtDec(b.unrealized)})`
-                      : fmtDec(b.total)
-                  }
-                />
-              ))}
-            </dl>
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">{tr.total}</span>
+          <select
+            className="h-6 rounded-md border bg-background px-1 text-xs"
+            value={currency}
+            onChange={(e) => setState((s) => ({ trade: { ...s.trade, currency: e.target.value } }))}
+            aria-label={tr.currency}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="text-lg font-semibold tabular-nums">
+          {rate === null ? "–" : `${unknown ? "≈ " : ""}${money(total)}`}
+        </div>
+        <p className="text-muted-foreground">{tr.valueHint}</p>
+      </div>
+      {groups.map((g) => (
+        <div key={g.wallet}>
+          <div className="mb-1 flex justify-between font-medium">
+            <span>{tr.wallets[g.wallet]}</span>
+            <span className="text-muted-foreground tabular-nums">
+              {rate === null ? "" : money(g.subtotal)}
+            </span>
           </div>
-        ))}
+          <div className="flex flex-col">
+            {g.rows.map(({ b, value }) => (
+              <div key={b.asset} className="flex items-center justify-between gap-2 py-0.5">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 hover:text-primary hover:underline"
+                  onClick={() => void openAssetChart(b.asset, tr.noChart)}
+                >
+                  <CoinIcon asset={b.asset} />
+                  {b.asset.replace(/^EQ_/, "")}
+                </button>
+                <span className="text-right tabular-nums">
+                  <span className="block">
+                    {fmtDec(b.total)}
+                    {b.unrealized && Number(b.unrealized) !== 0
+                      ? ` (${Number(b.unrealized) > 0 ? "+" : ""}${fmtDec(b.unrealized)})`
+                      : ""}
+                  </span>
+                  <span className="block text-muted-foreground">{value === null ? "–" : money(value)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
       <div>
         <div className="mb-1 font-medium">{tr.positions}</div>
         {wallets.positions.length === 0 ? (
