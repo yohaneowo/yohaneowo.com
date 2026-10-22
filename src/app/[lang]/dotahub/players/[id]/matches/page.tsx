@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { redirectIfOwn } from "../../../account";
-import { accountParam, MatchList, pageParam } from "../../../match-list";
+import { accountParam, heroParam, MatchList, pageParam, resultParam } from "../../../match-list";
 import { Notice } from "../../../parts";
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ page?: string | string[] }>;
+type SearchParams = Promise<{ page?: string | string[]; hero?: string | string[]; win?: string | string[] }>;
 
 export const instant = false;
 
@@ -20,12 +20,15 @@ async function Matches({ params, searchParams }: { params: Params; searchParams:
   const id = accountParam((await params).id);
   if (!id) return <Notice>{t.player.notFound}</Notice>;
   await redirectIfOwn(id, lang, "/dotahub/matches");
+  const query = await searchParams;
   return (
     <MatchList
       t={t}
       lang={lang}
       accountId={id}
-      page={pageParam((await searchParams).page)}
+      page={pageParam(query.page)}
+      hero={heroParam(query.hero)}
+      result={resultParam(query.win)}
       path={`/dotahub/players/${id}/matches`}
     />
   );

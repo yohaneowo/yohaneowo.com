@@ -4,6 +4,30 @@ import type { DeathEvent, MatchDetails, StoredMatch } from "./admin";
 import type { Peer } from "./data";
 import { recordCall } from "./health";
 
+// After a query for a player fails, the same query isn't sent again for COOLDOWN_MS: a failure
+// isn't cached, so every view of their pages (and the prewarm behind it) would otherwise send it
+// again — thousands of calls on a day STRATZ is flaky, all against the quota shared with admin.
+const COOLDOWN_MS = 5 * 60 * 1000;
+const coolingDown = ((globalThis as { __stratzCooldown?: Map<string, number> }).__stratzCooldown ??= new Map<
+  string,
+  number
+>());
+
+export class StratzCoolingDown extends Error {}
+
+async function guarded<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const until = coolingDown.get(key);
+  if (until && until > Date.now()) throw new StratzCoolingDown(`STRATZ ${key} failed recently`);
+  try {
+    const out = await run();
+    coolingDown.delete(key);
+    return out;
+  } catch (error) {
+    coolingDown.set(key, Date.now() + COOLDOWN_MS);
+    throw error;
+  }
+}
+
 // STRATZ (GraphQL, STRATZ_API_TOKEN): one match's IMP scores and every player's deaths, with
 // where on the map each happened. Only parsed matches have them (usually minutes after the end).
 
@@ -67,71 +91,73 @@ type Raw = {
 
 export async function getStratzMatch(matchId: number): Promise<StratzMatch | null> {
   "use cache";
-  const token = process.env.STRATZ_API_TOKEN;
-  if (!token) return null;
-  const started = Date.now();
-  const response = await fetch("https://api.stratz.com/graphql", {
-    method: "POST",
-    // STRATZ asks API clients to send this exact user agent.
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "STRATZ_API",
-    },
-    body: JSON.stringify({
-      query: `{ match(id: ${Math.trunc(matchId)}) { parsedDateTime firstBloodTime rank pickBans { isPick heroId bannedHeroId isRadiant order wasBannedSuccessfully } players { steamAccountId heroId isRadiant imp stats { impPerMinute deathEvents { time positionX positionY attacker goldLost timeDead } } } } }`,
-    }),
-    signal: AbortSignal.timeout(20_000),
-  }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
-    throw error;
-  });
-  recordCall("stratz", started, {
-    ok: response.ok,
-    error: response.ok ? null : `HTTP ${response.status}`,
-    headers: response.headers,
-  });
-  if (!response.ok) {
-    cacheLife("minutes");
-    return null;
-  }
-  const match = ((await response.json()) as Raw).data?.match;
-  if (!match) {
-    cacheLife("minutes");
-    return null;
-  }
-  const parsed = Boolean(match.parsedDateTime);
-  // A parsed match never changes; an unparsed one is asked again soon.
-  if (parsed) cacheLife("days");
-  else cacheLife("minutes");
-  const pickBans = match.pickBans ?? [];
-  return {
-    parsed,
-    rank: match.rank ?? null,
-    picks: pickBans
-      .filter((x) => x.isPick && x.heroId && x.order != null && x.isRadiant != null)
-      .map((x) => ({ heroId: x.heroId!, radiant: x.isRadiant!, order: x.order! }))
-      .sort((a, b) => a.order - b.order),
-    bans: pickBans
-      .filter((x) => !x.isPick && x.bannedHeroId && x.wasBannedSuccessfully !== false)
-      .map((x) => x.bannedHeroId!),
-    players: match.players.map((p) => ({
-      steamAccountId: p.steamAccountId,
-      heroId: p.heroId,
-      isRadiant: p.isRadiant,
-      imp: typeof p.imp === "number" ? p.imp : null,
-      impm: (p.stats?.impPerMinute ?? []).map((v) => v ?? 0),
-      deathEvents: (p.stats?.deathEvents ?? []).map((e) => ({
-        t: e.time,
-        x: e.positionX,
-        y: e.positionY,
-        by: e.attacker ?? 0,
-        gold: e.goldLost ?? 0,
-        dead: e.timeDead ?? 0,
-        fb: match.firstBloodTime != null && e.time === match.firstBloodTime,
+  return guarded(`match:${matchId}`, async () => {
+    const token = process.env.STRATZ_API_TOKEN;
+    if (!token) return null;
+    const started = Date.now();
+    const response = await fetch("https://api.stratz.com/graphql", {
+      method: "POST",
+      // STRATZ asks API clients to send this exact user agent.
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "STRATZ_API",
+      },
+      body: JSON.stringify({
+        query: `{ match(id: ${Math.trunc(matchId)}) { parsedDateTime firstBloodTime rank pickBans { isPick heroId bannedHeroId isRadiant order wasBannedSuccessfully } players { steamAccountId heroId isRadiant imp stats { impPerMinute deathEvents { time positionX positionY attacker goldLost timeDead } } } } }`,
+      }),
+      signal: AbortSignal.timeout(20_000),
+    }).catch((error) => {
+      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      throw error;
+    });
+    recordCall("stratz", started, {
+      ok: response.ok,
+      error: response.ok ? null : `HTTP ${response.status}`,
+      headers: response.headers,
+    });
+    if (!response.ok) {
+      cacheLife("minutes");
+      return null;
+    }
+    const match = ((await response.json()) as Raw).data?.match;
+    if (!match) {
+      cacheLife("minutes");
+      return null;
+    }
+    const parsed = Boolean(match.parsedDateTime);
+    // A parsed match never changes; an unparsed one is asked again soon.
+    if (parsed) cacheLife("days");
+    else cacheLife("minutes");
+    const pickBans = match.pickBans ?? [];
+    return {
+      parsed,
+      rank: match.rank ?? null,
+      picks: pickBans
+        .filter((x) => x.isPick && x.heroId && x.order != null && x.isRadiant != null)
+        .map((x) => ({ heroId: x.heroId!, radiant: x.isRadiant!, order: x.order! }))
+        .sort((a, b) => a.order - b.order),
+      bans: pickBans
+        .filter((x) => !x.isPick && x.bannedHeroId && x.wasBannedSuccessfully !== false)
+        .map((x) => x.bannedHeroId!),
+      players: match.players.map((p) => ({
+        steamAccountId: p.steamAccountId,
+        heroId: p.heroId,
+        isRadiant: p.isRadiant,
+        imp: typeof p.imp === "number" ? p.imp : null,
+        impm: (p.stats?.impPerMinute ?? []).map((v) => v ?? 0),
+        deathEvents: (p.stats?.deathEvents ?? []).map((e) => ({
+          t: e.time,
+          x: e.positionX,
+          y: e.positionY,
+          by: e.attacker ?? 0,
+          gold: e.goldLost ?? 0,
+          dead: e.timeDead ?? 0,
+          fb: match.firstBloodTime != null && e.time === match.firstBloodTime,
+        })),
       })),
-    })),
-  };
+    };
+  });
 }
 
 type RawRanked = {
@@ -287,64 +313,66 @@ const KEPT = { stale: 300, revalidate: 3600, expire: 7 * 24 * 3600 };
 export async function getStratzRanked(accountId: number): Promise<RankedMatch[]> {
   "use cache";
   cacheLife(KEPT);
-  const token = process.env.STRATZ_API_TOKEN;
-  if (!token) throw new Error("STRATZ_API_TOKEN is not set");
-  const id = Math.trunc(accountId);
-  const started = Date.now();
-  const response = await fetch("https://api.stratz.com/graphql", {
-    method: "POST",
-    // STRATZ asks API clients to send this exact user agent.
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "STRATZ_API",
-    },
-    body: JSON.stringify({
-      query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime firstBloodTime radiantNetworthLeads winRates topLaneOutcome midLaneOutcome bottomLaneOutcome analysisOutcome players(steamAccountId: ${id}) { heroId isVictory isRadiant heroAverage { time networth cs } kills deaths assists imp position lane award goldPerMinute experiencePerMinute networth numLastHits numDenies heroDamage stats { deathEvents { time positionX positionY attacker goldLost timeDead } networthPerMinute impPerMinute lastHitsPerMinute itemPurchases { time itemId } } } } } }`,
-    }),
-    signal: AbortSignal.timeout(45_000),
-  }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
-    throw error;
-  });
-  recordCall("stratz", started, {
-    ok: response.ok,
-    error: response.ok ? null : `HTTP ${response.status}`,
-    headers: response.headers,
-  });
-  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
-  const body = (await response.json()) as RawRanked;
-  if (body.errors?.length) throw new Error("STRATZ query failed");
-  const matches: RankedMatch[] = [];
-  for (const m of body.data?.player?.matches ?? []) {
-    const p = m.players?.[0];
-    if (!p || !m.startDateTime) continue;
-    matches.push({
-      matchId: m.id,
-      heroId: p.heroId,
-      won: p.isVictory,
-      startTime: m.startDateTime,
-      duration: m.durationSeconds ?? 0,
-      kills: p.kills ?? 0,
-      deaths: p.deaths ?? 0,
-      assists: p.assists ?? 0,
-      imp: typeof p.imp === "number" ? p.imp : null,
-      parsed: Boolean(m.parsedDateTime),
-      deathEvents: (p.stats?.deathEvents ?? [])
-        .filter((e) => e.positionX != null && e.positionY != null)
-        .map((e) => ({
-          t: e.time,
-          x: e.positionX!,
-          y: e.positionY!,
-          by: e.attacker ?? 0,
-          gold: e.goldLost ?? 0,
-          dead: e.timeDead ?? 0,
-          fb: m.firstBloodTime != null && e.time === m.firstBloodTime,
-        })),
-      details: m.parsedDateTime ? toDetails(p, m) : null,
+  return guarded(`ranked:${accountId}`, async () => {
+    const token = process.env.STRATZ_API_TOKEN;
+    if (!token) throw new Error("STRATZ_API_TOKEN is not set");
+    const id = Math.trunc(accountId);
+    const started = Date.now();
+    const response = await fetch("https://api.stratz.com/graphql", {
+      method: "POST",
+      // STRATZ asks API clients to send this exact user agent.
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "STRATZ_API",
+      },
+      body: JSON.stringify({
+        query: `{ player(steamAccountId: ${id}) { matches(request: { take: ${RECENT_RANKED}, skip: 0, lobbyTypeIds: [7] }) { id startDateTime durationSeconds parsedDateTime firstBloodTime radiantNetworthLeads winRates topLaneOutcome midLaneOutcome bottomLaneOutcome analysisOutcome players(steamAccountId: ${id}) { heroId isVictory isRadiant heroAverage { time networth cs } kills deaths assists imp position lane award goldPerMinute experiencePerMinute networth numLastHits numDenies heroDamage stats { deathEvents { time positionX positionY attacker goldLost timeDead } networthPerMinute impPerMinute lastHitsPerMinute itemPurchases { time itemId } } } } } }`,
+      }),
+      signal: AbortSignal.timeout(45_000),
+    }).catch((error) => {
+      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      throw error;
     });
-  }
-  return matches.sort((a, b) => b.startTime - a.startTime);
+    recordCall("stratz", started, {
+      ok: response.ok,
+      error: response.ok ? null : `HTTP ${response.status}`,
+      headers: response.headers,
+    });
+    if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+    const body = (await response.json()) as RawRanked;
+    if (body.errors?.length) throw new Error("STRATZ query failed");
+    const matches: RankedMatch[] = [];
+    for (const m of body.data?.player?.matches ?? []) {
+      const p = m.players?.[0];
+      if (!p || !m.startDateTime) continue;
+      matches.push({
+        matchId: m.id,
+        heroId: p.heroId,
+        won: p.isVictory,
+        startTime: m.startDateTime,
+        duration: m.durationSeconds ?? 0,
+        kills: p.kills ?? 0,
+        deaths: p.deaths ?? 0,
+        assists: p.assists ?? 0,
+        imp: typeof p.imp === "number" ? p.imp : null,
+        parsed: Boolean(m.parsedDateTime),
+        deathEvents: (p.stats?.deathEvents ?? [])
+          .filter((e) => e.positionX != null && e.positionY != null)
+          .map((e) => ({
+            t: e.time,
+            x: e.positionX!,
+            y: e.positionY!,
+            by: e.attacker ?? 0,
+            gold: e.goldLost ?? 0,
+            dead: e.timeDead ?? 0,
+            fb: m.firstBloodTime != null && e.time === m.firstBloodTime,
+          })),
+        details: m.parsedDateTime ? toDetails(p, m) : null,
+      });
+    }
+    return matches.sort((a, b) => b.startTime - a.startTime);
+  });
 }
 
 // Asks STRATZ to fetch and parse a match again (the 重新提交解析 button on its site). Anyone can press
@@ -578,63 +606,67 @@ type RawPeer = {
 };
 
 export async function getStratzPeers(accountId: number): Promise<Peer[]> {
-  const token = process.env.STRATZ_API_TOKEN;
-  if (!token) throw new Error("STRATZ_API_TOKEN is not set");
-  const id = Math.trunc(accountId);
-  const peers = (sort: "WITH" | "AGAINST") =>
-    `${sort.toLowerCase()}: peers(request: { playerTeammateSort: ${sort}, matchGroupOrderBy: MATCH_COUNT, take: ${PEER_MATCHES} }, take: ${PEERS}) { steamAccountId matchCount winCount lastMatchDateTime steamAccount { name avatar } }`;
-  const started = Date.now();
-  const response = await fetch("https://api.stratz.com/graphql", {
-    method: "POST",
-    // STRATZ asks API clients to send this exact user agent.
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "STRATZ_API",
-    },
-    body: JSON.stringify({
-      query: `{ stratz { page { player(steamAccountId: ${id}) { ${peers("WITH")} ${peers("AGAINST")} } } } }`,
-    }),
-    signal: AbortSignal.timeout(20_000),
-  }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
-    throw error;
-  });
-  recordCall("stratz", started, {
-    ok: response.ok,
-    error: response.ok ? null : `HTTP ${response.status}`,
-    headers: response.headers,
-  });
-  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
-  const body = (await response.json()) as {
-    errors?: unknown[];
-    data?: { stratz?: { page?: { player?: { with: RawPeer[] | null; against: RawPeer[] | null } | null } } };
-  };
-  if (body.errors?.length) throw new Error("STRATZ query failed");
-  const player = body.data?.stratz?.page?.player;
-  const out = new Map<number, Peer>();
-  const add = (list: RawPeer[] | null | undefined, side: "with" | "against") => {
-    for (const p of list ?? []) {
-      if (!p.steamAccountId || p.steamAccountId === id) continue;
-      const peer = out.get(p.steamAccountId) ?? {
-        account_id: p.steamAccountId,
-        personaname: p.steamAccount?.name ?? null,
-        avatarfull: p.steamAccount?.avatar ?? null,
-        last_played: 0,
-        with_games: 0,
-        with_win: 0,
-        against_games: 0,
-        against_win: 0,
+  return guarded(`peers:${accountId}`, async () => {
+    const token = process.env.STRATZ_API_TOKEN;
+    if (!token) throw new Error("STRATZ_API_TOKEN is not set");
+    const id = Math.trunc(accountId);
+    const peers = (sort: "WITH" | "AGAINST") =>
+      `${sort.toLowerCase()}: peers(request: { playerTeammateSort: ${sort}, matchGroupOrderBy: MATCH_COUNT, take: ${PEER_MATCHES} }, take: ${PEERS}) { steamAccountId matchCount winCount lastMatchDateTime steamAccount { name avatar } }`;
+    const started = Date.now();
+    const response = await fetch("https://api.stratz.com/graphql", {
+      method: "POST",
+      // STRATZ asks API clients to send this exact user agent.
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "STRATZ_API",
+      },
+      body: JSON.stringify({
+        query: `{ stratz { page { player(steamAccountId: ${id}) { ${peers("WITH")} ${peers("AGAINST")} } } } }`,
+      }),
+      signal: AbortSignal.timeout(20_000),
+    }).catch((error) => {
+      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      throw error;
+    });
+    recordCall("stratz", started, {
+      ok: response.ok,
+      error: response.ok ? null : `HTTP ${response.status}`,
+      headers: response.headers,
+    });
+    if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+    const body = (await response.json()) as {
+      errors?: unknown[];
+      data?: {
+        stratz?: { page?: { player?: { with: RawPeer[] | null; against: RawPeer[] | null } | null } };
       };
-      peer[`${side}_games`] = p.matchCount;
-      peer[`${side}_win`] = p.winCount;
-      peer.last_played = Math.max(peer.last_played, p.lastMatchDateTime ?? 0);
-      out.set(p.steamAccountId, peer);
-    }
-  };
-  add(player?.with, "with");
-  add(player?.against, "against");
-  return [...out.values()];
+    };
+    if (body.errors?.length) throw new Error("STRATZ query failed");
+    const player = body.data?.stratz?.page?.player;
+    const out = new Map<number, Peer>();
+    const add = (list: RawPeer[] | null | undefined, side: "with" | "against") => {
+      for (const p of list ?? []) {
+        if (!p.steamAccountId || p.steamAccountId === id) continue;
+        const peer = out.get(p.steamAccountId) ?? {
+          account_id: p.steamAccountId,
+          personaname: p.steamAccount?.name ?? null,
+          avatarfull: p.steamAccount?.avatar ?? null,
+          last_played: 0,
+          with_games: 0,
+          with_win: 0,
+          against_games: 0,
+          against_win: 0,
+        };
+        peer[`${side}_games`] = p.matchCount;
+        peer[`${side}_win`] = p.winCount;
+        peer.last_played = Math.max(peer.last_played, p.lastMatchDateTime ?? 0);
+        out.set(p.steamAccountId, peer);
+      }
+    };
+    add(player?.with, "with");
+    add(player?.against, "against");
+    return [...out.values()];
+  });
 }
 
 // A player's name, avatar and rank tier from STRATZ: the stand-in for OpenDota's profile when it's
@@ -643,41 +675,43 @@ export async function getStratzProfile(
   accountId: number,
 ): Promise<{ name: string | null; avatar: string | null; tier: number | null } | null> {
   "use cache";
-  cacheLife(KEPT);
-  const token = process.env.STRATZ_API_TOKEN;
-  if (!token) return null;
-  const started = Date.now();
-  const response = await fetch("https://api.stratz.com/graphql", {
-    method: "POST",
-    // STRATZ asks API clients to send this exact user agent.
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "STRATZ_API",
-    },
-    body: JSON.stringify({
-      query: `{ player(steamAccountId: ${Math.trunc(accountId)}) { steamAccount { name avatar seasonRank } } }`,
-    }),
-    signal: AbortSignal.timeout(15_000),
-  }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
-    throw error;
-  });
-  recordCall("stratz", started, {
-    ok: response.ok,
-    error: response.ok ? null : `HTTP ${response.status}`,
-    headers: response.headers,
-  });
-  if (!response.ok) throw new Error(`STRATZ ${response.status}`);
-  const body = (await response.json()) as {
-    data?: {
-      player?: {
-        steamAccount: { name: string | null; avatar: string | null; seasonRank: number | null } | null;
-      } | null;
+  return guarded(`profile:${accountId}`, async () => {
+    cacheLife(KEPT);
+    const token = process.env.STRATZ_API_TOKEN;
+    if (!token) return null;
+    const started = Date.now();
+    const response = await fetch("https://api.stratz.com/graphql", {
+      method: "POST",
+      // STRATZ asks API clients to send this exact user agent.
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "STRATZ_API",
+      },
+      body: JSON.stringify({
+        query: `{ player(steamAccountId: ${Math.trunc(accountId)}) { steamAccount { name avatar seasonRank } } }`,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    }).catch((error) => {
+      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      throw error;
+    });
+    recordCall("stratz", started, {
+      ok: response.ok,
+      error: response.ok ? null : `HTTP ${response.status}`,
+      headers: response.headers,
+    });
+    if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+    const body = (await response.json()) as {
+      data?: {
+        player?: {
+          steamAccount: { name: string | null; avatar: string | null; seasonRank: number | null } | null;
+        } | null;
+      };
     };
-  };
-  const account = body.data?.player?.steamAccount;
-  return account ? { name: account.name, avatar: account.avatar, tier: account.seasonRank } : null;
+    const account = body.data?.player?.steamAccount;
+    return account ? { name: account.name, avatar: account.avatar, tier: account.seasonRank } : null;
+  });
 }
 
 // A player's whole ranked history as STRATZ has it, lean (the 绝活 page): when, hero, won, IMP and
@@ -714,44 +748,83 @@ type RawHistory = {
 export async function getRankedHistory(accountId: number): Promise<HistoryMatch[]> {
   "use cache";
   cacheLife(KEPT);
-  const token = process.env.STRATZ_API_TOKEN;
-  if (!token) throw new Error("STRATZ_API_TOKEN is not set");
-  const id = Math.trunc(accountId);
-  const out: HistoryMatch[] = [];
-  for (let request = 0; request < HISTORY_REQUESTS; request++) {
-    const first = request * HISTORY_PAGES;
+  return guarded(`history:${accountId}`, async () => {
+    const token = process.env.STRATZ_API_TOKEN;
+    if (!token) throw new Error("STRATZ_API_TOKEN is not set");
+    const id = Math.trunc(accountId);
+    const out: HistoryMatch[] = [];
+    for (let request = 0; request < HISTORY_REQUESTS; request++) {
+      const first = request * HISTORY_PAGES;
+      const query = Array.from(
+        { length: HISTORY_PAGES },
+        (_, i) =>
+          `p${i}: player(steamAccountId: ${id}) { matches(request: { take: ${HISTORY_PAGE}, skip: ${(first + i) * HISTORY_PAGE}, lobbyTypeIds: [7] }) { startDateTime players(steamAccountId: ${id}) { heroId isVictory imp position } } }`,
+      ).join(" ");
+      const started = Date.now();
+      const response = await fetch("https://api.stratz.com/graphql", {
+        method: "POST",
+        // STRATZ asks API clients to send this exact user agent.
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "User-Agent": "STRATZ_API",
+        },
+        body: JSON.stringify({ query: `{ ${query} }` }),
+        signal: AbortSignal.timeout(45_000),
+      }).catch((error) => {
+        recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+        throw error;
+      });
+      recordCall("stratz", started, {
+        ok: response.ok,
+        error: response.ok ? null : `HTTP ${response.status}`,
+        headers: response.headers,
+      });
+      if (!response.ok) throw new Error(`STRATZ ${response.status}`);
+      const body = (await response.json()) as RawHistory;
+      if (body.errors?.length) throw new Error("STRATZ query failed");
+      let short = false;
+      for (let i = 0; i < HISTORY_PAGES; i++) {
+        const matches = body.data?.[`p${i}`]?.matches ?? [];
+        for (const m of matches) {
+          const p = m.players?.[0];
+          if (!p || !m.startDateTime) continue;
+          const position = p.position?.startsWith("POSITION_") ? Number(p.position.slice(9)) : null;
+          out.push({
+            start: m.startDateTime,
+            hero: p.heroId,
+            won: p.isVictory,
+            imp: typeof p.imp === "number" ? p.imp : null,
+            pos: position && position >= 1 && position <= 5 ? position : null,
+          });
+        }
+        if (matches.length < HISTORY_PAGE) {
+          short = true;
+          break;
+        }
+      }
+      if (short) break;
+    }
+    return out;
+  });
+}
+
+// A player's newest captains mode matches in practice lobbies (up to 500, one request): where pros
+// play their scrims and tournament games, which ranked history leaves out. Kept like the ranked one.
+export async function getPracticeHistory(accountId: number): Promise<HistoryMatch[]> {
+  "use cache";
+  cacheLife(KEPT);
+  return guarded(`practice:${accountId}`, async () => {
+    const id = Math.trunc(accountId);
     const query = Array.from(
-      { length: HISTORY_PAGES },
+      { length: 5 },
       (_, i) =>
-        `p${i}: player(steamAccountId: ${id}) { matches(request: { take: ${HISTORY_PAGE}, skip: ${(first + i) * HISTORY_PAGE}, lobbyTypeIds: [7] }) { startDateTime players(steamAccountId: ${id}) { heroId isVictory imp position } } }`,
+        `p${i}: player(steamAccountId: ${id}) { matches(request: { take: ${HISTORY_PAGE}, skip: ${i * HISTORY_PAGE}, lobbyTypeIds: [1], gameModeIds: [2] }) { startDateTime players(steamAccountId: ${id}) { heroId isVictory imp position } } }`,
     ).join(" ");
-    const started = Date.now();
-    const response = await fetch("https://api.stratz.com/graphql", {
-      method: "POST",
-      // STRATZ asks API clients to send this exact user agent.
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "User-Agent": "STRATZ_API",
-      },
-      body: JSON.stringify({ query: `{ ${query} }` }),
-      signal: AbortSignal.timeout(45_000),
-    }).catch((error) => {
-      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
-      throw error;
-    });
-    recordCall("stratz", started, {
-      ok: response.ok,
-      error: response.ok ? null : `HTTP ${response.status}`,
-      headers: response.headers,
-    });
-    if (!response.ok) throw new Error(`STRATZ ${response.status}`);
-    const body = (await response.json()) as RawHistory;
-    if (body.errors?.length) throw new Error("STRATZ query failed");
-    let short = false;
-    for (let i = 0; i < HISTORY_PAGES; i++) {
-      const matches = body.data?.[`p${i}`]?.matches ?? [];
-      for (const m of matches) {
+    const data = await stratzQuery<NonNullable<RawHistory["data"]>>(`{ ${query} }`, 45_000);
+    const out: HistoryMatch[] = [];
+    for (let i = 0; i < 5; i++)
+      for (const m of data[`p${i}`]?.matches ?? []) {
         const p = m.players?.[0];
         if (!p || !m.startDateTime) continue;
         const position = p.position?.startsWith("POSITION_") ? Number(p.position.slice(9)) : null;
@@ -763,43 +836,8 @@ export async function getRankedHistory(accountId: number): Promise<HistoryMatch[
           pos: position && position >= 1 && position <= 5 ? position : null,
         });
       }
-      if (matches.length < HISTORY_PAGE) {
-        short = true;
-        break;
-      }
-    }
-    if (short) break;
-  }
-  return out;
-}
-
-// A player's newest captains mode matches in practice lobbies (up to 500, one request): where pros
-// play their scrims and tournament games, which ranked history leaves out. Kept like the ranked one.
-export async function getPracticeHistory(accountId: number): Promise<HistoryMatch[]> {
-  "use cache";
-  cacheLife(KEPT);
-  const id = Math.trunc(accountId);
-  const query = Array.from(
-    { length: 5 },
-    (_, i) =>
-      `p${i}: player(steamAccountId: ${id}) { matches(request: { take: ${HISTORY_PAGE}, skip: ${i * HISTORY_PAGE}, lobbyTypeIds: [1], gameModeIds: [2] }) { startDateTime players(steamAccountId: ${id}) { heroId isVictory imp position } } }`,
-  ).join(" ");
-  const data = await stratzQuery<NonNullable<RawHistory["data"]>>(`{ ${query} }`, 45_000);
-  const out: HistoryMatch[] = [];
-  for (let i = 0; i < 5; i++)
-    for (const m of data[`p${i}`]?.matches ?? []) {
-      const p = m.players?.[0];
-      if (!p || !m.startDateTime) continue;
-      const position = p.position?.startsWith("POSITION_") ? Number(p.position.slice(9)) : null;
-      out.push({
-        start: m.startDateTime,
-        hero: p.heroId,
-        won: p.isVictory,
-        imp: typeof p.imp === "number" ? p.imp : null,
-        pos: position && position >= 1 && position <= 5 ? position : null,
-      });
-    }
-  return out;
+    return out;
+  });
 }
 
 // A hero's leaderboard at a rank (STRATZ's, as on its hero pages): the players with the best
@@ -1021,10 +1059,12 @@ export async function getHeroLevelBoard(heroId: number, tier: number): Promise<L
 export async function getHeroLevels(accountId: number): Promise<Record<number, number>> {
   "use cache";
   cacheLife(KEPT);
-  const data = await stratzQuery<{
-    player?: { dotaPlus: { heroId: number; level: number }[] | null } | null;
-  }>(`{ player(steamAccountId: ${Math.trunc(accountId)}) { dotaPlus { heroId level } } }`, 20_000);
-  const out: Record<number, number> = {};
-  for (const x of data.player?.dotaPlus ?? []) out[x.heroId] = Math.max(out[x.heroId] ?? 0, x.level);
-  return out;
+  return guarded(`levels:${accountId}`, async () => {
+    const data = await stratzQuery<{
+      player?: { dotaPlus: { heroId: number; level: number }[] | null } | null;
+    }>(`{ player(steamAccountId: ${Math.trunc(accountId)}) { dotaPlus { heroId level } } }`, 20_000);
+    const out: Record<number, number> = {};
+    for (const x of data.player?.dotaPlus ?? []) out[x.heroId] = Math.max(out[x.heroId] ?? 0, x.level);
+    return out;
+  });
 }

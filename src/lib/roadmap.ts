@@ -690,6 +690,53 @@ export const ROADMAP: RoadmapItem[] = [
     shipped: "2026-10-22",
   },
   {
+    id: "dotahub-trends",
+    status: "building",
+    area: "dotahub",
+    title: {
+      zh: "DotaHub：胜率变化、比赛筛选、IMP 与段位交叉",
+      en: "DotaHub: win-rate trend, match filters, IMP against rank",
+    },
+    summary: {
+      zh: "总览的胜率旁多了最近的胜率走势；比赛列表能按英雄与胜负筛；IMP 走势滑过就看数字，并能切成「与段位交叉」看段位变高时 IMP 是涨是跌。",
+      en: "A win-rate trend beside the overview's win rate; the match list filters by hero and result; the IMP trend shows its numbers on hover and can be turned against rank to see whether IMP rises or falls as the rank climbs.",
+    },
+    why: {
+      zh: "一个总胜率看不出最近是在变好还是变差；比赛列表只能一页页翻；IMP 走势要点到点上才看得到数字。",
+      en: "One overall win rate doesn't say whether things are improving; the match list could only be paged; the IMP trend only showed numbers on the dots.",
+    },
+    steps: [
+      step(
+        "总览：胜率变化（天梯，每 20 场一算，附跟前 20 场的差）",
+        "Overview: the win-rate trend (ranked, 20 at a time, with the change against the 20 before)",
+        true,
+      ),
+      step(
+        "比赛：按英雄、胜负筛选（OpenDota 端筛，翻页保留）",
+        "Matches: filter by hero and result (OpenDota filters, paging keeps them)",
+        true,
+      ),
+      step("IMP 走势：滑过显示那场与平均", "IMP trend: hover shows the match and the average", true),
+      step(
+        "IMP 与段位交叉：用每场的平均段位代替 MMR，各段位平均与趋势线",
+        "IMP against rank: the match's average rank stands in for MMR, with per-medal averages and a fitted trend",
+        true,
+      ),
+      step(
+        "来源保护：STRATZ 失败 5 分钟内不重送、爬虫不预热、页面请求记在日志",
+        "Protecting the sources: a failed STRATZ query isn't resent for 5 minutes, crawlers get no prewarm, page requests are logged",
+        true,
+      ),
+    ],
+    links: [
+      { label: { zh: "总览", en: "Overview" }, href: "/dotahub" },
+      { label: { zh: "比赛", en: "Matches" }, href: "/dotahub/matches" },
+      { label: { zh: "IMP", en: "IMP" }, href: "/dotahub/imp" },
+    ],
+    added: "2026-10-23",
+    started: "2026-10-23",
+  },
+  {
     id: "dotahub-next",
     status: "considering",
     area: "dotahub",

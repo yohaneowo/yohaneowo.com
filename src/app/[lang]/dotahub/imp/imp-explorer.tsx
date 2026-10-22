@@ -17,9 +17,11 @@ import {
   Section,
   signed,
   Stat,
+  Tabs,
   useMatchFilters,
 } from "../stats/controls";
 import { CompareMenu, type CompareProps } from "../economy/compare/compare-menu";
+import { ImpByRank } from "./by-rank";
 import { ByLength, Distribution, ImpByLane, ImpByState, Predicted, Streaks, WhenBest } from "./more";
 
 const PHASES = [
@@ -87,6 +89,7 @@ function MatchLine({
 export function ImpExplorer({
   matches,
   sides,
+  ranks = {},
   heroes,
   ranges,
   matchHref,
@@ -94,6 +97,8 @@ export function ImpExplorer({
 }: {
   matches: DetailMatch[];
   sides: Record<number, boolean>;
+  // Match id → the match's average rank tier (OpenDota), for the trend against rank.
+  ranks?: Record<number, number>;
   heroes: Record<number, HeroInfo>;
   ranges: number[];
   matchHref: string;
@@ -105,6 +110,8 @@ export function ImpExplorer({
   const s = dict.dotahub.stats;
   const f = useMatchFilters(matches, sides, ranges);
   const [sort, setSort] = useState<{ key: SortKey; down: boolean }>({ key: "n", down: true });
+  // The trend over time, or IMP against the matches' rank.
+  const [trendView, setTrendView] = useState<"time" | "rank">("time");
 
   // Matches with an IMP, oldest first for the charts.
   const rated = f.shown.filter((m) => m.imp != null);
@@ -233,19 +240,33 @@ export function ImpExplorer({
             />
           </div>
 
-          <Section title={t.trend} hint={t.trendHint}>
-            <TrendChart
-              points={ordered.map((m) => ({
-                value: m.imp!,
-                won: m.won,
-                label: date(m.startTime),
-                matchId: m.matchId,
-                tip: `${heroName(m.heroId)} · ${m.won ? t.won : t.lost} · ${date(m.startTime)}<br/>${m.kills} / ${m.deaths} / ${m.assists} · IMP <b>${signed(m.imp!)}</b>`,
-              }))}
-              averageLabel={t.movingAverage}
-              baseline={{ value: 0, label: t.zero }}
-              matchHref={matchHref}
+          <Section title={t.trend} hint={trendView === "time" ? t.trendHint : t.byRankHint}>
+            <Tabs
+              label={t.trend}
+              value={trendView}
+              onChange={setTrendView}
+              options={[
+                ["time", t.byTime],
+                ["rank", t.byRank],
+              ]}
+              className="text-xs"
             />
+            {trendView === "time" ? (
+              <TrendChart
+                points={ordered.map((m) => ({
+                  value: m.imp!,
+                  won: m.won,
+                  label: date(m.startTime),
+                  matchId: m.matchId,
+                  tip: `${heroName(m.heroId)} · ${m.won ? t.won : t.lost} · ${date(m.startTime)}<br/>${m.kills} / ${m.deaths} / ${m.assists} · IMP <b>${signed(m.imp!)}</b>`,
+                }))}
+                averageLabel={t.movingAverage}
+                baseline={{ value: 0, label: t.zero }}
+                matchHref={matchHref}
+              />
+            ) : (
+              <ImpByRank list={ordered} ranks={ranks} heroes={heroes} matchHref={matchHref} />
+            )}
           </Section>
 
           <div className="grid gap-6 lg:grid-cols-2">

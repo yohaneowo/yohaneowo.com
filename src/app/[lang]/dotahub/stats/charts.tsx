@@ -33,11 +33,17 @@ export function TrendChart({
   const option: EChartsOption = {
     grid: { left: 48, right: 16, top: 28, bottom: 28 },
     legend: { top: 0, data: [averageLabel], textStyle: { fontSize: 11 } },
+    // Hovering anywhere over a match shows it (and the average there), like the minute charts.
     tooltip: {
-      trigger: "item",
+      trigger: "axis",
+      axisPointer: { type: "line", lineStyle: { opacity: 0.4 } },
       formatter: (params) => {
-        const p = params as { seriesIndex: number; dataIndex: number };
-        return p.seriesIndex === 0 ? (points[p.dataIndex]?.tip ?? "") : "";
+        const list = params as { seriesIndex: number; dataIndex: number; value: unknown }[];
+        const dot = list.find((x) => x.seriesIndex === 0);
+        const p = dot ? points[dot.dataIndex] : undefined;
+        if (!p) return "";
+        const average = list.find((x) => x.seriesIndex === 1)?.value;
+        return typeof average === "number" ? `${p.tip}<br/>${averageLabel} <b>${format(average)}</b>` : p.tip;
       },
     },
     xAxis: {
@@ -75,7 +81,6 @@ export function TrendChart({
         showSymbol: false,
         color: ALL,
         lineStyle: { width: 2 },
-        tooltip: { show: false },
         // Starts once there are enough matches to average (fewer swings wildly).
         data: points.map((_, i) => {
           if (i < AVERAGE_OF - 1) return null;

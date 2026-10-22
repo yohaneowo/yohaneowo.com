@@ -115,13 +115,17 @@ export function ImpChart({
       ? {
           grid: { left: 40, right: 12, top: 28, bottom: 28 },
           legend: { top: 0, data: [t.movingAverage], textStyle: { fontSize: 11 } },
+          // Hovering anywhere over a match shows it, with the average there.
           tooltip: {
-            trigger: "item",
+            trigger: "axis",
+            axisPointer: { type: "line", lineStyle: { opacity: 0.4 } },
             formatter: (params) => {
-              const p = params as { seriesIndex: number; dataIndex: number };
-              const m = shown[p.dataIndex];
-              if (!m || p.seriesIndex !== 0) return "";
-              return `${heroName(m.heroId)} · ${m.won ? t.win : t.loss} · ${date(m.startTime)}<br/>${m.kills} / ${m.deaths} / ${m.assists} · IMP <b>${signed(m.imp)}</b>`;
+              const list = params as { seriesIndex: number; dataIndex: number; value: unknown }[];
+              const dot = list.find((x) => x.seriesIndex === 0);
+              const m = dot ? shown[dot.dataIndex] : undefined;
+              if (!m) return "";
+              const average = list.find((x) => x.seriesIndex === 1)?.value;
+              return `${heroName(m.heroId)} · ${m.won ? t.win : t.loss} · ${date(m.startTime)}<br/>${m.kills} / ${m.deaths} / ${m.assists} · IMP <b>${signed(m.imp)}</b>${typeof average === "number" ? `<br/>${t.movingAverage} <b>${signed(average)}</b>` : ""}`;
             },
           },
           xAxis: {
@@ -158,7 +162,6 @@ export function ImpChart({
                 const window = shown.slice(i - AVERAGE_OF + 1, i + 1);
                 return Math.round(window.reduce((s, m) => s + m.imp, 0) / window.length);
               }),
-              tooltip: { show: false },
             },
           ],
         }

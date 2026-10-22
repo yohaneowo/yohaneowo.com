@@ -4,14 +4,14 @@ import { Suspense } from "react";
 import { localePath } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { dotaViewer } from "../account";
-import { MatchList, pageParam } from "../match-list";
+import { heroParam, MatchList, pageParam, resultParam } from "../match-list";
 import { Notice } from "../parts";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).dotahub.matches.title };
 }
 
-type SearchParams = Promise<{ page?: string | string[] }>;
+type SearchParams = Promise<{ page?: string | string[]; hero?: string | string[]; win?: string | string[] }>;
 
 async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const lang = await getLocale();
@@ -25,12 +25,15 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
         </Link>
       </Notice>
     );
+  const query = await searchParams;
   return (
     <MatchList
       t={t}
       lang={lang}
       accountId={viewer.accountId}
-      page={pageParam((await searchParams).page)}
+      page={pageParam(query.page)}
+      hero={heroParam(query.hero)}
+      result={resultParam(query.win)}
       path="/dotahub/matches"
     />
   );
