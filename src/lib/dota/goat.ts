@@ -211,6 +211,19 @@ export type LegendView = {
   lastMatch: number | null;
 };
 
+// Only who the legends are, whether they're on a team now and their photo, for the compare menu:
+// none of getLegendsView's STRATZ lookups, which take a minute or more while the cache is cold.
+export async function getLegendsLite(scene: GoatScene | null) {
+  const photos = await getPsPhotos(LEGENDS.map((l) => l.name)).catch(() => ({}) as Record<string, string>);
+  return LEGENDS.map((legend) => ({
+    legend,
+    onTeam: !!scene?.players.some(
+      (p) => p.teamId && !p.stale && p.accounts.some((a) => legend.accounts.includes(a.accountId)),
+    ),
+    photo: photos[norm(legend.name)] ?? null,
+  }));
+}
+
 // The legends list with what the sources say about them now.
 export async function getLegendsView(): Promise<LegendView[]> {
   const ids = LEGENDS.flatMap((l) => l.accounts);
