@@ -723,8 +723,8 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
-        "来源保护：STRATZ 失败 5 分钟内不重送、爬虫不预热、页面请求记在日志",
-        "Protecting the sources: a failed STRATZ query isn't resent for 5 minutes, crawlers get no prewarm, page requests are logged",
+        "来源保护：STRATZ 失败 5 分钟内不重送、只对登录用户预热、robots.txt 禁爬玩家与比赛页、页面请求记在日志",
+        "Protecting the sources: a failed STRATZ query isn't resent for 5 minutes, only signed-in visitors get prewarm, robots.txt keeps crawlers off player and match pages, page requests are logged",
         true,
       ),
     ],
