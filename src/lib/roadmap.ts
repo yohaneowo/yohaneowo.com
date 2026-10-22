@@ -739,6 +739,44 @@ export const ROADMAP: RoadmapItem[] = [
     shipped: "2026-10-23",
   },
   {
+    id: "api-gateway",
+    status: "considering",
+    area: "admin",
+    title: {
+      zh: "第三方 API 网关：金钥、额度、快取、日志集中在 admin",
+      en: "A third-party API gateway: keys, quotas, cache and logs in admin",
+    },
+    summary: {
+      zh: "网站、admin、bot 打 OpenDota / STRATZ 都经过 admin 的一个通用接口：金钥只在一处、付费有日 / 月上限、Redis 快取跨部署保留、逐笔日志与用量页面。",
+      en: "Every OpenDota / STRATZ call from the site, admin and bot goes through one generic endpoint in admin: keys in one place, daily and monthly caps on paid calls, a Redis cache that survives deploys, per-call logs and a usage page.",
+    },
+    why: {
+      zh: "2026-10-22 Googlebot 爬玩家公开页，一天把 OpenDota 免费额度与 STRATZ 的日额度用光、付费再花 15000 次；金钥与用量分散在三个服务，没有一处能挡钱也看不到全貌。",
+      en: "On 2026-10-22 Googlebot crawled the public player pages and spent the day's OpenDota and STRATZ quotas plus 15,000 paid calls; with keys and usage spread over three services nothing could cap the spend or show the whole picture.",
+    },
+    steps: [
+      step(
+        "网站的付费金钥先加日 / 月上限（不等网关）",
+        "A daily / monthly cap on the site's paid key first (without waiting for the gateway)",
+        true,
+      ),
+      step(
+        "admin 网关：转发、金钥、Redis 快取（先给旧的、同一笔只打一次）、对上游限速、断路器、逐笔日志、上限",
+        "The admin gateway: forwarding, keys, a Redis cache (stale-while-revalidate, single-flight), upstream rate limits, a circuit breaker, per-call logs, caps",
+      ),
+      step(
+        "网站与 admin 的 Dota 模块改走网关，网关不通就直连免费额度",
+        "The site and admin's Dota module go through the gateway, falling back to direct free calls when it's down",
+      ),
+      step(
+        "admin 页面：用量、金额、前几名呼叫者、封锁、调上限",
+        "An admin page: usage, cost, top callers, blocking, caps",
+      ),
+    ],
+    links: [],
+    added: "2026-10-23",
+  },
+  {
     id: "dotahub-next",
     status: "considering",
     area: "dotahub",

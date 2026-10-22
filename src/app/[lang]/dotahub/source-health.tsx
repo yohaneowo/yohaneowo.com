@@ -72,11 +72,18 @@ export function SourceHealthDots() {
               </span>
               {h?.ms != null && <span>{t.latency((h.ms / 1000).toFixed(1))}</span>}
               {h?.error && <span>{t.error(h.error)}</span>}
-              {h?.keyUntil != null && (
+              {h?.keyUntil != null && !h.paid?.capped && (
                 <span>
                   {t.paidKey(
                     new Date(h.keyUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                   )}
+                </span>
+              )}
+              {h?.paid && (
+                <span className={cn(h.paid.capped && "text-red-500")}>
+                  {h.paid.capped ? t.paidCapped : null}
+                  {h.paid.capped ? " · " : null}
+                  {t.paidUsage(h.paid.today, h.paid.dailyCap, h.paid.month, h.paid.monthlyCap)}
                 </span>
               )}
               {h &&

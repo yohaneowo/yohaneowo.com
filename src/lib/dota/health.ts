@@ -1,5 +1,5 @@
 import "server-only";
-import { freeQuotaSpent, opendotaKeyUntil } from "./opendota-key";
+import { freeQuotaSpent, opendotaKeyUntil, opendotaPaidStatus, type PaidStatus } from "./opendota-key";
 
 // How DotaHub's data sources are doing, for the dots in its navigation. Every real call records
 // its outcome (and the quota headers it came back with); when a source hasn't been called for a
@@ -18,6 +18,8 @@ export type SourceHealth = {
   quota: Record<string, number>;
   // OpenDota: the free quota is spent, and calls go out with the paid key until then (ms).
   keyUntil?: number | null;
+  // OpenDota: the paid key's budget (null without a key).
+  paid?: PaidStatus | null;
 };
 
 type Sample = { at: number; ok: boolean; ms: number; error: string | null };
@@ -190,7 +192,7 @@ export async function dotaHealth(): Promise<Record<DotaSource, SourceHealth>> {
   }
   const at = Date.now();
   return {
-    opendota: summarize("opendota", at),
+    opendota: { ...summarize("opendota", at), paid: await opendotaPaidStatus().catch(() => null) },
     stratz: summarize("stratz", at),
     steam: summarize("steam", at),
   };

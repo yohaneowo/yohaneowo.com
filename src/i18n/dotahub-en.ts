@@ -719,6 +719,9 @@ const dotahubEn: typeof dotahubZh = {
     error: (e: string) => `Error: ${e}`,
     quota: (period: string, n: number) => `${n} calls left ${period}`,
     paidKey: (until: string) => `Free quota spent: using the paid key until ${until}`,
+    paidUsage: (today: number, dayCap: number, month: number, monthCap: number) =>
+      `Paid key: ${today} / ${dayCap} calls today, ${month} / ${monthCap} this month`,
+    paidCapped: "Paid budget reached: free quota only",
     periods: { day: "today", hour: "this hour", minute: "this minute" },
     checked: (m: number) => (m ? `Checked ${m} min ago` : "Just checked"),
   },

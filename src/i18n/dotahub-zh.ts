@@ -683,6 +683,9 @@ const dotahubZh = {
     error: (e: string) => `错误：${e}`,
     quota: (period: string, n: number) => `${period}剩 ${n} 次`,
     paidKey: (until: string) => `免费额度用完，暂用付费金钥（到 ${until}）`,
+    paidUsage: (today: number, dayCap: number, month: number, monthCap: number) =>
+      `付费金钥：今天 ${today} / ${dayCap} 次，本月 ${month} / ${monthCap} 次`,
+    paidCapped: "付费额度已达上限，只用免费额度",
     periods: { day: "今天", hour: "这小时", minute: "这分钟" },
     checked: (m: number) => (m ? `${m} 分钟前检查` : "刚刚检查"),
   },
