@@ -1,19 +1,37 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import { getHeroes, getJson, getMatch } from "./data";
+import { type AbilityMeta, getLabConsts, type ItemMeta } from "./lab-consts";
 import {
   buildExtra,
-  getCooldowns,
-  getLabBaseline,
   HEAVY_EXTRA,
   type LabAdvanced,
   LIGHT_EXTRA,
+  LIGHT_PLAYBACK_EXTRA,
+  LIGHT_PLAYER_EXTRA,
   STATS_EXTRA,
-  type SzHeavyExtra,
   type SzDamage,
+  type SzHeal,
+  type SzHeavyExtra,
   type SzLightExtra,
+  type SzLightPlayerExtra,
   type SzStatsExtra,
 } from "./lab-extra";
+import { buildMatch, isKeyItemKey, type LabMatch } from "./lab-match";
+import {
+  type Dist,
+  getLabBaseline,
+  getOdHero,
+  getPersonal,
+  getPro,
+  getVsHero,
+  getWardmap,
+  type LabOdHero,
+  type LabPersonal,
+  type LabPro,
+  type LabVsHero,
+  type LabWardmap,
+} from "./lab-refs";
 import { mapZone, type MapZone } from "./map";
 import { stratzQuery } from "./stratz";
 
@@ -51,7 +69,7 @@ type OdWard = {
   ehandle?: number;
   attackername?: string | null;
 };
-type OdPlayer = {
+export type OdPlayer = {
   player_slot: number;
   account_id?: number | null;
   personaname?: string | null;
@@ -136,6 +154,23 @@ type OdPlayer = {
   kill_streaks?: Counts;
   max_hero_hit?: { time: number; value: number; key: string; inflictor?: string | null } | null;
   benchmarks?: Record<string, { raw: number | null; pct: number | null }>;
+  gold?: number;
+  gold_spent?: number;
+  obs_placed?: number;
+  sen_placed?: number;
+  lane_role?: number | null;
+  // OpenDota's lane estimate (1 bottom, 2 mid, 3 top, 4 and 5 the jungles) and roaming flag.
+  lane?: number | null;
+  is_roaming?: boolean | null;
+  // The abilities in the order points went into them (talents too).
+  ability_upgrades_arr?: number[] | null;
+  leaver_status?: number | null;
+  killed?: Counts;
+  actions?: Counts;
+  connection_log?: { time: number; event?: string }[];
+  deaths_log?: { time: number; key: string; gold_lost?: number; gold_fed?: number; time_dead?: number }[];
+  permanent_buffs?: { permanent_buff: number; stack_count: number; grant_time?: number }[] | null;
+  additional_units?: Record<string, number | string | null>[] | null;
 };
 type OdTeamfight = {
   start: number;
@@ -151,6 +186,8 @@ type OdTeamfight = {
     killed: Counts;
     ability_uses: Counts;
     item_uses: Counts;
+    xp_start?: number;
+    xp_end?: number;
   }[];
 };
 type OdObjective = {
@@ -161,8 +198,10 @@ type OdObjective = {
   player_slot?: number;
   victim_player_slot?: number;
   unit?: string;
+  killer?: number;
+  value?: number;
 };
-type OdMatch = {
+export type OdMatch = {
   match_id: number;
   duration: number;
   start_time: number;
@@ -177,15 +216,23 @@ type OdMatch = {
   players: OdPlayer[];
   teamfights?: OdTeamfight[] | null;
   objectives?: OdObjective[] | null;
+  picks_bans?: { is_pick: boolean; hero_id: number; team: number; order: number }[] | null;
+  radiant_gold_adv?: number[] | null;
+  radiant_xp_adv?: number[] | null;
+  pauses?: { time: number; duration: number }[] | null;
+  replay_url?: string | null;
+  throw?: number | null;
+  loss?: number | null;
+  chat?: { time: number; type: string; key: string; player_slot?: number }[] | null;
 };
 
 // ── What STRATZ gives ────────────────────────────────────────────────────────────────────────
 
 type SzPos = { time: number; x: number; y: number };
-type SzLight = SzLightExtra & {
+export type SzLight = SzLightExtra & {
   parsedDateTime: number | null;
   rank: number | null;
-  players: {
+  players: (SzLightPlayerExtra & {
     playerSlot: number;
     heroId: number;
     isRadiant: boolean;
@@ -195,12 +242,15 @@ type SzLight = SzLightExtra & {
     playbackData: {
       killEvents: { time: number; target: number; positionX: number; positionY: number }[] | null;
       assistEvents: { time: number; target: number }[] | null;
-      deathEvents: { time: number; attacker: number }[] | null;
+      deathEvents:
+        { time: number; attacker: number; positionX: number | null; positionY: number | null }[] | null;
       playerUpdatePositionEvents: SzPos[] | null;
       // Everyone's hero damage dealt: the damage taken by the player is in the others' lists.
       heroDamageEvents: SzDamage[] | null;
+      // Everyone's heals: the heals the player got are in the others' lists.
+      healEvents: SzHeal[] | null;
     } | null;
-  }[];
+  })[];
 };
 type SzHeavy = {
   playerSlot: number;
@@ -209,7 +259,14 @@ type SzHeavy = {
   playbackData:
     | (SzHeavyExtra & {
         abilityLearnEvents:
-          { time: number; abilityId: number; levelObtained: number; isTalent: boolean }[] | null;
+          | {
+              time: number;
+              abilityId: number;
+              levelObtained: number;
+              isTalent: boolean;
+              isUltimate: boolean | null;
+            }[]
+          | null;
         abilityUsedEvents: { time: number; abilityId: number; target: number | null }[] | null;
         itemUsedEvents: { time: number; itemId: number; target: number | null }[] | null;
         playerUpdateLevelEvents: { time: number; level: number }[] | null;
@@ -227,6 +284,8 @@ type SzHeavy = {
               isInvisible: boolean | null;
               isTpRecently: boolean | null;
               isRuneEffected: boolean | null;
+              gold: number | null;
+              xp: number | null;
             }[]
           | null;
         deathEvents:
@@ -248,6 +307,10 @@ type SzHeavy = {
               hasHealAvailable: boolean | null;
               isTracked: boolean | null;
               isFeed: boolean | null;
+              xpFed: number | null;
+              assist: number[] | null;
+              reliableGold: number | null;
+              unreliableGold: number | null;
             }[]
           | null;
         assistEvents: { time: number; target: number; positionX: number; positionY: number }[] | null;
@@ -265,14 +328,16 @@ type SzHeavy = {
               positionX: number;
               positionY: number;
               gold: number | null;
+              attacker: number | null;
+              byAbility: number | null;
+              byItem: number | null;
+              isFromIllusion: boolean | null;
             }[]
           | null;
       })
     | null;
   stats:
     | (SzStatsExtra & {
-        wards: { time: number; type: number; positionX: number; positionY: number }[] | null;
-        wardDestruction: { time: number; isWard: boolean | null; gold: number | null }[] | null;
         tripsFountainPerMinute: number[] | null;
         impPerMinute: number[] | null;
         heroDamageReceivedPerMinute: number[] | null;
@@ -281,11 +346,11 @@ type SzHeavy = {
     | null;
 };
 
-const HEAVY = `playerSlot imp award playbackData { abilityLearnEvents { time abilityId levelObtained isTalent } abilityUsedEvents { time abilityId target } itemUsedEvents { time itemId target } playerUpdateLevelEvents { time level } playerUpdateHealthEvents { time hp maxHp mp maxMp } killEvents { time target byAbility byItem isSolo isGank isSmoke isInvisible isTpRecently isRuneEffected } deathEvents { time attacker byAbility byItem positionX positionY goldLost goldFed timeDead isWardWalkThrough isAttemptTpOut isDieBack isBurst isEngagedOnDeath hasHealAvailable isTracked isFeed } assistEvents { time target positionX positionY } runeEvents { time rune action positionX positionY } buyBackEvents { time cost deathTimeRemaining } purchaseEvents { time itemId } csEvents { time npcId isCreep isNeutral isAncient positionX positionY gold } ${HEAVY_EXTRA} } stats { ${STATS_EXTRA} wards { time type positionX positionY } wardDestruction { time isWard gold } tripsFountainPerMinute impPerMinute heroDamageReceivedPerMinute actionReport { moveToPosition moveToTarget attackPosition attackTarget castPosition castTarget castNoTarget heldPosition glyphCast scanUsed pingUsed } }`;
+const HEAVY = `playerSlot imp award playbackData { abilityLearnEvents { time abilityId levelObtained isTalent isUltimate } abilityUsedEvents { time abilityId target } itemUsedEvents { time itemId target } playerUpdateLevelEvents { time level } playerUpdateHealthEvents { time hp maxHp mp maxMp } killEvents { time target byAbility byItem isSolo isGank isSmoke isInvisible isTpRecently isRuneEffected gold xp } deathEvents { time attacker byAbility byItem positionX positionY goldLost goldFed timeDead isWardWalkThrough isAttemptTpOut isDieBack isBurst isEngagedOnDeath hasHealAvailable isTracked isFeed xpFed assist reliableGold unreliableGold } assistEvents { time target positionX positionY } runeEvents { time rune action positionX positionY } buyBackEvents { time cost deathTimeRemaining } purchaseEvents { time itemId } csEvents { time npcId isCreep isNeutral isAncient positionX positionY gold attacker byAbility byItem isFromIllusion } ${HEAVY_EXTRA} } stats { ${STATS_EXTRA} tripsFountainPerMinute impPerMinute heroDamageReceivedPerMinute actionReport { moveToPosition moveToTarget attackPosition attackTarget castPosition castTarget castNoTarget heldPosition glyphCast scanUsed pingUsed } }`;
 
 async function stratzLight(matchId: number): Promise<SzLight | null> {
   const data = await stratzQuery<{ match: SzLight | null }>(
-    `{ match(id: ${matchId}) { parsedDateTime rank ${LIGHT_EXTRA} players { playerSlot heroId isRadiant lane position steamAccountId playbackData { killEvents { time target positionX positionY } assistEvents { time target } deathEvents { time attacker } playerUpdatePositionEvents { time x y } heroDamageEvents { time attacker target value byAbility byItem damageType isPhysicalAttack isSourceMainHero isTargetMainHero } } } } }`,
+    `{ match(id: ${matchId}) { parsedDateTime rank ${LIGHT_EXTRA} players { playerSlot heroId isRadiant lane position steamAccountId ${LIGHT_PLAYER_EXTRA} playbackData { killEvents { time target positionX positionY } assistEvents { time target } deathEvents { time attacker positionX positionY } playerUpdatePositionEvents { time x y } ${LIGHT_PLAYBACK_EXTRA} heroDamageEvents { time attacker target value byAbility byItem damageType isPhysicalAttack isSourceMainHero isTargetMainHero } } } } }`,
     30_000,
   );
   return data.match;
@@ -370,7 +435,10 @@ export type LabFight = {
   // How: the ability or item key, when not a right-click.
   by: string | null;
   flags: string[];
+  // Kill: gold and XP earned. Death: gold lost, gold and XP given to the enemy.
   gold: number | null;
+  xp: number | null;
+  goldFed: number | null;
   timeDead: number | null;
 };
 
@@ -424,12 +492,25 @@ export type LabSide = {
     totalGold: number | null;
     totalXp: number | null;
     deadSeconds: number | null;
+    // Gold spent and left at the end, everything earned (the ledger: what was spent and kept, plus
+    // what deaths and buybacks took, less sells and the starting gold), items sold, and the earned
+    // gold no reason accounts for (passive income).
+    goldSpent: number | null;
+    goldEnd: number | null;
+    earned: number | null;
+    sells: number;
+    passiveGold: number | null;
     imp: number | null;
     award: string | null;
     teamKills: number;
     teamNetWorthShare: number | null;
   };
   benchmarks: Record<string, number>;
+  // The values behind the percentiles.
+  benchmarksRaw: Record<string, number>;
+  patch: { id: number; name: string } | null;
+  // Where the position (and so the rank average) came from.
+  positionFrom: "stratz" | "override" | "opendota" | null;
   // Per minute (index = minute), all cumulative except level and imp.
   minutes: {
     gold: number[];
@@ -461,12 +542,18 @@ export type LabSide = {
     uses: { key: string; count: number }[];
     useTimes: { key: string; times: number[] }[];
     buffs: { scepter: boolean; shard: boolean; moonshard: boolean };
+    // The items of other units the player controlled (Spirit Bear…), as OpenDota lists them.
+    additionalUnits: string[];
   };
   skills: {
     learned: { t: number; key: string; level: number; talent: boolean }[];
     uses: { key: string; count: number }[];
     useTimes: { key: string; times: number[] }[];
     targets: { key: string; heroes: { hero: number; count: number }[] }[];
+    // The ultimate: the ability first taken at hero level 6 or later with at most three points.
+    ult: string | null;
+    // Every ability and item use aimed at a hero (STRATZ; point and no-target casts have no target).
+    casts: { t: number; key: string; target: number; item: boolean }[];
   };
   laning: {
     at10: { lh: number; dn: number; gold: number; xp: number; netWorth: number; level: number } | null;
@@ -508,6 +595,8 @@ export type LabSide = {
     takenByKind: Counts;
     buildings: { key: string; value: number }[];
     hits: { key: string; value: number }[];
+    // Damage to heroes by source and target ("null" = right-clicks), from OpenDota.
+    matrix: { key: string; targets: { hero: number; value: number }[] }[];
   };
   vision: {
     wards: LabWard[];
@@ -521,8 +610,20 @@ export type LabSide = {
     runes: { t: number; rune: string; action: string; x: number | null; y: number | null }[];
     campsStacked: number;
     creepsStacked: number;
-    pulls: { t: number; x: number; y: number }[];
-    farm: { t: number; x: number; y: number; kind: 0 | 1 | 2 }[];
+    // Lane creeps last-hit in the own jungle before 15:00, grouped by wave: pulled = the player was at
+    // that camp a while before the creeps came (a pull), else a pulled wave the player farmed.
+    pulls: { t: number; x: number; y: number; n: number; pulled: boolean }[];
+    // Last hits: kind 0 lane creep, 1 neutral, 2 ancient; src 0 right-click, 1 item, 2 ability,
+    // 3 illusion or other unit.
+    farm: {
+      t: number;
+      x: number;
+      y: number;
+      kind: 0 | 1 | 2;
+      src: 0 | 1 | 2 | 3;
+      gold: number;
+      by: string | null;
+    }[];
     roshan: { t: number; kind: "teamKill" | "enemyKill" | "aegis" | "aegisEnemy" | "stolen" | "denied" }[];
     buybacks: { t: number; cost: number | null }[];
     roshanKills: number;
@@ -535,15 +636,44 @@ export type LabSide = {
   };
   goldReasons: Counts;
   xpReasons: Counts;
+  // Units killed by unit name (npc_dota_neutral_…, npc_dota_creep_…), from OpenDota.
+  killed: Counts;
   actions: Record<string, number>;
   pings: number | null;
   firstBlood: { t: number; mine: boolean; victim: boolean } | null;
+  // Stacks of permanent buffs (Duel, Flesh Heap, Shard, Scepter…), from OpenDota.
+  buffs: { key: string; stacks: number }[];
+  // OpenDota's order counts by order type.
+  orders: { key: string; count: number }[];
   advanced: LabAdvanced;
+  match: LabMatch;
+  refs: LabRefs;
+};
+
+export type LabRefs = {
+  od: LabOdHero | null;
+  personal:
+    | (Omit<LabPersonal, "parsed"> & {
+        parsed: { n: number; nw10: Dist | null; lh10: Dist | null; items: Record<string, Dist> };
+      })
+    | null;
+  pro: LabPro | null;
+  vs: LabVsHero[];
+  // The rank average is from the match's own week (false: recent games, the week is no longer kept).
+  baselineWeek: boolean;
+  // The player's usual ward spots on the hero (all their games).
+  wardmap: LabWardmap | null;
 };
 
 export type LabAssets = {
   items: Record<string, LabItemInfo>;
   abilities: Record<string, LabAbilityInfo>;
+  itemMeta: Record<string, ItemMeta>;
+  abilityMeta: Record<string, AbilityMeta>;
+  // Talent key → tier (1 = level 10 … 4 = level 25).
+  talentTier: Record<string, number>;
+  // Hero id → its abilities in slot order (for the skill builds).
+  heroAbilities: Record<string, string[]>;
 };
 
 // The answer for one player: the side, the parse state when it's missing, or null for no such match.
@@ -556,6 +686,50 @@ export type LabResult =
 const ITEM_SLOTS = ["item_0", "item_1", "item_2", "item_3", "item_4", "item_5"] as const;
 
 // Absolute lane from STRATZ's lane and side: Radiant's safe lane is the bottom one.
+// The frog camps' units by STRATZ npc id, for when STRATZ's unit list can't be had.
+const FROG_NPCS: Record<number, string> = {
+  895: "npc_dota_neutral_tadpole",
+  896: "npc_dota_neutral_froglet",
+  897: "npc_dota_neutral_grown_frog",
+  898: "npc_dota_neutral_ancient_frog",
+  899: "npc_dota_neutral_froglet_mage",
+  900: "npc_dota_neutral_grown_frog_mage",
+  901: "npc_dota_neutral_ancient_frog_mage",
+};
+
+// The hero levels that give a skill point, in order (17, 19 and 21–24 give none; 26–30 take the
+// talents left).
+const POINT_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 25, 26, 27, 28, 29, 30];
+
+// OpenDota's points in the order they were placed, at the earliest hero level each could have been:
+// the next level that gives a point, no earlier than the one before (points can be saved) and, for
+// a talent, its tier's level.
+function odLearned(
+  ids: number[],
+  abilityKey: (id: number) => string | null,
+  tiers: Record<string, number>,
+): { key: string | null; level: number; talent: boolean }[] {
+  let level = 0;
+  return ids.map((id, i) => {
+    const key = abilityKey(id);
+    const talent = !!key?.startsWith("special_bonus");
+    const slotLevel = POINT_LEVELS[i] ?? POINT_LEVELS[POINT_LEVELS.length - 1] + i - POINT_LEVELS.length + 1;
+    const tierLevel = talent && key && tiers[key] ? 5 + 5 * tiers[key] : 0;
+    level = Math.max(level, slotLevel, tierLevel);
+    return { key, level, talent };
+  });
+}
+
+// OpenDota's lane estimate as an absolute lane.
+function odLane(p: { lane?: number | null; is_roaming?: boolean | null }): LabLane {
+  if (p.is_roaming) return "roam";
+  if (p.lane === 1) return "bot";
+  if (p.lane === 2) return "mid";
+  if (p.lane === 3) return "top";
+  if (p.lane === 4 || p.lane === 5) return "jungle";
+  return null;
+}
+
 function laneOf(lane: string | null, radiant: boolean): LabLane {
   if (lane === "MID_LANE") return "mid";
   if (lane === "SAFE_LANE") return radiant ? "bot" : "top";
@@ -634,7 +808,12 @@ const OD_RUNES: Record<string, string> = {
   "9": "SHIELD",
 };
 
-export async function getLabSide(matchId: number, slot: number): Promise<LabResult> {
+// position: an override of STRATZ's position (1–5), which sets the rank average compared against.
+export async function getLabSide(
+  matchId: number,
+  slot: number,
+  position?: number | null,
+): Promise<LabResult> {
   "use cache";
   const id = Math.trunc(matchId);
   const raw = (await getMatch(id)) as unknown as OdMatch | null;
@@ -655,23 +834,53 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
   }
 
   const accountId = p.account_id && p.account_id !== 4294967295 ? p.account_id : null;
-  const [heroes, catalog, light, cooldownsAll] = await Promise.all([
+  const [heroes, catalog, light, consts] = await Promise.all([
     getHeroes(),
     getCatalog(),
-    stratzLight(id).catch(() => null),
-    getCooldowns().catch(() => ({}) as Record<string, number[]>),
+    stratzLight(id).catch(() => stratzLight(id).catch(() => null)),
+    getLabConsts(),
   ]);
   const lightMine = light?.players.find((x) => x.playerSlot === slot);
   const medal = Math.floor((light?.rank ?? p.rank_tier ?? 80) / 10);
-  const [heavy, baseline] = await Promise.all([
+  // STRATZ's position, else the one asked for, else OpenDota's lane role for cores (1–3).
+  const override = position && position >= 1 && position <= 5 ? Math.trunc(position) : null;
+  const stratzPosition = Number(lightMine?.position?.replace("POSITION_", "")) || null;
+  const positionFrom: LabSide["positionFrom"] = override
+    ? "override"
+    : stratzPosition
+      ? "stratz"
+      : p.lane_role
+        ? "opendota"
+        : null;
+  const pos = override ?? stratzPosition ?? (p.lane_role && p.lane_role <= 3 ? p.lane_role : null);
+  const patchName = raw.patch != null ? (consts.patches[String(raw.patch)]?.name ?? null) : null;
+  const [heavyFirst, weekBaseline, odHero, personal, pro, wardmap] = await Promise.all([
     stratzHeavy(id, slot, lightMine?.steamAccountId ?? accountId).catch(() => null),
-    getLabBaseline(
-      p.hero_id,
-      Number(lightMine?.position?.replace("POSITION_", "")) || null,
-      medal,
-      catalog.itemById,
-    ).catch(() => null),
+    getLabBaseline(p.hero_id, pos, medal, raw.start_time, catalog.itemById, catalog.abilityById).catch(
+      () => null,
+    ),
+    getOdHero(p.hero_id, medal).catch(() => null),
+    accountId ? getPersonal(accountId, p.hero_id, id).catch(() => null) : null,
+    patchName ? getPro(p.hero_id, patchName, id).catch(() => null) : null,
+    // The usual ward spots matter for supports and for whoever placed wards in this game.
+    accountId && ((pos ?? 0) >= 4 || (p.obs_log?.length ?? 0) + (p.sen_log?.length ?? 0) >= 3)
+      ? getWardmap(accountId, p.hero_id).catch(() => null)
+      : null,
   ]);
+  // STRATZ sometimes times out on the big per-player query when it's busy: once more before going
+  // without it.
+  const heavy =
+    heavyFirst ??
+    (light?.parsedDateTime
+      ? await stratzHeavy(id, slot, lightMine?.steamAccountId ?? accountId).catch(() => null)
+      : null);
+  // The match's week when STRATZ still has it (with enough games), else recent games.
+  const baselineWeek = !!weekBaseline && weekBaseline.matches >= 500;
+  const baseline = baselineWeek
+    ? weekBaseline
+    : await getLabBaseline(p.hero_id, pos, medal, null, catalog.itemById, catalog.abilityById).catch(
+        () => null,
+      );
   const stratzParsed = Boolean(light?.parsedDateTime && heavy?.playbackData);
   if (stratzParsed) cacheLife("days");
   else cacheLife("minutes");
@@ -757,14 +966,24 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     }
   }
 
-  const lane = mine ? laneOf(mine.lane, radiant) : null;
-  const laneMates = light?.players.filter(
-    (x) => x.playerSlot !== slot && x.isRadiant === radiant && laneOf(x.lane, x.isRadiant) === lane,
+  // STRATZ's lanes, else (not parsed there) OpenDota's estimate from the early positions.
+  const laneOfSlot = (x: OdPlayer) => {
+    const l = light?.players.find((y) => y.playerSlot === x.player_slot);
+    return (l ? laneOf(l.lane, l.isRadiant) : null) ?? odLane(x);
+  };
+  const lane = laneOfSlot(p);
+  const lanePlayers = raw.players.map((x) => ({
+    playerSlot: x.player_slot,
+    heroId: x.hero_id,
+    isRadiant: x.player_slot < 128,
+    lane: laneOfSlot(x),
+  }));
+  const laneMates = lanePlayers.filter(
+    (x) => x.playerSlot !== slot && x.isRadiant === radiant && lane && x.lane === lane,
   );
-  const laneFoes = light?.players.filter(
-    (x) => x.isRadiant !== radiant && lane && laneOf(x.lane, x.isRadiant) === lane,
+  const laneFoes = lanePlayers.filter(
+    (x) => x.isRadiant !== radiant && lane && lane !== "jungle" && lane !== "roam" && x.lane === lane,
   );
-  const position = Number(mine?.position?.replace("POSITION_", "")) || null;
 
   // Kills and deaths with everyone involved (from everyone's events at the same second).
   type Ev = { slot: number; hero: number; radiant: boolean; t: number; target: number };
@@ -800,6 +1019,22 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
   const foeHeroes = foes.map((x) => x.hero_id);
   const fights: LabFight[] = [];
   const pb = heavy?.playbackData;
+  // What each last hit was. STRATZ flags the frog camps' units as neither neutral nor creep, and
+  // Roshan, buildings and summons come in csEvents too: units named npc_dota_neutral_* are neutrals
+  // (the ancient frogs and the ones flagged ancient are ancients), units flagged as creeps are lane
+  // creeps, and anything else isn't farm.
+  const csEvents = (pb?.csEvents ?? []).flatMap((c) => {
+    const name = c.npcId != null ? (consts.npcs[String(c.npcId)] ?? FROG_NPCS[c.npcId] ?? "") : "";
+    const kind: 0 | 1 | 2 | null =
+      c.isAncient || name.startsWith("npc_dota_neutral_ancient_frog")
+        ? 2
+        : c.isNeutral || name.startsWith("npc_dota_neutral_")
+          ? 1
+          : c.isCreep
+            ? 0
+            : null;
+    return kind == null ? [] : [{ ...c, kind, isNeutral: kind === 1, isAncient: kind === 2 }];
+  });
   if (pb) {
     for (const k of pb.killEvents ?? []) {
       const at = killsAll.find((e) => e.slot === slot && near(e.t, k.time) && e.target === k.target);
@@ -823,7 +1058,9 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
           k.isTpRecently && "tp",
           k.isRuneEffected && "rune",
         ].filter(Boolean) as string[],
-        gold: null,
+        gold: k.gold ?? null,
+        xp: k.xp ?? null,
+        goldFed: null,
         timeDead: null,
       });
     }
@@ -851,6 +1088,8 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
           d.isFeed && "feed",
         ].filter(Boolean) as string[],
         gold: d.goldLost ?? null,
+        xp: d.xpFed ?? null,
+        goldFed: d.goldFed ?? null,
         timeDead: d.timeDead ?? null,
       });
     }
@@ -867,24 +1106,45 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
         by: null,
         flags: [],
         gold: null,
+        xp: null,
+        goldFed: null,
         timeDead: null,
       });
     }
   } else {
-    for (const k of p.kills_log ?? []) {
-      const hero = heroOfKey(k.key);
+    // Without STRATZ: OpenDota's kill and death logs (no places, no helpers).
+    for (const k of p.kills_log ?? [])
       fights.push({
         kind: "kill",
         t: k.time,
         x: null,
         y: null,
-        hero,
+        hero: heroOfKey(k.key),
         allies: [],
         enemies: [],
         by: null,
         flags: [],
         gold: null,
+        xp: null,
+        goldFed: null,
         timeDead: null,
+      });
+    for (const d of p.deaths_log ?? []) {
+      const killer = heroOfKey(d.key);
+      fights.push({
+        kind: "death",
+        t: d.time,
+        x: null,
+        y: null,
+        hero: killer,
+        allies: [],
+        enemies: killer ? [killer] : [],
+        by: null,
+        flags: [],
+        gold: d.gold_lost ?? null,
+        xp: null,
+        goldFed: d.gold_fed ?? null,
+        timeDead: d.time_dead ?? null,
       });
     }
   }
@@ -942,11 +1202,26 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     itemTimes.set(key, [...(itemTimes.get(key) ?? []), e.time]);
   }
 
-  // Skills.
-  const learned = (pb?.abilityLearnEvents ?? [])
-    .map((e) => ({ t: e.time, key: abilityKey(e.abilityId), level: e.levelObtained, talent: e.isTalent }))
+  const talentTiers = Object.fromEntries(
+    (consts.heroes[heroes[p.hero_id]?.key ?? ""]?.talents ?? []).map((x) => [x.key, x.tier]),
+  );
+  // Skills: STRATZ's (with times), else OpenDota's order of points placed at the hero levels that
+  // give a point, timed by the level times.
+  const learned = (
+    pb?.abilityLearnEvents?.length
+      ? pb.abilityLearnEvents.map((e) => ({
+          t: e.time,
+          key: abilityKey(e.abilityId),
+          level: e.levelObtained,
+          talent: e.isTalent,
+        }))
+      : odLearned(p.ability_upgrades_arr ?? [], abilityKey, talentTiers).map((x) => ({
+          ...x,
+          t: levelTimes[x.level - 1] ?? levelTimes[levelTimes.length - 1] ?? 0,
+        }))
+  )
     .filter((e): e is { t: number; key: string; level: number; talent: boolean } => !!e.key)
-    .sort((a, b) => a.t - b.t);
+    .sort((a, b) => a.t - b.t || a.level - b.level);
   learned.forEach((e) => abilities.add(e.key));
   const abilityUses = sortedCounts(p.ability_uses).map((x) => ({ key: x.key, count: x.value }));
   abilityUses.forEach((x) => abilities.add(x.key));
@@ -957,6 +1232,17 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     abilities.add(key);
     abilityTimes.set(key, [...(abilityTimes.get(key) ?? []), e.time]);
   }
+  // The ultimate: first taken at hero level 6 or later, never more than three points; STRATZ's flag
+  // when it has one.
+  const pointsOf = new Map<string, number[]>();
+  for (const l of learned) if (!l.talent) pointsOf.set(l.key, [...(pointsOf.get(l.key) ?? []), l.level]);
+  const flagged = (pb?.abilityLearnEvents ?? []).find((e) => e.isUltimate);
+  const ult =
+    (flagged ? abilityKey(flagged.abilityId) : null) ??
+    [...pointsOf.entries()]
+      .filter(([, lv]) => lv[0] >= 6 && lv.length <= 3)
+      .sort((a, b) => a[1][0] - b[1][0])[0]?.[0] ??
+    null;
   const targets = Object.entries(p.ability_targets ?? {}).map(([key, list]) => ({
     key,
     heroes: Object.entries(list)
@@ -1028,20 +1314,45 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
         y: null,
       }));
 
-  // Last hits by place: lane creeps (0), neutrals (1), ancients (2). Pulls: lane creeps killed in the
-  // jungle in the first 15 minutes.
+  // Last hits by place: lane creeps (0), neutrals (1), ancients (2), and how they were made.
   const farm: LabSide["resources"]["farm"] = [];
-  const pulls: LabSide["resources"]["pulls"] = [];
-  for (const c of pb?.csEvents ?? []) {
-    const kind = c.isAncient ? 2 : c.isNeutral ? 1 : 0;
-    farm.push({ t: c.time, x: c.positionX, y: c.positionY, kind });
-    if (kind === 0 && c.time < 900) {
-      // Only the own jungle: lane creeps killed in the enemy's were a fight or a push, not a pull.
-      const zone = mapZone(c.positionX, c.positionY);
-      if (zone === (radiant ? "radiantJungle" : "direJungle"))
-        pulls.push({ t: c.time, x: c.positionX, y: c.positionY });
-    }
+  for (const c of csEvents) {
+    const kind = c.kind;
+    const byItem = itemKey(c.byItem);
+    const byAbility = abilityKey(c.byAbility);
+    const src =
+      c.isFromIllusion || (c.attacker != null && c.attacker !== p.hero_id)
+        ? 3
+        : byItem
+          ? 1
+          : byAbility
+            ? 2
+            : 0;
+    farm.push({
+      t: c.time,
+      x: c.positionX,
+      y: c.positionY,
+      kind,
+      src,
+      gold: c.gold ?? 0,
+      by: byItem ?? byAbility,
+    });
   }
+  // Pulls: lane creeps last-hit in the own jungle before 15:00 (lane creeps killed in the enemy's
+  // were a fight or a push), grouped into waves (within 20 s and 8 cells). A wave counts as pulled
+  // by the player when they stood near that spot 15–40 s before its first last hit.
+  const pulls: LabSide["resources"]["pulls"] = [];
+  for (const c of farm) {
+    if (c.kind !== 0 || c.t >= 900 || mapZone(c.x, c.y) !== (radiant ? "radiantJungle" : "direJungle"))
+      continue;
+    const wave = pulls.find((w) => c.t - w.t <= 20 && Math.hypot(c.x - w.x, c.y - w.y) <= 8);
+    if (wave) wave.n++;
+    else pulls.push({ t: c.t, x: c.x, y: c.y, n: 1, pulled: false });
+  }
+  for (const w of pulls)
+    w.pulled = path.t.some(
+      (t, i) => t >= w.t - 40 && t <= w.t - 15 && Math.hypot(path.x[i] - w.x, path.y[i] - w.y) <= 6,
+    );
 
   const myTeam = radiant ? 2 : 3;
   const roshan: LabSide["resources"]["roshan"] = [];
@@ -1068,6 +1379,40 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
   const enemyNw = perMinute(duration, (m) => sumT(foes, m));
   const fin = minutesLen - 1;
 
+  // Gold: what was earned by the ledger (spent + kept + taken by deaths and buybacks − sells − the
+  // starting gold), and the part no reason accounts for (passive income).
+  const reasons = p.gold_reasons ?? {};
+  const sells = Math.max(0, reasons["6"] ?? 0);
+  const logged = Object.entries(reasons)
+    .filter(([k, v]) => Number(k) >= 11 && Number(k) <= 21 && v > 0)
+    .reduce((sum, [, v]) => sum + v, 0);
+  const earned =
+    p.gold_spent != null && p.gold != null
+      ? p.gold +
+        p.gold_spent -
+        Math.min(0, reasons["1"] ?? 0) -
+        Math.min(0, reasons["2"] ?? 0) -
+        sells -
+        (reasons["0"] ?? 600)
+      : (p.total_gold ?? null);
+  const passiveGold = earned != null ? Math.max(0, earned - logged) : null;
+
+  const ownBuilding = radiant ? "goodguys" : "badguys";
+  const enemyObjectives = (raw.objectives ?? []).flatMap(
+    (o): { t: number; type: string; key: string | null }[] => {
+      const enemySlot = o.player_slot != null && o.player_slot < 128 !== radiant;
+      if (o.type === "building_kill" && typeof o.key === "string" && o.key.includes(ownBuilding))
+        return [{ t: o.time, type: "building", key: o.key }];
+      if (o.type === "CHAT_MESSAGE_ROSHAN_KILL" && o.team === (radiant ? 3 : 2))
+        return [{ t: o.time, type: "roshan", key: null }];
+      if (o.type === "CHAT_MESSAGE_MINIBOSS_KILL" && (o.team === (radiant ? 3 : 2) || enemySlot))
+        return [{ t: o.time, type: "tormentor", key: null }];
+      return [];
+    },
+  );
+  const deathsHeavy = new Map((pb?.deathEvents ?? []).map((d) => [d.time, d] as const));
+  const lightPlayers = light?.players ?? [];
+
   const advanced = buildExtra({
     duration,
     radiant,
@@ -1076,39 +1421,127 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     teamHeroes,
     foeHeroes,
     path,
-    everyone: (light?.players ?? []).map((x) => ({
+    everyone: lightPlayers.map((x) => ({
       slot: x.playerSlot,
+      heroId: x.heroId,
       radiant: x.isRadiant,
       positions: x.playbackData?.playerUpdatePositionEvents ?? [],
     })),
-    incoming: (light?.players ?? [])
+    enemyDamage: lightPlayers
       .filter((x) => x.isRadiant !== radiant)
-      .flatMap((x) => x.playbackData?.heroDamageEvents ?? [])
-      .filter((d) => d.target === p.hero_id),
+      .flatMap((x) => x.playbackData?.heroDamageEvents ?? []),
+    allyDamage: lightPlayers
+      .filter((x) => x.isRadiant === radiant && x.playerSlot !== slot)
+      .flatMap((x) => x.playbackData?.heroDamageEvents ?? []),
+    heals: lightPlayers.flatMap((x) => x.playbackData?.healEvents ?? []),
     light,
-    heavy: pb ?? null,
+    heavy: pb ? { ...pb, csEvents } : null,
     stats: heavy?.stats ?? null,
-    odPicks:
-      (raw as { picks_bans?: { is_pick: boolean; hero_id: number; team: number; order: number }[] | null })
-        .picks_bans ?? null,
+    odPicks: raw.picks_bans ?? null,
+    odGoldAdv: raw.radiant_gold_adv ?? [],
+    odXpAdv: raw.radiant_xp_adv ?? [],
     odTeamfights: raw.teamfights ?? [],
     index,
     teamfights,
     deaths: fights
       .filter((f) => f.kind === "death")
-      .map((f) => ({ t: f.t, timeDead: f.timeDead, enemies: f.enemies })),
+      .map((f) => ({
+        t: f.t,
+        timeDead: f.timeDead,
+        enemies: f.enemies,
+        goldLost: f.gold,
+        goldFed: f.goldFed ?? deathsHeavy.get(f.t)?.goldFed ?? null,
+        xpFed: f.xp,
+      })),
+    buybacks: (pb?.buyBackEvents ?? p.buyback_log ?? []).map((b) => b.time),
+    enemyObjectives,
     fightTimes: fights.map((f) => f.t),
+    useTimes: [
+      ...(pb?.abilityUsedEvents ?? []).map((e) => e.time),
+      ...(pb?.itemUsedEvents ?? []).filter((e) => itemKey(e.itemId) !== "power_treads").map((e) => e.time),
+    ],
+    fightDeaths: lightPlayers.flatMap((x) =>
+      (x.playbackData?.deathEvents ?? [])
+        .filter((d) => d.positionX != null && d.positionY != null)
+        .map((d) => ({ t: d.time, x: d.positionX!, y: d.positionY! })),
+    ),
     netWorth: p.networth_t ?? p.gold_t,
+    passiveGold: passiveGold ?? 0,
     laneAbs: lane,
     itemKey,
     abilityKey,
     baseline,
     cooldowns: Object.fromEntries(
-      Object.entries(cooldownsAll).filter(
-        ([k]) => learned.some((l) => l.key === k) || abilityUses.some((u) => u.key === k),
-      ),
+      [...new Set([...learned.map((l) => l.key), ...abilityUses.map((u) => u.key)])]
+        .filter((k) => consts.abilities[k]?.cd.length)
+        .map((k) => [k, consts.abilities[k].cd]),
     ),
   });
+  // Joined a teamfight: damage, a death or a kill, or (support work that deals no damage) an ability
+  // or item used within reach of an enemy during it.
+  advanced.fightDetails.forEach((d, i) => {
+    if (!teamfights[i].joined && d.usedNearEnemy) teamfights[i].joined = true;
+  });
+  // The rank average's tables, cut to the heroes in this match.
+  if (baseline) {
+    const inMatch = new Set(raw.players.map((x) => String(x.hero_id)));
+    const cut = <T>(r: Record<string, T>) =>
+      Object.fromEntries(Object.entries(r).filter(([k]) => inMatch.has(k)));
+    advanced.baseline = {
+      ...baseline,
+      laneVs: cut(baseline.laneVs),
+      laneWith: cut(baseline.laneWith),
+      matchUp: { vs: cut(baseline.matchUp.vs), with: cut(baseline.matchUp.with) },
+    };
+  }
+
+  // Against whom the player's history is worth showing: the lane opponents and the hero who hurt
+  // them most.
+  const threat = Object.entries(p.damage_taken ?? {})
+    .filter(([k]) => k.startsWith("npc_dota_hero_"))
+    .sort((a, b) => b[1] - a[1])[0];
+  const vsHeroes = [
+    ...new Set([...(laneFoes ?? []).map((x) => x.heroId), ...(threat ? [heroOfKey(threat[0])] : [])]),
+  ].filter((h): h is number => !!h);
+  const vs = accountId
+    ? (
+        await Promise.all(
+          vsHeroes.slice(0, 3).map((h) => getVsHero(accountId, p.hero_id, h).catch(() => null)),
+        )
+      ).filter((v): v is LabVsHero => !!v)
+    : [];
+  const keyItem = (k: string) => isKeyItemKey(k, consts);
+  const refs: LabRefs = {
+    od: odHero,
+    personal: personal
+      ? {
+          ...personal,
+          parsed: {
+            ...personal.parsed,
+            items: Object.fromEntries(
+              Object.entries(personal.parsed.items)
+                .map(([itemId, d]) => [itemKey(Number(itemId)) ?? "", d] as const)
+                .filter(([k]) => k && keyItem(k)),
+            ),
+          },
+        }
+      : null,
+    pro: pro
+      ? {
+          ...pro,
+          items: Object.fromEntries(Object.entries(pro.items).filter(([k]) => keyItem(k))),
+          // The neutral items by item key (the explorer gives ids).
+          neutrals: Object.fromEntries(
+            Object.entries(pro.neutrals).map(([id, n]) => [itemKey(Number(id)) ?? id, n] as const),
+          ),
+        }
+      : null,
+    vs,
+    baselineWeek,
+    wardmap,
+  };
+  const match = buildMatch(raw, light, heroes, consts);
+
   const side: LabSide = {
     matchId: id,
     slot,
@@ -1128,7 +1561,7 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     name,
     heroId: p.hero_id,
     lane,
-    position,
+    position: pos,
     laneAllies: (laneMates ?? []).map((x) => x.heroId),
     laneOpponents: (laneFoes ?? []).map((x) => x.heroId),
     team: teamHeroes.filter((h) => h !== p.hero_id),
@@ -1152,6 +1585,11 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
       totalGold: p.total_gold ?? null,
       totalXp: p.total_xp ?? null,
       deadSeconds: p.life_state_dead ?? null,
+      goldSpent: p.gold_spent ?? null,
+      goldEnd: p.gold ?? null,
+      earned,
+      sells,
+      passiveGold,
       imp: heavy?.imp ?? null,
       award: heavy?.award && heavy.award !== "NONE" ? heavy.award : null,
       teamKills: mates.reduce((s, x) => s + x.kills, 0),
@@ -1162,6 +1600,13 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
         .filter(([, v]) => v.pct != null)
         .map(([k, v]) => [k, v.pct!]),
     ),
+    benchmarksRaw: Object.fromEntries(
+      Object.entries(p.benchmarks ?? {})
+        .filter(([, v]) => v.raw != null)
+        .map(([k, v]) => [k, v.raw!]),
+    ),
+    patch: match.patch,
+    positionFrom,
     minutes: {
       gold: p.gold_t,
       xp: p.xp_t ?? [],
@@ -1193,6 +1638,11 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
         .map(([key, times]) => ({ key, times }))
         .sort((a, b) => b.times.length - a.times.length),
       buffs: { scepter: !!p.aghanims_scepter, shard: !!p.aghanims_shard, moonshard: !!p.moonshard },
+      additionalUnits: (p.additional_units ?? []).flatMap((u) =>
+        ["item_0", "item_1", "item_2", "item_3", "item_4", "item_5", "item_neutral"]
+          .map((k) => (typeof u[k] === "number" ? itemKey(u[k] as number) : null))
+          .filter((k): k is string => !!k),
+      ),
     },
     skills: {
       learned,
@@ -1201,6 +1651,21 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
         .map(([key, times]) => ({ key, times }))
         .sort((a, b) => b.times.length - a.times.length),
       targets,
+      ult,
+      casts: [
+        ...(pb?.abilityUsedEvents ?? []).flatMap((e) => {
+          const key = abilityKey(e.abilityId);
+          return key && e.target && heroes[e.target]
+            ? [{ t: e.time, key, target: e.target, item: false }]
+            : [];
+        }),
+        ...(pb?.itemUsedEvents ?? []).flatMap((e) => {
+          const key = itemKey(e.itemId);
+          return key && e.target && heroes[e.target]
+            ? [{ t: e.time, key, target: e.target, item: true }]
+            : [];
+        }),
+      ].sort((a, b) => a.t - b.t),
     },
     laning: {
       at10:
@@ -1256,6 +1721,18 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
       takenByKind: sumBy(p.damage_taken, heroKind),
       buildings: sortedCounts(p.damage).filter((x) => heroKind(x.key) === "buildings"),
       hits: sortedCounts(p.hero_hits),
+      matrix: Object.entries(p.damage_targets ?? {})
+        .map(([key, list]) => ({
+          key,
+          targets: Object.entries(list)
+            .map(([k, v]) => ({ hero: heroOfKey(k) ?? 0, value: v }))
+            .filter((x) => x.hero)
+            .sort((a, b) => b.value - a.value),
+        }))
+        .filter((x) => x.targets.length)
+        .sort(
+          (a, b) => b.targets.reduce((s, x) => s + x.value, 0) - a.targets.reduce((s, x) => s + x.value, 0),
+        ),
     },
     vision: { wards, dewards, observerKills: p.observer_kills ?? 0, sentryKills: p.sentry_kills ?? 0 },
     path,
@@ -1279,13 +1756,28 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     },
     goldReasons: p.gold_reasons ?? {},
     xpReasons: p.xp_reasons ?? {},
+    killed: p.killed ?? {},
     actions: Object.fromEntries(Object.entries(actionsReport ?? {}).filter(([, v]) => v != null)) as Record<
       string,
       number
     >,
     pings: p.pings ?? null,
     firstBlood,
+    buffs: (p.permanent_buffs ?? [])
+      .map((b) => ({
+        key: consts.permanentBuffs[String(b.permanent_buff)] ?? String(b.permanent_buff),
+        stacks: b.stack_count,
+      }))
+      .filter((b) => b.key),
+    orders: Object.entries(p.actions ?? {})
+      .map(([k, count]) => ({
+        key: (consts.orders[k] ?? `ORDER_${k}`).replace(/^DOTA_UNIT_ORDER_/, "").toLowerCase(),
+        count,
+      }))
+      .sort((a, b) => b.count - a.count),
     advanced,
+    match,
+    refs,
   };
 
   const adv = advanced;
@@ -1303,7 +1795,34 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     else abilities.add(x.key);
   }
   for (const x of side.skills.targets) abilities.add(x.key);
+  for (const c of side.skills.casts) (c.item ? items : abilities).add(c.key);
+  for (const x of side.damage.matrix)
+    if (x.key !== "null") (catalog.itemByKey[x.key] ? items : abilities).add(x.key);
   if (side.fights.maxHit?.by) abilities.add(side.fights.maxHit.by);
+  for (const f of side.resources.farm) if (f.by) (catalog.itemByKey[f.by] ? items : abilities).add(f.by);
+  for (const h of [...advanced.heals.received, ...advanced.heals.given])
+    if (h.by) (catalog.itemByKey[h.by] ? items : abilities).add(h.by);
+  side.items.additionalUnits.forEach((k) => items.add(k));
+  for (const mp of match.players) mp.keyItems.forEach((k) => items.add(k.key));
+  for (const mf of match.teamfights)
+    for (const pl of mf.players) {
+      Object.keys(pl.items).forEach((k) => items.add(k));
+      Object.keys(pl.abilities).forEach((k) => (catalog.itemByKey[k] ? items : abilities).add(k));
+    }
+  if (baseline) {
+    for (const [k, it] of Object.entries(baseline.items))
+      if (it.rate >= 0.05 || purchases.some((b) => b.key === k)) items.add(k);
+    baseline.starting.forEach((x) => items.add(x.key));
+    baseline.boots.forEach((x) => items.add(x.key));
+    baseline.talents.forEach((x) => abilities.add(x.key));
+    Object.keys(baseline.abilityMax).forEach((k) => abilities.add(k));
+  }
+  Object.keys(refs.pro?.items ?? {}).forEach((k) => items.add(k));
+  Object.keys(refs.pro?.neutrals ?? {}).forEach((k) => items.add(k));
+  Object.keys(refs.personal?.parsed.items ?? {}).forEach((k) => items.add(k));
+  const heroAbilities = consts.heroes[heroes[p.hero_id]?.key ?? ""];
+  heroAbilities?.abilities.forEach((k) => abilities.add(k));
+  heroAbilities?.talents.forEach((k) => abilities.add(k.key));
 
   const assets: LabAssets = {
     items: Object.fromEntries(
@@ -1312,6 +1831,12 @@ export async function getLabSide(matchId: number, slot: number): Promise<LabResu
     abilities: Object.fromEntries(
       [...abilities].filter((k) => catalog.abilityByKey[k]).map((k) => [k, catalog.abilityByKey[k]]),
     ),
+    itemMeta: Object.fromEntries([...items].filter((k) => consts.items[k]).map((k) => [k, consts.items[k]])),
+    abilityMeta: Object.fromEntries(
+      [...abilities].filter((k) => consts.abilities[k]).map((k) => [k, consts.abilities[k]]),
+    ),
+    talentTier: Object.fromEntries((heroAbilities?.talents ?? []).map((x) => [x.key, x.tier])),
+    heroAbilities: { [String(p.hero_id)]: heroAbilities?.abilities ?? [] },
   };
   return { state: "ok", side, assets };
 }
@@ -1364,6 +1889,8 @@ export type LabSuggestion = {
   start: number;
   win: boolean | null;
   label: string | null;
+  duration: number | null;
+  gameMode: number | null;
 };
 
 export async function getHeroProMatches(heroId: number): Promise<LabSuggestion[]> {
@@ -1377,6 +1904,7 @@ export async function getHeroProMatches(heroId: number): Promise<LabSuggestion[]
     radiant_win: boolean;
     league_name: string | null;
     player_slot?: number;
+    duration?: number;
   };
   const list = await getJson<Raw[]>(`${OPENDOTA}/heroes/${Math.trunc(heroId)}/matches`).catch(
     () => [] as Raw[],
@@ -1389,6 +1917,8 @@ export async function getHeroProMatches(heroId: number): Promise<LabSuggestion[]
     start: m.start_time,
     win: m.radiant === m.radiant_win,
     label: m.league_name,
+    duration: m.duration ?? null,
+    gameMode: null,
   }));
 }
 
@@ -1402,6 +1932,8 @@ export async function getHeroMatchesOf(accountId: number, heroId: number): Promi
     radiant_win: boolean;
     start_time: number;
     hero_id: number;
+    duration?: number;
+    game_mode?: number;
   };
   const list = await getJson<Raw[]>(
     `${OPENDOTA}/players/${Math.trunc(accountId)}/matches?hero_id=${Math.trunc(heroId)}&limit=20`,
@@ -1414,5 +1946,7 @@ export async function getHeroMatchesOf(accountId: number, heroId: number): Promi
     start: m.start_time,
     win: m.player_slot < 128 === m.radiant_win,
     label: null,
+    duration: m.duration ?? null,
+    gameMode: m.game_mode ?? null,
   }));
 }

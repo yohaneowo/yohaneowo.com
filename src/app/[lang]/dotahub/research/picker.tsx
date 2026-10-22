@@ -23,6 +23,7 @@ export function LabPicker({
   recent,
   mine,
   pros,
+  best,
   heroes,
   signedIn,
 }: {
@@ -31,6 +32,8 @@ export function LabPicker({
   recent: LabSuggestion[];
   mine: LabSuggestion[];
   pros: LabSuggestion[];
+  // The games most like A's that went the other way (for B).
+  best: LabSuggestion[];
   heroes: Record<number, HeroInfo>;
   signedIn: boolean;
 }) {
@@ -98,6 +101,22 @@ export function LabPicker({
         />
       </div>
 
+      {best.length > 0 && (
+        <Suggestions
+          title={t.best}
+          list={best}
+          heroes={heroes}
+          onPick={(s) => {
+            if (s.slot != null) return go({ b: param({ matchId: s.matchId, slot: s.slot }) });
+            start(async () => {
+              const found = await labPlayers(s.matchId);
+              const p = found?.players.find((x) => x.heroId === s.heroId);
+              if (p) go({ b: param({ matchId: s.matchId, slot: p.slot }) });
+            });
+          }}
+          empty={t.none}
+        />
+      )}
       <div className="grid gap-3 lg:grid-cols-3">
         <Suggestions
           title={t.recent}

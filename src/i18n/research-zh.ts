@@ -1,3 +1,13 @@
+import baselinesZh from "./research-x/baselines-zh";
+import historyZh from "./research-x/history-zh";
+import laningZh from "./research-x/laning-zh";
+import farmingZh from "./research-x/farming-zh";
+import itemsZh from "./research-x/items-zh";
+import skillsZh from "./research-x/skills-zh";
+import fightsZh from "./research-x/fights-zh";
+import decisionsZh from "./research-x/decisions-zh";
+import visionZh from "./research-x/vision-zh";
+
 // 局内科研: one player's match studied in depth, and set beside another. Kept apart from
 // dotahub-zh.ts, which it's mounted under as dotahub.research.
 const researchZh = {
@@ -28,6 +38,25 @@ const researchZh = {
     none: "没有",
     signIn: "登入并连结 Steam 后，这里会列出你最近的比赛。",
     pro: "职业",
+    best: "推荐的对局 B（同英雄、结果相反、时长相近）",
+    why: {
+      own: "本人",
+      pro: "职业",
+      won: "赢的一局",
+      lost: "输的一局",
+      length: (m: number) => `${m} 分钟`,
+    },
+  },
+
+  // When the games don't fit the comparisons or the rank averages.
+  guard: {
+    oddMode: (who: string, mode: string) =>
+      `${who} 是「${mode}」：金钱经验、选人或技能跟一般对局不同，每分钟的数字与同段位平均都不能直接比。`,
+    differentMode: "两局的游戏模式或房间类型不同，比较时要考虑这一点。",
+    proLobby:
+      "职业比赛（练习或联赛房）：同段位平均来自一般天梯，只是参考；职业的对照看「对照基准」里的同版本职业局。",
+    patch: (a: string, b: string) => `两局版本不同（${a} 与 ${b}）：装备、技能与时机不完全可比。`,
+    sameMatch: "A 和 B 在同一场比赛：局势、选人等资料是同一份，下面的对比是两人在同一局里的差别。",
   },
 
   unparsed: {
@@ -39,6 +68,12 @@ const researchZh = {
   },
 
   header: {
+    positionFrom: { stratz: "STRATZ 判定", override: "手动指定", opendota: "OpenDota 分路" } as Record<
+      string,
+      string
+    >,
+    positionPick: "用哪个位置的平均来比",
+    positionAuto: "自动",
     match: "比赛",
     win: "胜",
     loss: "负",
@@ -60,18 +95,23 @@ const researchZh = {
     openPlayer: "玩家页",
     final: "最终出装",
     sourceNote: "资料：OpenDota 解析（曲线、出装、伤害、经济、视野、团战）＋ STRATZ 解析（时机、走位、位置）",
+    replay: "下载录像",
+    replayHint: "OpenDota 提供的录像档（.dem.bz2）；解压后放进 Dota 2 的 replays 资料夹即可在游戏里观看。",
   },
   lanes: { top: "上路", mid: "中路", bot: "下路", jungle: "野区", roam: "游走" } as Record<string, string>,
 
   controls: {
+    rotate: "夜魇方的地图转半圈（基地都在左下）",
     align: "对齐方式",
     alignTime: "游戏时间",
     alignLevel: "等级",
     alignItem: "关键装备",
+    alignNw: "净值",
     item: "以这件装备的购买时间为 0",
     noCommonItem: "两边没有共同的关键装备",
     range: "时间范围",
     rangeLevel: "等级范围",
+    rangeNw: "净值范围",
     reset: "全场",
     cursor: "滑过图表时，地图会标出两人在那个时间的位置",
     expandAll: "全部展开",
@@ -81,15 +121,25 @@ const researchZh = {
   },
 
   summary: {
+    lessons: "该改什么（换算成金钱，越多越前面）",
+    lessonsHint: "每一项都按金钱或金钱等价估计，方便排先后；是估计，不是精确值。",
+    window: (m: string) => `比较前 ${m}`,
+    byPct: "按百分位差排",
+    noise: "在两人平常的起伏内",
     title: "总结：两人打法的关键区别",
     single: "总结：这局打法的重点",
     diffs: "差异最大的几项",
-    diffHint: "按每分钟或百分比换算后比较（两局时长不同也能比），差距越大越前面。",
+    diffHint:
+      "按每分钟或百分比换算后比较（两局时长不同时只比两局都有的前段），有同英雄基准的按百分位差排；差距比两人平常的起伏还小的会标出来。一局对一局，很多差异来自局势，不全是打法。",
     none: "两人的数据都很接近，没有特别突出的差异。",
     better: "较好",
   },
 
   sections: {
+    refs: "对照基准",
+    farming: "打钱",
+    objectives: "目标与地图",
+    decisions: "关键时刻与决策",
     context: "局势",
     time: "时间分配",
     timeline: "时间线",
@@ -117,18 +167,19 @@ const researchZh = {
     healing: "累计治疗",
     nwShare: "占全队净值",
     hp: "每分钟最低血量",
+    hpAvg: "每分钟平均血量",
     imp: "每分钟 IMP",
     taken: "累计承受英雄伤害",
     minute: "分钟",
     levelAxis: "等级",
     itemAxis: (item: string) => `距离购买 ${item}（分钟）`,
+    nwAxis: "净值（千）",
   },
 
   laning: {
     at10: "10 分钟时",
     metric: "项目",
     vsLane: "对线对手（10 分钟）",
-    nwDiff: "对线净值差",
     lanePerMinute: "前 12 分钟每分钟所在的线",
     swaps: "换线",
     noSwap: "没有换线",
@@ -162,6 +213,7 @@ const researchZh = {
 
   skills: {
     order: "加点顺序",
+    orderHint: "数字是该技能的第几点；黄底是另一边在同一等级点了别的。",
     levelCol: "等级",
     time: "时间",
     uses: "技能使用次数",
@@ -174,6 +226,7 @@ const researchZh = {
       ability_lamp_use: "点亮灯笼（占领瞭望台）",
       ability_pluck_famango: "摘仙果",
       ability_capture: "占领前哨",
+      abyssal_underlord_portal_warp: "穿过恶魔之扉",
     } as Record<string, string>,
   },
 
@@ -194,6 +247,8 @@ const researchZh = {
     dmg: "伤害",
     heal: "治疗",
     goldDelta: "金钱变化",
+    xpDelta: "经验变化",
+    kpOverTime: "累计击杀参与率（参与的击杀 ÷ 全队击杀）",
     yes: "是",
     no: "否",
     multi: "连杀",
@@ -218,6 +273,7 @@ const researchZh = {
       feed: "白给",
     } as Record<string, string>,
     goldLost: (n: number) => `掉 ${n} 金`,
+    goldEarned: (n: number) => `得 ${n} 金`,
     dead: (s: number) => `复活 ${s} 秒`,
     rightClick: "普攻",
   },
@@ -264,6 +320,8 @@ const researchZh = {
     lived: "存活",
     killedBy: "被谁排",
     expired: "自然消失",
+    upAtEnd: "比赛结束时还在",
+    destroyed: "被摧毁（不是英雄）",
     dewards: "排掉的对方眼",
     none: "这局没有插眼。",
     counts: (obs: number, sen: number, dew: number) => `假眼 ${obs}、真眼 ${sen}、排眼 ${dew}`,
@@ -305,7 +363,10 @@ const researchZh = {
     runeActions: { PICKUP: "拾取", BOTTLE: "装瓶" } as Record<string, string>,
     stacks: "囤野",
     stacked: (camps: number, creeps: number) => `囤了 ${camps} 次（${creeps} 只野怪）`,
-    pulls: "拉野（估计：前 15 分钟在野区补的小兵）",
+    pulls: "拉野（前 15 分钟在己方野区补的线上小兵，按波）",
+    pullsHint: "兵进野区之前就在那个营地附近算拉野；否则算吃到被拉进来的兵。是估计。",
+    pulledWaves: (n: number, creeps: number) => `拉野 ${n} 波（${creeps} 只兵）`,
+    farmedWaves: (n: number, creeps: number) => `吃到拉进来的兵 ${n} 波（${creeps} 只）`,
     roshan: "肉山",
     roshanKinds: {
       teamKill: "我方击杀肉山",
@@ -326,6 +387,7 @@ const researchZh = {
     roshanKills: "肉山",
     buildingKills: "补掉的建筑",
     none: "没有",
+    noStratz: "没有 STRATZ 解析，看不到补刀位置与拉野。",
   },
 
   gold: {
@@ -340,8 +402,9 @@ const researchZh = {
       runes: "赏金神符",
       couriers: "信使",
       passive: "自然增长",
-      other: "其他（技能、卖物品等）",
+      other: "其他（技能、排眼等）",
       death: "死亡损失",
+      sells: "卖掉物品（拿回的钱，不算收入）",
     } as Record<string, string>,
     xpReasons: { heroes: "英雄", creeps: "小兵与野怪", roshan: "肉山", other: "其他" } as Record<
       string,
@@ -411,7 +474,7 @@ const researchZh = {
     >,
     contextLine: (who: string, max: string, min: string, at: string, swing: string, lane: string) =>
       `${who} 方胜率最高 ${max}、最低 ${min}，变化最大在 ${at}（${swing}）；自己那路对线 ${lane}。`,
-    noContext: "没有胜率资料（STRATZ 未解析）。",
+    noContext: "没有 STRATZ 的胜率资料。",
     // Time.
     activities: {
       farmLane: "线上打钱",
@@ -426,12 +489,13 @@ const researchZh = {
     phaseNames: ["0–10 分", "10–20 分", "20–30 分", "30 分后"],
     band: "时间带（每格 10 秒，跟着上面的时间范围）",
     timeHint:
-      "按每 10 秒内发生的事判断：有击杀、死亡、助攻，或双方伤害合计超过 250 算参战；有补刀算打钱；其余看所在位置。是估计。",
+      "按每 10 秒内发生的事判断：有击杀、死亡、助攻，或双方英雄伤害合计超过 250（含幻象与召唤物）算参战；有补刀算打钱；其余看所在位置。",
     timeLine: (who: string, farm: string, fight: string, move: string, dead: string) =>
       `${who}：打钱 ${farm}、参战 ${fight}、移动 ${move}、死亡 ${dead}。`,
     noTime: "没有 STRATZ 解析，算不出时间分配。",
     // The rank average.
     baseline: "同段位平均",
+    fewGames: "场数少",
     baselineNote: (bracket: string, position: string, n: string) =>
       `虚线灰色：${bracket}${position}的同英雄平均（STRATZ，${n} 场）`,
     brackets: {
@@ -442,9 +506,15 @@ const researchZh = {
     } as Record<string, string>,
     position: (n: number) => ` ${n} 号位`,
     vsAverage: (label: string, m: number, diff: string) => `${label} 第 ${m} 分钟净值比同段位平均 ${diff}。`,
+    vsAverageEven: (label: string, m: number) => `${label} 第 ${m} 分钟净值与同段位平均持平。`,
     avgTime: "同段位平均",
     // Items.
     effects: "关键装备前后各 5 分钟的变化",
+    effectsHint:
+      "灰字是扣掉同段位平均在同样时段的变化之后多出的部分（越到后期大家打钱越快）；同段位平均用它的净值加上死亡损失代表收入。这段时间里的团战与死亡也会改变这些数字：是关联，不是因果。",
+    vsAvgChange: (v: string) => `比平均的变化 ${v}`,
+    inWindow: "前后 5 分钟内",
+    windowEvents: (fights: number, deaths: number) => `团战 ${fights} · 死亡 ${deaths}`,
     before: "之前",
     after: "之后",
     gpm: "每分钟金钱",
@@ -463,25 +533,62 @@ const researchZh = {
     ultFights: "大招在团战里",
     ultLine: (who: string, ult: string, used: number, fights: number) =>
       `${who} 参与的 ${fights} 场团战里有 ${used} 场放了 ${ult}。`,
-    hitsPerCast: "每次施法命中的英雄数",
+    hitsPerCast: "每次施法命中英雄的次数（持续伤害每跳都算一次）",
     perCast: "每次",
     // Fights.
     breakdown: "逐场团战拆解",
     distEnemy: "开打时离最近敌人",
+    dist: "离敌（开打 / 最近 / 平均）",
+    distHint: "离最近敌方英雄的距离（码）：团战开始时、整场最近的一刻、整场平均。",
+    arrival: "到场",
+    never: "没靠近",
+    front: "站位",
+    frontHint:
+      "第一个英雄阵亡前，附近队友按离敌人远近排：1 是最前面。「先」是自己的第一下比队友都早；「辅」是没打伤害但在敌人附近用了技能或物品。",
+    firstOnTeam: "第一下比队友都早",
+    firstMark: "先",
+    supportWork: "没打伤害，但在敌人附近用了技能或物品",
+    supportMark: "辅",
+    breakdownHint: "距离、站位与到场时间用 STRATZ 的位置（每秒插值）算；团战本身用 OpenDota 的团战纪录。",
     near: "身边友 / 敌",
-    first: "首次出手 / 首次挨打（开打后）",
+    first: "首次出手 / 首次挨打（距开打，负数是开打前）",
     burst: "3 秒爆发",
     used: "用了的技能与物品",
     carried: "身上的装备",
     dealtTaken: "造成 / 承受",
     deaths: "死亡分析",
     kind: "类型",
-    kinds: { fight: "团战", gank: "被抓", pickoff: "被单杀", other: "其他" } as Record<string, string>,
-    buyback: "买活钱",
-    swing: "胜率变化",
-    deathKinds: (who: string, fight: number, gank: number, pick: number, alone: number) =>
-      `${who} 死在团战 ${fight} 次、被抓 ${gank} 次、被单杀 ${pick} 次，${alone} 次身边没有队友。`,
-    costlyDeath: (at: string, drop: string) => `代价最大的一次在 ${at}（胜率掉 ${drop}）。`,
+    kinds: { fight: "团战", gank: "被抓", pickoff: "被单杀", other: "其他", outside: "团战外" } as Record<
+      string,
+      string
+    >,
+    buyback: "买活",
+    swing: "我方胜率（前后 1 分钟）",
+    swingHint: "死亡前 1 分钟到后 1 分钟我方胜率的变化：是全队在这段时间的结果，不是这次死亡单独造成的。",
+    goldLost: "掉钱",
+    farmMissed: "少打的钱",
+    cost: "代价",
+    fed: "给对方 金 / 经验",
+    timeDead: "复活时间",
+    lostWhileDead: "死时丢的目标",
+    onHand: "身上的钱",
+    objectiveNames: {
+      building: "建筑",
+      roshan: "肉山",
+      aegis: "不朽之守护",
+      tormentor: "折磨者",
+      courier: "信使",
+    } as Record<string, string>,
+    deathsHint:
+      "代价＝掉的钱＋复活期间少打的钱（按死前 5 分钟每分钟打钱的速度估计）；买活要钱够而且不在冷却（8 分钟）。最贵的一次标红底。",
+    deathKinds: (who: string, fight: number, gank: number, pick: number, alone: number | null) =>
+      `${who} 死在团战 ${fight} 次、被抓 ${gank} 次、被单杀 ${pick} 次${alone != null ? `，${alone} 次身边没有队友` : ""}。`,
+    // Without STRATZ's parse only the killer is known: in a teamfight or not.
+    deathKindsOd: (who: string, fight: number, outside: number) =>
+      `${who} 死在团战 ${fight} 次、团战外 ${outside} 次（没有 STRATZ 解析，看不出几个人参与、身边有谁）。`,
+    costlyDeath: (at: string, gold: string) => `代价最大的一次在 ${at}（约 ${gold} 金：掉的钱加少打的钱）。`,
+    costlyDeathLost: (at: string, gold: string) =>
+      `掉钱最多的一次在 ${at}（${gold} 金；没有 STRATZ 解析，少打的钱算不出）。`,
     seconds: (n: number) => `${n} 秒`,
     units: (n: number) => `${n} 码`,
     yes: "够",
@@ -499,6 +606,7 @@ const researchZh = {
     secs: "秒",
     healIn: "每分钟受到的治疗",
     selfHeal: "自我治疗",
+    selfHealHint: "STRATZ 的自我治疗大多是自然回血；受到的治疗来源见上面的分项。",
     allyHeal: "治疗队友",
     // Vision.
     quality: "眼位品质",
@@ -506,6 +614,7 @@ const researchZh = {
       string,
       string
     >,
+    rolesHint: "眼位按所在区域分：己方野区与己方半边的线是防守，敌方野区与敌方半边是进攻（规则估计）。",
     beforeObjective: "团战或肉山前 2 分钟内插的",
     avgLife: "平均存活（假眼 / 真眼）",
     dewardedShare: "被排比例",
@@ -513,6 +622,7 @@ const researchZh = {
       `${who} 进攻眼 ${agg}、防守与河道 ${def}，${obj} 个插在团战或肉山前，被排 ${dew}。`,
     // Movement.
     distance: "各阶段移动距离",
+    distanceHint: "每 10 秒一个位置点连成直线，转弯会被抄近路，是下限；含传送与复活的那一段不算。",
     perMin: "每分钟",
     group: "和队友在一起的时间（存活时）",
     alone: "独自",
@@ -529,6 +639,7 @@ const researchZh = {
     vsOpp: "对对线对手",
     lowHp: "前 10 分钟最低血量",
     outcome: "STRATZ 对线结果",
+    tradesHint: "含幻象与召唤物的伤害。",
     tradeLine: (who: string, out: string, inn: string) =>
       `${who} 前 10 分钟造成 ${out}、承受 ${inn} 英雄伤害。`,
     // Gold.
@@ -542,12 +653,21 @@ const researchZh = {
       runes: "神符",
       couriers: "信使",
       wards: "排眼",
+      passive: "自然增长",
       other: "其他",
     } as Record<string, string>,
-    unspent: "手上没花掉的钱（每分钟平均）",
-    bank: "平均 / 最高 / 超过 1500 的时间",
+    xpOverTime: "每分钟经验来源",
+    unspent: "手上的钱（每分钟平均；虚线是 30 分钟后的买活预留）",
+    reserve: "买活预留",
+    bank: "闲置的钱",
+    bankHint: "活着时手上超过买活预留（30 分钟起）的钱。",
+    idleAvg: "平均闲置",
+    idleMax: "最多闲置",
+    readyShare: "下一件装备的钱已经够了的时间",
+    spendRatio: "花掉的比例（花费 ÷ 收入）",
+    endGold: (v: string) => `结束时手上 ${v}`,
     bankLine: (who: string, avg: string, share: string) =>
-      `${who} 平均手上留着 ${avg} 金，${share} 的时间超过 1500。`,
+      `${who} 平均闲置 ${avg} 金（扣掉买活预留），${share} 的时间下一件装备的钱已经够了。`,
     // Attributes.
     attributes: "属性成长",
     str: "力量",
@@ -559,7 +679,7 @@ const researchZh = {
     farmPct: "打钱时间",
     fightPct: "参战时间",
     movePct: "移动时间",
-    unspentAvg: "手上平均金钱",
+    unspentAvg: "平均闲置金钱",
     alonePct: "独自的时间",
     distPm: "每分钟移动距离",
     trade10: "前 10 分钟造成英雄伤害",
@@ -579,7 +699,6 @@ const researchZh = {
     participation: "团战参与率",
     lh10: "10 分钟正补",
     nw10: "10 分钟净值",
-    lane10: "10 分钟对线净值差",
     lvl6: "6 级时间",
     lvl12: "12 级时间",
     lvl18: "18 级时间",
@@ -609,8 +728,8 @@ const researchZh = {
     timelineClose: "两人经济一路接近，差距都在 10% 以内。",
     timelineSingle: (gpm: number, pct: string, at10: string, at20: string) =>
       `GPM ${gpm}（同英雄前 ${pct}）；10 分钟净值 ${at10}，20 分钟 ${at20}。`,
-    lanePair: (a: string, b: string) => `对线期（10 分钟）对线净值差：A ${a}，B ${b}。`,
-    laneSingle: (diff: string, lh: number, dn: number) => `10 分钟 ${lh} 正 ${dn} 反，对线净值差 ${diff}。`,
+    lanePair: (a: string, b: string) => `10 分钟正补 / 反补：A ${a}，B ${b}。`,
+    laneSingle: (lhDn: string) => `10 分钟正补 / 反补 ${lhDn}。`,
     laneNone: "看不出对线对手（STRATZ 未解析，或是打野、游走）。",
     laneSwap: (who: string, n: number) => `${who} 前 12 分钟换线 ${n} 次。`,
     itemsPair: (item: string, faster: string, diff: string) => `${item}：${faster} 早了 ${diff}。`,
@@ -619,6 +738,8 @@ const researchZh = {
     skillsPair: (a: string, b: string) => `每分钟施法：A ${a} 次，B ${b} 次。`,
     skillsOrder: (a: string, b: string) => `加点不同：A 先点满 ${a}，B 先点满 ${b}。`,
     skillsSingle: (n: string, top: string) => `每分钟施法 ${n} 次，最常用 ${top}。`,
+    skillsOther: (who: string, n: string, top: string) =>
+      `${who} 每分钟施法 ${n} 次，最常用 ${top}（英雄不同，次数不直接比）。`,
     fightsPair: (a: string, b: string, ka: string, kb: string) =>
       `团战参与率 A ${a}、B ${b}；每分钟击杀加助攻 A ${ka}、B ${kb}。`,
     fightsSingle: (part: string, kda: string, deaths: number) =>
@@ -631,14 +752,18 @@ const researchZh = {
     visionPair: (a: string, b: string) => `视野：A ${a}；B ${b}。`,
     visionSingle: (v: string) => `视野：${v}。`,
     visionNone: "两边都几乎没插眼，视野不是这个位置的工作。",
-    movementPair: (a: string, b: string) => `走位：A 最常在${a}；B 最常在${b}。`,
+    movementPair: (a: string, pa: string, b: string, pb: string) =>
+      `走位：A 最常在${a}（${pa}）；B 最常在${b}（${pb}）。`,
+    movementOne: (who: string, zone: string, pct: string, other: string) =>
+      `走位：${who} 最常在${zone}（${pct}）；${other} 没有走位资料（STRATZ 未解析）。`,
     movementSingle: (zone: string, pct: string, enemy: string) =>
       `最常在${zone}（${pct}），在敌方野区 ${enemy}。`,
     movementNone: "没有走位资料（STRATZ 未解析）。",
     resourcesPair: (a: string, b: string) => `资源：A ${a}；B ${b}。`,
     resourcesSingle: (v: string) => `资源：${v}。`,
-    resourcesLine: (runes: number, stacks: number, pulls: number) =>
-      `神符 ${runes}、囤野 ${stacks}、拉野约 ${pulls}`,
+    // Pulls: null without STRATZ's parse (they come from its last hits).
+    resourcesLine: (runes: number, stacks: number, pulls: number | null) =>
+      `神符 ${runes}、囤野 ${stacks}${pulls != null ? `、拉野约 ${pulls}` : ""}`,
     goldPair: (a: string, b: string) => `主要经济来源：A ${a}；B ${b}。`,
     goldSingle: (v: string) => `主要经济来源：${v}。`,
     miscPair: (a: string, b: string, da: string, db: string) =>
@@ -647,9 +772,9 @@ const researchZh = {
     summaryFarm: (a: string, b: string) => `打钱方式：A ${a}，B ${b}。`,
     summaryMove: (a: string, b: string) => `活动范围：A ${a}，B ${b}。`,
     summaryFight: (who: string, x: string) => `${who} 更常参战（每分钟击杀加助攻多 ${x}）。`,
-    summaryItem: (who: string, item: string, diff: string) => `${who} 的 ${item} 早了 ${diff}，节奏更快。`,
-    summaryLane: (who: string, diff: string) => `${who} 对线打得更好（10 分钟对线净值差多 ${diff}）。`,
-    summaryDeaths: (who: string, x: string) => `${who} 死得更多（每分钟多 ${x} 次），死亡时间占比更高。`,
+    summaryItem: (who: string, item: string, diff: string) => `${who} 的 ${item} 早了 ${diff}。`,
+    summaryDeaths: (who: string, x: string) => `${who} 死得更多（每分钟多 ${x} 次），死亡时间占比也更高。`,
+    summaryDeathsOnly: (who: string, x: string) => `${who} 死得更多（每分钟多 ${x} 次）。`,
     summaryVision: (who: string, n: number) => `${who} 多插了 ${n} 个眼。`,
     summaryCast: (who: string, x: string) => `${who} 技能用得更勤（每分钟多施法 ${x} 次）。`,
     farmStyle: (src: string, pct: string) => `${pct} 靠${src}`,
@@ -658,6 +783,27 @@ const researchZh = {
     b: "B",
     sep: "、",
     colon: "：",
+    paren: (v: string) => `（${v}）`,
+  },
+  notes: {
+    hindsight: "事后看",
+    estimate: "估计",
+    source: "来源",
+    hindsightHint: "用录像里所有人的位置算出来的；当下玩家看不到被战争迷雾挡住的敌人。",
+    estimateHint: "按规则估计，不是游戏直接记录的数字。",
+    sourceHint: "资料从哪里来。",
+  },
+  // The analysis modules' own texts (research/x/).
+  x: {
+    baselines: baselinesZh,
+    history: historyZh,
+    laning: laningZh,
+    farming: farmingZh,
+    items: itemsZh,
+    skills: skillsZh,
+    fights: fightsZh,
+    decisions: decisionsZh,
+    vision: visionZh,
   },
 };
 

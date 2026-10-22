@@ -11,6 +11,7 @@ import {
   ACTIVITIES,
   activityShares,
   banking,
+  deathSummary,
   hitsPerCast,
   itemEffects,
   itemFightUse,
@@ -21,9 +22,11 @@ import {
   visionQuality,
 } from "./advanced";
 import { num, pct, xOf } from "./insights";
+import { buildingName } from "./sections-late";
 import {
   AbilityIcon,
   Bars,
+  Caveat,
   GROUP,
   HeroIcon,
   ItemIcon,
@@ -210,7 +213,7 @@ export function TimeBody() {
     return <p className="text-sm text-muted-foreground">{d.noTime}</p>;
   return (
     <>
-      <p className="text-xs text-muted-foreground">{d.timeHint}</p>
+      <Caveat kind="estimate">{d.timeHint}</Caveat>
       <Sub title={d.shares}>
         <div className="flex flex-col gap-2">
           {sides.map(([k, s]) => (
@@ -313,6 +316,7 @@ export function LaneTradesBlock() {
                   {s.advanced.context.laneOutcome ? d.laneResults[s.advanced.context.laneOutcome] : "–"}
                 </dd>
               </dl>
+              <p className="text-muted-foreground">{d.tradesHint}</p>
               {tr.perOpponent.length > 0 && (
                 <ul className="flex flex-col gap-0.5">
                   <li className="text-muted-foreground">
@@ -347,21 +351,34 @@ export function ItemEffectsBlock() {
           {(k, s) => {
             const fx = itemEffects(s, assets);
             if (!fx.length) return <p className="text-xs text-muted-foreground">{t.resources.none}</p>;
-            const cell = (pair: readonly [number | null, number | null], digits = 0) => (
-              <span className="tabular-nums">
-                {num(pair[0], digits)} → {num(pair[1], digits)}
-                {pair[0] && pair[1] != null ? (
-                  <span
-                    className={cn(
-                      "ml-1",
-                      pair[1] >= pair[0]
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-red-600 dark:text-red-400",
+            const cell = (
+              pair: readonly [number | null, number | null],
+              excess: number | null,
+              digits = 0,
+            ) => (
+              <span className="flex flex-col tabular-nums">
+                <span>
+                  {num(pair[0], digits)} → {num(pair[1], digits)}
+                  {pair[0] && pair[1] != null ? (
+                    <span
+                      className={cn(
+                        "ml-1",
+                        pair[1] >= pair[0]
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-600 dark:text-red-400",
+                      )}
+                    >
+                      {signedPct(pair[1] / pair[0] - 1)}
+                    </span>
+                  ) : null}
+                </span>
+                {excess != null && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {d.vsAvgChange(
+                      `${excess > 0 ? "+" : excess < 0 ? "−" : ""}${num(Math.abs(excess), digits)}`,
                     )}
-                  >
-                    {signedPct(pair[1] / pair[0] - 1)}
                   </span>
-                ) : null}
+                )}
               </span>
             );
             return (
@@ -371,10 +388,10 @@ export function ItemEffectsBlock() {
                     <tr className="border-b">
                       <th className="py-1 font-normal">{t.items.item}</th>
                       <th className="py-1 font-normal">{t.skills.time}</th>
-                      <th className="py-1 font-normal">{d.avgTime}</th>
                       <th className="py-1 font-normal">{d.gpm}</th>
                       <th className="py-1 font-normal">{d.lhpm}</th>
                       <th className="py-1 font-normal">{d.dpm}</th>
+                      <th className="py-1 font-normal">{d.inWindow}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -386,29 +403,12 @@ export function ItemEffectsBlock() {
                           </span>
                         </td>
                         <td className="py-1 tabular-nums">{clock(e.t)}</td>
-                        <td className="py-1 tabular-nums">
-                          {e.baseline != null ? (
-                            <>
-                              {clock(e.baseline)}
-                              <span
-                                className={cn(
-                                  "ml-1",
-                                  e.t <= e.baseline
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-red-600 dark:text-red-400",
-                                )}
-                              >
-                                {e.t <= e.baseline ? "−" : "+"}
-                                {clock(Math.abs(e.t - e.baseline))}
-                              </span>
-                            </>
-                          ) : (
-                            "–"
-                          )}
+                        <td className="py-1">{cell(e.gold, e.excess.gold)}</td>
+                        <td className="py-1">{cell(e.lh, e.excess.lh, 1)}</td>
+                        <td className="py-1">{cell(e.dmg, e.excess.dmg)}</td>
+                        <td className="py-1 text-muted-foreground tabular-nums">
+                          {d.windowEvents(e.fights, e.deaths)}
                         </td>
-                        <td className="py-1">{cell(e.gold)}</td>
-                        <td className="py-1">{cell(e.lh, 1)}</td>
-                        <td className="py-1">{cell(e.dmg)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -417,6 +417,7 @@ export function ItemEffectsBlock() {
             );
           }}
         </PerSide>
+        <Caveat kind="estimate">{d.effectsHint}</Caveat>
       </Sub>
       <Sub title={d.fightUse}>
         <PerSide>
@@ -527,16 +528,23 @@ export function SkillEfficiencyBlock() {
 export function FightBreakdownBlock() {
   const { t } = useLab();
   const d = t.deep;
+  const n = (v: number | null | undefined) => (v == null ? "–" : num(v));
   return (
     <Sub title={d.breakdown}>
       <PerSide>
         {(k, s) => (
-          <div className="max-h-[28rem] overflow-auto">
+          <div className="max-h-112 overflow-auto">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-background text-left text-muted-foreground">
                 <tr className="border-b">
                   <th className="py-1 font-normal">{t.fights.fightTime}</th>
-                  <th className="py-1 font-normal">{d.distEnemy}</th>
+                  <th className="py-1 font-normal" title={d.distHint}>
+                    {d.dist}
+                  </th>
+                  <th className="py-1 font-normal">{d.arrival}</th>
+                  <th className="py-1 font-normal" title={d.frontHint}>
+                    {d.front}
+                  </th>
                   <th className="py-1 font-normal">{d.near}</th>
                   <th className="py-1 font-normal">{d.first}</th>
                   <th className="py-1 font-normal">{d.burst}</th>
@@ -557,8 +565,24 @@ export function FightBreakdownBlock() {
                         {clock(f.start)}
                         {f.died && <span className="ml-1 text-red-600 dark:text-red-400">✝</span>}
                       </td>
+                      <td className="py-1 whitespace-nowrap tabular-nums">
+                        {x ? `${n(x.distEnemy)} / ${n(x.closest)} / ${n(x.avgDist)}` : "–"}
+                      </td>
                       <td className="py-1 tabular-nums">
-                        {x?.distEnemy != null ? d.units(x.distEnemy) : "–"}
+                        {x?.arrival != null ? d.seconds(x.arrival) : x?.closest != null ? d.never : "–"}
+                      </td>
+                      <td className="py-1 whitespace-nowrap tabular-nums">
+                        {x?.frontRank != null ? `${x.frontRank}/${x.frontOf}` : "–"}
+                        {x?.firstOnTeam && (
+                          <span className="ml-1 rounded bg-muted px-1" title={d.firstOnTeam}>
+                            {d.firstMark}
+                          </span>
+                        )}
+                        {x?.usedNearEnemy && !x.dealt && (
+                          <span className="ml-1 rounded bg-muted px-1" title={d.supportWork}>
+                            {d.supportMark}
+                          </span>
+                        )}
                       </td>
                       <td className="py-1 tabular-nums">{x ? `${x.alliesNear} / ${x.enemiesNear}` : "–"}</td>
                       <td className="py-1 tabular-nums">
@@ -593,52 +617,89 @@ export function FightBreakdownBlock() {
           </div>
         )}
       </PerSide>
+      <Caveat kind="source">{d.breakdownHint}</Caveat>
     </Sub>
   );
 }
 
+// Each death: what kind, who was around, what it cost the player (gold lost, farm missed while
+// dead), what it gave the enemy (gold and XP), what the enemy took during the respawn, and — kept
+// apart, as the whole team's — how the team's win chance moved around it.
 export function DeathAnalysisBlock() {
   const { t } = useLab();
   const d = t.deep;
   return (
     <Sub title={d.deaths}>
       <PerSide>
-        {(k, s) => (
-          <table className="w-full text-xs">
-            <thead className="text-left text-muted-foreground">
-              <tr className="border-b">
-                <th className="py-1 font-normal">{t.fights.time}</th>
-                <th className="py-1 font-normal">{d.kind}</th>
-                <th className="py-1 font-normal">{d.near}</th>
-                <th className="py-1 font-normal">{d.buyback}</th>
-                <th className="py-1 font-normal">{d.swing}</th>
-                <th className="py-1 text-right font-normal">{t.header.netWorth}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {s.advanced.deathDetails.map((x, i) => (
-                <tr key={i} className="border-b last:border-0">
-                  <td className="py-1 tabular-nums">{clock(x.t)}</td>
-                  <td className="py-1">{d.kinds[x.kind]}</td>
-                  <td className="py-1 tabular-nums">
-                    {x.alliesNear ?? "–"} / {x.enemiesNear ?? "–"}
-                  </td>
-                  <td className="py-1">{x.buyback == null ? "–" : x.buyback ? d.yes : d.no}</td>
-                  <td
-                    className={cn(
-                      "py-1 tabular-nums",
-                      x.swing != null && x.swing < -0.05 && "font-semibold text-red-600 dark:text-red-400",
-                    )}
-                  >
-                    {x.swing != null ? signedPct(x.swing) : "–"}
-                  </td>
-                  <td className="py-1 text-right tabular-nums">{num(x.netWorth)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {(k, s) => {
+          const list = s.advanced.deathDetails;
+          if (!list.length) return <p className="text-xs text-muted-foreground">{t.resources.none}</p>;
+          const top = deathSummary(s).costly;
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="py-1 font-normal">{t.fights.time}</th>
+                    <th className="py-1 font-normal">{d.kind}</th>
+                    <th className="py-1 font-normal">{d.near}</th>
+                    <th className="py-1 text-right font-normal">{d.goldLost}</th>
+                    <th className="py-1 text-right font-normal">{d.farmMissed}</th>
+                    <th className="py-1 text-right font-normal">{d.cost}</th>
+                    <th className="py-1 text-right font-normal">{d.fed}</th>
+                    <th className="py-1 text-right font-normal">{d.timeDead}</th>
+                    <th className="py-1 font-normal">{d.lostWhileDead}</th>
+                    <th className="py-1 font-normal">{d.buyback}</th>
+                    <th className="py-1 text-right font-normal" title={d.swingHint}>
+                      {d.swing}
+                    </th>
+                    <th className="py-1 text-right font-normal">{d.onHand}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((x, i) => (
+                    <tr key={i} className={cn("border-b last:border-0", x === top && "bg-red-500/10")}>
+                      <td className="py-1 tabular-nums">{clock(x.t)}</td>
+                      <td className="py-1">{d.kinds[x.kind]}</td>
+                      <td className="py-1 tabular-nums">
+                        {x.alliesNear ?? "–"} / {x.enemiesNear ?? "–"}
+                      </td>
+                      <td className="py-1 text-right tabular-nums">{num(x.goldLost)}</td>
+                      <td className="py-1 text-right tabular-nums">{num(x.farmMissed)}</td>
+                      <td className={cn("py-1 text-right tabular-nums", x === top && "font-semibold")}>
+                        {num(x.cost)}
+                      </td>
+                      <td className="py-1 text-right whitespace-nowrap tabular-nums">
+                        {num(x.goldFed)} / {num(x.xpFed)}
+                      </td>
+                      <td className="py-1 text-right tabular-nums">
+                        {x.timeDead != null ? d.seconds(x.timeDead) : "–"}
+                      </td>
+                      <td
+                        className="py-1"
+                        title={x.objectivesLost
+                          .map(
+                            (o) =>
+                              `${clock(o.t)} ${o.type === "building" && o.key ? buildingName(o.key, t) : (d.objectiveNames[o.type] ?? o.type)}`,
+                          )
+                          .join("\n")}
+                      >
+                        {x.objectivesLost.length || "–"}
+                      </td>
+                      <td className="py-1">{x.buyback == null ? "–" : x.buyback ? d.yes : d.no}</td>
+                      <td className="py-1 text-right text-muted-foreground tabular-nums">
+                        {x.swing != null ? signedPct(x.swing) : "–"}
+                      </td>
+                      <td className="py-1 text-right tabular-nums">{num(x.unspent)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }}
       </PerSide>
+      <Caveat kind="estimate">{d.deathsHint}</Caveat>
     </Sub>
   );
 }
@@ -706,7 +767,7 @@ export function DamageDeepBlock() {
                     {row(d.disable, "disableCount", "disableDuration")}
                     {row(d.slow, "slowCount", "slowDuration")}
                     <tr>
-                      <td className="py-1 text-muted-foreground">
+                      <td className="py-1 text-muted-foreground" title={d.selfHealHint}>
                         {d.selfHeal} / {d.allyHeal}
                       </td>
                       <td className="py-1 text-right tabular-nums" colSpan={2}>
@@ -746,6 +807,7 @@ export function VisionQualityBlock() {
                   label: d.roles[role],
                 }))}
               />
+              <p className="text-muted-foreground">{d.rolesHint}</p>
               <dl className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                 <dt className="text-muted-foreground">{d.beforeObjective}</dt>
                 <dd className="tabular-nums">
@@ -775,7 +837,7 @@ export function MovementDeepBlock() {
   return (
     <>
       <div className="flex flex-col gap-5">
-        <Sub title={d.distance}>
+        <Sub title={d.distance} hint={d.distanceHint}>
           <PerSide>
             {(k, s) => {
               const m = movement(s);
@@ -852,15 +914,31 @@ const SOURCE_COLOR: Record<string, string> = {
   runes: "#eab308",
   couriers: "#06b6d4",
   wards: "#f472b6",
+  passive: "#64748b",
+  other: "#d4d4d4",
+};
+const XP_COLOR: Record<string, string> = {
+  heroes: "#ef4444",
+  creeps: "#a3a3a3",
+  roshan: "#a855f7",
   other: "#d4d4d4",
 };
 
-function GoldStack({ s }: { s: LabSide }) {
-  const { t, align, range } = useLab();
+// Per-minute amounts by source as stacked bars on the shared x axis.
+function SourceStack({
+  data,
+  names,
+  colors,
+  s,
+}: {
+  data: Record<string, number[]>;
+  names: Record<string, string>;
+  colors: Record<string, string>;
+  s: LabSide;
+}) {
+  const { align, range } = useLab();
   const option = useMemo<EChartsOption>(() => {
-    const kinds = Object.keys(s.advanced.goldByMinute).filter((k) =>
-      s.advanced.goldByMinute[k as keyof typeof s.advanced.goldByMinute].some((v) => v > 0),
-    );
+    const kinds = Object.keys(data).filter((k) => data[k].some((v) => v > 0));
     return {
       animation: false,
       grid: { left: 44, right: 8, top: 24, bottom: 24 },
@@ -875,17 +953,17 @@ function GoldStack({ s }: { s: LabSide }) {
       },
       yAxis: { type: "value", axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { opacity: 0.3 } } },
       series: kinds.map((k) => ({
-        name: t.deep.sources[k] ?? k,
+        name: names[k] ?? k,
         type: "bar",
-        stack: "gold",
+        stack: "all",
         barCategoryGap: "10%",
-        itemStyle: { color: SOURCE_COLOR[k] },
-        data: s.advanced.goldByMinute[k as keyof typeof s.advanced.goldByMinute]
+        itemStyle: { color: colors[k] },
+        data: data[k]
           .map((v, m) => [xOf(s, m * 60 + 30, align), v] as [number | null, number])
           .filter((p): p is [number, number] => p[0] != null),
       })),
     };
-  }, [s, t, align, range]);
+  }, [data, names, colors, s, align, range]);
   return (
     <div className="h-56 min-w-0">
       <EChart option={option} group={GROUP} />
@@ -894,31 +972,63 @@ function GoldStack({ s }: { s: LabSide }) {
 }
 
 export function GoldDeepBlock() {
-  const { t } = useLab();
+  const { t, assets } = useLab();
   const d = t.deep;
   const unspent = useCallback((s: LabSide) => banking(s)?.perMinute ?? null, []);
+  // From 30:00, the buyback reserve: gold held for it isn't idle.
+  const reserve = useCallback(
+    (s: LabSide) => {
+      const bk = banking(s);
+      return bk ? [{ name: d.reserve, values: bk.reservePerMinute }] : [];
+    },
+    [d.reserve],
+  );
   return (
     <>
       <Sub title={d.overTime}>
         <PerSide>
           {(k, s) =>
             s.advanced.goldByMinute.creeps.some((v) => v > 0) ? (
-              <GoldStack s={s} />
+              <SourceStack s={s} data={s.advanced.goldByMinute} names={d.sources} colors={SOURCE_COLOR} />
             ) : (
               <p className="text-xs text-muted-foreground">{t.skills.noTiming}</p>
             )
           }
         </PerSide>
       </Sub>
-      <LineCompare title={d.unspent} series={unspent} />
-      <Sub title={d.bank}>
+      <Sub title={d.xpOverTime}>
+        <PerSide>
+          {(k, s) =>
+            s.advanced.xpByMinute.creeps.some((v) => v > 0) ? (
+              <SourceStack s={s} data={s.advanced.xpByMinute} names={t.gold.xpReasons} colors={XP_COLOR} />
+            ) : (
+              <p className="text-xs text-muted-foreground">{t.skills.noTiming}</p>
+            )
+          }
+        </PerSide>
+      </Sub>
+      <LineCompare title={d.unspent} series={unspent} extra={reserve} />
+      <Sub title={d.bank} hint={d.bankHint}>
         <PerSide>
           {(k, s) => {
-            const bk = banking(s);
+            const bk = banking(s, assets);
+            if (!bk) return <p className="text-xs text-muted-foreground">–</p>;
             return (
-              <p className="text-xs tabular-nums">
-                {bk ? `${num(bk.avg)} / ${num(bk.max)} / ${pct(bk.over1500)}` : "–"}
-              </p>
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+                <dt className="text-muted-foreground">{d.idleAvg}</dt>
+                <dd className="tabular-nums">{num(bk.avg)}</dd>
+                <dt className="text-muted-foreground">{d.idleMax}</dt>
+                <dd className="tabular-nums">{num(bk.max)}</dd>
+                <dt className="text-muted-foreground">{d.readyShare}</dt>
+                <dd className="tabular-nums">{bk.readyShare != null ? pct(bk.readyShare) : "–"}</dd>
+                <dt className="text-muted-foreground">{d.spendRatio}</dt>
+                <dd className="tabular-nums">
+                  {bk.spendRatio != null ? pct(bk.spendRatio) : "–"}
+                  {bk.end != null && (
+                    <span className="ml-1 text-muted-foreground">{d.endGold(num(bk.end))}</span>
+                  )}
+                </dd>
+              </dl>
             );
           }}
         </PerSide>

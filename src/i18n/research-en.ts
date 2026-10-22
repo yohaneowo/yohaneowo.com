@@ -1,4 +1,13 @@
 import type researchZh from "./research-zh";
+import baselinesEn from "./research-x/baselines-en";
+import historyEn from "./research-x/history-en";
+import laningEn from "./research-x/laning-en";
+import farmingEn from "./research-x/farming-en";
+import itemsEn from "./research-x/items-en";
+import skillsEn from "./research-x/skills-en";
+import fightsEn from "./research-x/fights-en";
+import decisionsEn from "./research-x/decisions-en";
+import visionEn from "./research-x/vision-en";
 
 const researchEn: typeof researchZh = {
   title: "In-game lab",
@@ -28,6 +37,27 @@ const researchEn: typeof researchZh = {
     none: "None",
     signIn: "Sign in and link Steam to see your recent matches here.",
     pro: "Pro",
+    best: "Suggested match B (same hero, the other result, a similar length)",
+    why: {
+      own: "Same player",
+      pro: "Pro",
+      won: "a win",
+      lost: "a loss",
+      length: (m: number) => `${m} min`,
+    },
+  },
+
+  guard: {
+    oddMode: (who: string, mode: string) =>
+      `${who} is ${mode}: gold and XP, the draft or the abilities differ from a normal game, so per-minute numbers and the rank averages don't compare directly.`,
+    differentMode:
+      "The two matches are in different game modes or lobbies; keep that in mind when comparing.",
+    proLobby:
+      "A pro match (practice or league lobby): the rank averages come from public ranked games and are only a reference; for pros, see the pro games on the patch under References.",
+    patch: (a: string, b: string) =>
+      `The matches are on different patches (${a} and ${b}): items, abilities and timings don't fully compare.`,
+    sameMatch:
+      "A and B are in the same match: the game's context and draft are shared, and the comparison is between two players in one game.",
   },
 
   unparsed: {
@@ -39,6 +69,9 @@ const researchEn: typeof researchZh = {
   },
 
   header: {
+    positionFrom: { stratz: "by STRATZ", override: "chosen", opendota: "from OpenDota's lane" },
+    positionPick: "Which position's average to compare with",
+    positionAuto: "Auto",
     match: "Match",
     win: "Won",
     loss: "Lost",
@@ -59,20 +92,26 @@ const researchEn: typeof researchZh = {
     openMatch: "Match page",
     openPlayer: "Player page",
     final: "Final items",
+    replay: "Download replay",
+    replayHint:
+      "OpenDota's replay file (.dem.bz2): unpack it into Dota 2's replays folder to watch it in the game.",
     sourceNote:
       "Data: OpenDota's parse (curves, items, damage, gold, vision, teamfights) + STRATZ's parse (timings, movement, places)",
   },
   lanes: { top: "Top", mid: "Mid", bot: "Bottom", jungle: "Jungle", roam: "Roaming" },
 
   controls: {
+    rotate: "Turn Dire maps (every base at the bottom left)",
     align: "Align by",
     alignTime: "Game time",
     alignLevel: "Level",
     alignItem: "Key item",
+    alignNw: "Net worth",
     item: "Zero at this item's purchase",
     noCommonItem: "No key item in common",
     range: "Time range",
     rangeLevel: "Level range",
+    rangeNw: "Net worth range",
     reset: "Whole match",
     cursor: "Hover a chart and the maps mark where both were at that moment",
     expandAll: "Expand all",
@@ -82,16 +121,26 @@ const researchEn: typeof researchZh = {
   },
 
   summary: {
+    lessons: "What to fix (valued in gold, biggest first)",
+    lessonsHint:
+      "Each is valued in gold or a gold equivalent so they can be ranked; estimates, not exact figures.",
+    window: (m: string) => `over the first ${m}`,
+    byPct: "ranked by percentile gap",
+    noise: "within their usual spread",
     title: "Summary: how the two played differently",
     single: "Summary: what stands out in this game",
     diffs: "Biggest differences",
     diffHint:
-      "Compared per minute or as shares, so matches of different lengths compare fairly; biggest first.",
+      "Compared per minute or as shares (over the part both games have when their lengths differ); ranked by percentile gap where the hero has benchmarks; gaps smaller than the players' usual game-to-game spread are marked. One game against one: much of a difference is the game, not the play.",
     none: "The two are close everywhere; nothing stands out.",
     better: "Better",
   },
 
   sections: {
+    refs: "References",
+    farming: "Farming",
+    objectives: "Objectives and the map",
+    decisions: "Key moments and decisions",
     context: "The game",
     time: "Time use",
     timeline: "Timeline",
@@ -119,18 +168,19 @@ const researchEn: typeof researchZh = {
     healing: "Healing (total)",
     nwShare: "Share of team net worth",
     hp: "Lowest health each minute",
+    hpAvg: "Average health each minute",
     imp: "IMP by minute",
     taken: "Hero damage taken (total)",
     minute: "Minute",
     levelAxis: "Level",
     itemAxis: (item: string) => `Minutes from buying ${item}`,
+    nwAxis: "Net worth (k)",
   },
 
   laning: {
     at10: "At 10 minutes",
     metric: "Stat",
     vsLane: "Lane opponents (10 min)",
-    nwDiff: "Lane net worth difference",
     lanePerMinute: "Lane each minute, first 12",
     swaps: "Lane swaps",
     noSwap: "No swap",
@@ -164,6 +214,8 @@ const researchEn: typeof researchZh = {
 
   skills: {
     order: "Skill build",
+    orderHint:
+      "Each number is the ability's nth point; amber where the other side took something else at that level.",
     levelCol: "Level",
     time: "Time",
     uses: "Ability casts",
@@ -176,6 +228,7 @@ const researchEn: typeof researchZh = {
       ability_lamp_use: "Light a lantern (watcher)",
       ability_pluck_famango: "Pluck a mango",
       ability_capture: "Capture an outpost",
+      abyssal_underlord_portal_warp: "Through the Dark Portal",
     },
   },
 
@@ -196,6 +249,8 @@ const researchEn: typeof researchZh = {
     dmg: "Damage",
     heal: "Healing",
     goldDelta: "Gold change",
+    xpDelta: "XP change",
+    kpOverTime: "Kill participation over time (kills taken part in ÷ team kills)",
     yes: "Yes",
     no: "No",
     multi: "Multi-kills",
@@ -220,6 +275,7 @@ const researchEn: typeof researchZh = {
       feed: "Fed",
     },
     goldLost: (n: number) => `−${n} gold`,
+    goldEarned: (n: number) => `+${n} gold`,
     dead: (s: number) => `${s}s dead`,
     rightClick: "Right-click",
   },
@@ -266,6 +322,8 @@ const researchEn: typeof researchZh = {
     lived: "Lived",
     killedBy: "Destroyed by",
     expired: "Expired",
+    upAtEnd: "Still up at the end",
+    destroyed: "Destroyed (not by a hero)",
     dewards: "Enemy wards destroyed",
     none: "No wards placed this game.",
     counts: (obs: number, sen: number, dew: number) => `${obs} observers, ${sen} sentries, ${dew} dewards`,
@@ -307,7 +365,11 @@ const researchEn: typeof researchZh = {
     runeActions: { PICKUP: "Picked up", BOTTLE: "Bottled" },
     stacks: "Stacks",
     stacked: (camps: number, creeps: number) => `${camps} camps stacked (${creeps} creeps)`,
-    pulls: "Pulls (estimate: lane creeps last-hit in the jungle before 15:00)",
+    pulls: "Pulls (lane creeps last-hit in the own jungle before 15:00, by wave)",
+    pullsHint:
+      "A pull when the player was at that camp before the wave came in; otherwise a pulled wave they farmed. An estimate.",
+    pulledWaves: (n: number, creeps: number) => `Pulled ${n} waves (${creeps} creeps)`,
+    farmedWaves: (n: number, creeps: number) => `Farmed ${n} pulled waves (${creeps} creeps)`,
     roshan: "Roshan",
     roshanKinds: {
       teamKill: "Our team killed Roshan",
@@ -328,6 +390,7 @@ const researchEn: typeof researchZh = {
     roshanKills: "Roshan",
     buildingKills: "Buildings last-hit",
     none: "None",
+    noStratz: "No STRATZ parse, so no last-hit places or pulls.",
   },
 
   gold: {
@@ -342,8 +405,9 @@ const researchEn: typeof researchZh = {
       runes: "Bounty runes",
       couriers: "Couriers",
       passive: "Passive income",
-      other: "Other (abilities, selling…)",
+      other: "Other (abilities, dewards…)",
       death: "Lost on death",
+      sells: "Items sold (money back, not income)",
     },
     xpReasons: { heroes: "Heroes", creeps: "Creeps and neutrals", roshan: "Roshan", other: "Other" },
     share: "Share",
@@ -403,10 +467,10 @@ const researchEn: typeof researchZh = {
     ours: "Ours",
     theirs: "Theirs",
     laneOutcomes: "Lane results (STRATZ)",
-    laneResults: { stompWin: "Stomped", win: "Won", tie: "Even", loss: "Lost", stompLoss: "Stomped on" },
+    laneResults: { stompWin: "Won big", win: "Won", tie: "Even", loss: "Lost", stompLoss: "Lost big" },
     contextLine: (who: string, max: string, min: string, at: string, swing: string, lane: string) =>
-      `${who}'s side peaked at ${max} to win and fell to ${min}; the biggest swing came at ${at} (${swing}); their lane: ${lane.toLowerCase()}.`,
-    noContext: "No win chance data (no STRATZ parse).",
+      `${who}'s side's win chance went as high as ${max} and as low as ${min}; the biggest swing came at ${at} (${swing}); their lane: ${lane.toLowerCase()}.`,
+    noContext: "No win chance data from STRATZ.",
     activities: {
       farmLane: "Lane farming",
       farmJungle: "Jungle farming",
@@ -420,11 +484,12 @@ const researchEn: typeof researchZh = {
     phaseNames: ["0–10 min", "10–20 min", "20–30 min", "30 min on"],
     band: "Time band (10 s per cell, following the range above)",
     timeHint:
-      "Judged from what happens in each 10 seconds: a kill, death or assist, or 250+ damage either way is fighting; a last hit is farming; otherwise where the hero is. An estimate.",
+      "Judged from what happens in each 10 seconds: a kill, death or assist, or 250+ hero damage either way (illusions and units included) is fighting; a last hit is farming; otherwise where the hero is.",
     timeLine: (who: string, farm: string, fight: string, move: string, dead: string) =>
       `${who}: farming ${farm}, fighting ${fight}, moving ${move}, dead ${dead}.`,
     noTime: "No STRATZ parse, so no time breakdown.",
     baseline: "Rank average",
+    fewGames: "few games",
     baselineNote: (bracket: string, position: string, n: string) =>
       `Grey dashed: the hero's average at ${bracket}${position} (STRATZ, ${n} matches)`,
     brackets: {
@@ -436,8 +501,15 @@ const researchEn: typeof researchZh = {
     position: (n: number) => `, position ${n}`,
     vsAverage: (label: string, m: number, diff: string) =>
       `${label}'s net worth at ${m} minutes: ${diff} against the rank average.`,
+    vsAverageEven: (label: string, m: number) =>
+      `${label}'s net worth at ${m} minutes: level with the rank average.`,
     avgTime: "Rank average",
     effects: "Five minutes before and after each key item",
+    effectsHint:
+      "The grey line is the change beyond the rank average's own change over the same minutes (everyone farms faster as the game goes on); the average's income is its net worth plus what it lost on deaths. Fights and deaths in these minutes move the numbers too: an association, not a cause.",
+    vsAvgChange: (v: string) => `vs the average's change ${v}`,
+    inWindow: "Within ±5 min",
+    windowEvents: (fights: number, deaths: number) => `${fights} fights · ${deaths} deaths`,
     before: "Before",
     after: "After",
     gpm: "Gold / min",
@@ -456,24 +528,67 @@ const researchEn: typeof researchZh = {
     ultFights: "Ultimate in fights",
     ultLine: (who: string, ult: string, used: number, fights: number) =>
       `${who} used ${ult} in ${used} of ${fights} teamfights joined.`,
-    hitsPerCast: "Heroes hit per cast",
+    hitsPerCast: "Hero hits per cast (each damage-over-time tick counts)",
     perCast: "Per cast",
     breakdown: "Every teamfight",
     distEnemy: "Nearest enemy at the start",
+    dist: "To enemies (start / closest / average)",
+    distHint:
+      "Distance to the nearest enemy hero (units): when the fight began, the closest moment, and on average over it.",
+    arrival: "Arrived",
+    never: "never close",
+    front: "Position",
+    frontHint:
+      "At the fight's first death, the teammates near it ranked by distance to the enemy: 1 is in front. 'first' = hit before any teammate; 'sup' = no damage but used an ability or item near enemies.",
+    firstOnTeam: "Hit before any teammate",
+    firstMark: "first",
+    supportWork: "No damage, but used an ability or item near enemies",
+    supportMark: "sup",
+    breakdownHint:
+      "Distances, positions and arrival from STRATZ's positions (interpolated per second); the fights themselves from OpenDota's teamfight log.",
     near: "Allies / enemies near",
-    first: "First hit dealt / taken (after start)",
+    first: "First hit dealt / taken (from the start; negative = before it)",
     burst: "3 s burst",
     used: "Abilities and items used",
     carried: "Carrying",
     dealtTaken: "Dealt / taken",
     deaths: "Every death",
     kind: "Kind",
-    kinds: { fight: "Teamfight", gank: "Ganked", pickoff: "Picked off", other: "Other" },
+    kinds: {
+      fight: "Teamfight",
+      gank: "Ganked",
+      pickoff: "Picked off",
+      other: "Other",
+      outside: "Outside fights",
+    },
     buyback: "Buyback gold",
-    swing: "Win chance change",
-    deathKinds: (who: string, fight: number, gank: number, pick: number, alone: number) =>
-      `${who} died ${fight} times in teamfights, ${gank} to ganks and ${pick} to pick-offs; ${alone} times with no ally near.`,
-    costlyDeath: (at: string, drop: string) => ` The costliest at ${at} (win chance −${drop}).`,
+    swing: "Team win chance (±1 min)",
+    swingHint:
+      "The team's win chance from a minute before the death to a minute after: the whole team's doing in that time, not this death's alone.",
+    goldLost: "Gold lost",
+    farmMissed: "Farm missed",
+    cost: "Cost",
+    fed: "Fed gold / XP",
+    timeDead: "Dead for",
+    lostWhileDead: "Lost while dead",
+    onHand: "Gold on hand",
+    objectiveNames: {
+      building: "Building",
+      roshan: "Roshan",
+      aegis: "Aegis",
+      tormentor: "Tormentor",
+      courier: "Courier",
+    } as Record<string, string>,
+    deathsHint:
+      "Cost = gold lost + farm missed while dead (at the farm rate of the five minutes before). Buyback needs the gold and to be off its 8-minute cooldown. The costliest is shaded.",
+    deathKinds: (who: string, fight: number, gank: number, pick: number, alone: number | null) =>
+      `${who} died ${fight} times in teamfights, ${gank} to ganks and ${pick} to pick-offs${alone != null ? `; ${alone} times with no ally near` : ""}.`,
+    deathKindsOd: (who: string, fight: number, outside: number) =>
+      `${who} died ${fight} times in teamfights and ${outside} outside them (no STRATZ parse: how many took part and who was near isn't known).`,
+    costlyDeath: (at: string, gold: string) =>
+      ` The costliest at ${at} (about ${gold} gold: gold lost plus farm missed).`,
+    costlyDeathLost: (at: string, gold: string) =>
+      ` The most gold lost at ${at} (${gold}; farm missed while dead isn't known without STRATZ's parse).`,
     seconds: (n: number) => `${n}s`,
     units: (n: number) => `${n}`,
     yes: "Yes",
@@ -490,15 +605,21 @@ const researchEn: typeof researchZh = {
     secs: "s",
     healIn: "Healing received per minute",
     selfHeal: "Self-heal",
+    selfHealHint:
+      "STRATZ's self-heal is mostly natural regeneration; heals received by source are listed above.",
     allyHeal: "Healing allies",
     quality: "Ward quality",
     roles: { defensive: "Defensive", river: "River", aggressive: "Aggressive", base: "Base" },
+    rolesHint:
+      "Wards by area: the own jungle and the own half of the lanes are defensive, the enemy jungle and half aggressive (a rule).",
     beforeObjective: "Placed within 2 min before a fight or Roshan",
     avgLife: "Average life (observer / sentry)",
     dewardedShare: "Destroyed",
     visionLine: (who: string, agg: number, def: number, obj: number, dew: string) =>
       `${who}: ${agg} aggressive wards, ${def} defensive or river, ${obj} placed before a fight or Roshan, ${dew} destroyed.`,
     distance: "Distance covered by phase",
+    distanceHint:
+      "Straight lines between positions 10 s apart cut corners, so this is a lower bound; steps with a teleport or a respawn are left out.",
     perMin: "Per min",
     group: "Time with teammates (alive)",
     alone: "Alone",
@@ -509,6 +630,7 @@ const researchEn: typeof researchZh = {
     moveLine: (who: string, perMin: string, alone: string, tps: number) =>
       `${who} covered ${perMin} units a minute, was alone ${alone} of the time and teleported ${tps} times.`,
     trades: "Hero damage traded in the first 10 minutes",
+    tradesHint: "Illusions' and units' damage included.",
     dealt: "Dealt",
     taken: "Taken",
     vsOpp: "With lane opponents",
@@ -526,12 +648,21 @@ const researchEn: typeof researchZh = {
       runes: "Runes",
       couriers: "Couriers",
       wards: "Dewards",
+      passive: "Passive",
       other: "Other",
     },
-    unspent: "Gold on hand (per-minute average)",
-    bank: "Average / highest / time over 1,500",
+    xpOverTime: "XP by source each minute",
+    unspent: "Gold on hand (per-minute average; dashed: the buyback reserve from 30:00)",
+    reserve: "Buyback reserve",
+    bank: "Idle gold",
+    bankHint: "Gold on hand while alive beyond the buyback reserve (from 30:00).",
+    idleAvg: "Average idle",
+    idleMax: "Most idle",
+    readyShare: "Time the next item was already affordable",
+    spendRatio: "Spent (spent ÷ earned)",
+    endGold: (v: string) => `${v} left at the end`,
     bankLine: (who: string, avg: string, share: string) =>
-      `${who} carried ${avg} gold on average, over 1,500 for ${share} of the time.`,
+      `${who} carried ${avg} idle gold on average (beyond the buyback reserve); the next item was already paid for ${share} of the time.`,
     attributes: "Attributes",
     str: "Strength",
     agi: "Agility",
@@ -542,7 +673,7 @@ const researchEn: typeof researchZh = {
     farmPct: "Time farming",
     fightPct: "Time fighting",
     movePct: "Time moving",
-    unspentAvg: "Gold on hand",
+    unspentAvg: "Idle gold (average)",
     alonePct: "Time alone",
     distPm: "Distance per minute",
     trade10: "Hero damage dealt by 10:00",
@@ -562,7 +693,6 @@ const researchEn: typeof researchZh = {
     participation: "Teamfight participation",
     lh10: "Last hits at 10",
     nw10: "Net worth at 10",
-    lane10: "Lane net worth gap at 10",
     lvl6: "Level 6 at",
     lvl12: "Level 12 at",
     lvl18: "Level 18 at",
@@ -591,9 +721,8 @@ const researchEn: typeof researchZh = {
     timelineClose: "The two stayed within 10% of each other on gold throughout.",
     timelineSingle: (gpm: number, pct: string, at10: string, at20: string) =>
       `GPM ${gpm} (top ${pct} on the hero); net worth ${at10} at 10 minutes, ${at20} at 20.`,
-    lanePair: (a: string, b: string) => `Lane net worth gap at 10 minutes: A ${a}, B ${b}.`,
-    laneSingle: (diff: string, lh: number, dn: number) =>
-      `${lh} last hits and ${dn} denies at 10, lane gap ${diff}.`,
+    lanePair: (a: string, b: string) => `Last hits / denies at 10:00: A ${a}, B ${b}.`,
+    laneSingle: (lhDn: string) => `Last hits / denies at 10:00: ${lhDn}.`,
     laneNone: "No lane opponents to compare (STRATZ hasn't parsed, or jungling / roaming).",
     laneSwap: (who: string, n: number) => `${who} swapped lanes ${n} times in the first 12 minutes.`,
     itemsPair: (item: string, faster: string, diff: string) => `${item}: ${faster} was ${diff} earlier.`,
@@ -602,6 +731,8 @@ const researchEn: typeof researchZh = {
     skillsPair: (a: string, b: string) => `Casts per minute: A ${a}, B ${b}.`,
     skillsOrder: (a: string, b: string) => `Different builds: A maxed ${a} first, B ${b}.`,
     skillsSingle: (n: string, top: string) => `${n} casts per minute, most of all ${top}.`,
+    skillsOther: (who: string, n: string, top: string) =>
+      `${who}: ${n} casts per minute, most of all ${top} (different heroes: the counts don't compare).`,
     fightsPair: (a: string, b: string, ka: string, kb: string) =>
       `Teamfight participation A ${a}, B ${b}; kills plus assists per minute A ${ka}, B ${kb}.`,
     fightsSingle: (part: string, kda: string, deaths: number) =>
@@ -615,15 +746,17 @@ const researchEn: typeof researchZh = {
     visionPair: (a: string, b: string) => `Vision: A ${a}; B ${b}.`,
     visionSingle: (v: string) => `Vision: ${v}.`,
     visionNone: "Hardly any wards on either side: vision wasn't this role's job.",
-    movementPair: (a: string, b: string) =>
-      `Movement: A mostly in the ${a.toLowerCase()}; B in the ${b.toLowerCase()}.`,
+    movementPair: (a: string, pa: string, b: string, pb: string) =>
+      `Movement: A mostly in the ${a.toLowerCase()} (${pa}); B in the ${b.toLowerCase()} (${pb}).`,
+    movementOne: (who: string, zone: string, pct: string, other: string) =>
+      `Movement: ${who} mostly in the ${zone.toLowerCase()} (${pct}); no movement data for ${other} (no STRATZ parse).`,
     movementSingle: (zone: string, pct: string, enemy: string) =>
       `Mostly in the ${zone.toLowerCase()} (${pct}), ${enemy} in the enemy jungle.`,
     movementNone: "No movement data (no STRATZ parse).",
     resourcesPair: (a: string, b: string) => `Resources: A ${a}; B ${b}.`,
     resourcesSingle: (v: string) => `Resources: ${v}.`,
-    resourcesLine: (runes: number, stacks: number, pulls: number) =>
-      `${runes} runes, ${stacks} stacks, about ${pulls} pulls`,
+    resourcesLine: (runes: number, stacks: number, pulls: number | null) =>
+      `${runes} runes, ${stacks} stacks${pulls != null ? `, about ${pulls} pulls` : ""}`,
     goldPair: (a: string, b: string) => `Gold came mostly from: A ${a}; B ${b}.`,
     goldSingle: (v: string) => `Gold came mostly from ${v}.`,
     miscPair: (a: string, b: string, da: string, db: string) =>
@@ -632,12 +765,10 @@ const researchEn: typeof researchZh = {
     summaryFarm: (a: string, b: string) => `Farming: A ${a}, B ${b}.`,
     summaryMove: (a: string, b: string) => `Where they played: A ${a}, B ${b}.`,
     summaryFight: (who: string, x: string) => `${who} fought more (${x} more kills plus assists per minute).`,
-    summaryItem: (who: string, item: string, diff: string) =>
-      `${who} had ${item} ${diff} earlier: a faster game.`,
-    summaryLane: (who: string, diff: string) =>
-      `${who} laned better (${diff} more lane net worth gap at 10).`,
+    summaryItem: (who: string, item: string, diff: string) => `${who} had ${item} ${diff} earlier.`,
     summaryDeaths: (who: string, x: string) =>
       `${who} died more (${x} more per minute) and spent more time dead.`,
+    summaryDeathsOnly: (who: string, x: string) => `${who} died more (${x} more per minute).`,
     summaryVision: (who: string, n: number) => `${who} placed ${n} more wards.`,
     summaryCast: (who: string, x: string) => `${who} used abilities more (${x} more casts per minute).`,
     farmStyle: (src: string, pct: string) => `${pct} from ${src.toLowerCase()}`,
@@ -646,6 +777,28 @@ const researchEn: typeof researchZh = {
     b: "B",
     sep: ", ",
     colon: ": ",
+    paren: (v: string) => ` (${v})`,
+  },
+  notes: {
+    hindsight: "Hindsight",
+    estimate: "Estimate",
+    source: "Source",
+    hindsightHint:
+      "Worked out from everyone's replay positions; in the game, enemies in the fog were not visible.",
+    estimateHint: "Estimated by a rule, not a number the game records.",
+    sourceHint: "Where the numbers come from.",
+  },
+  // The analysis modules' own texts (research/x/).
+  x: {
+    baselines: baselinesEn,
+    history: historyEn,
+    laning: laningEn,
+    farming: farmingEn,
+    items: itemsEn,
+    skills: skillsEn,
+    fights: fightsEn,
+    decisions: decisionsEn,
+    vision: visionEn,
   },
 };
 

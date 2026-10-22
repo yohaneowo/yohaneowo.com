@@ -4,7 +4,18 @@ import { useCallback, useMemo, useState } from "react";
 import type { LabFight, LabSide } from "@/lib/dota/lab";
 import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
-import { AREAS, areaOf, areaShares, GOLD_KINDS, goldShares, minutesOf, num, pct, xpShares } from "./insights";
+import {
+  aliveAt,
+  AREAS,
+  areaOf,
+  areaShares,
+  GOLD_KINDS,
+  goldShares,
+  minutesOf,
+  num,
+  pct,
+  xpShares,
+} from "./insights";
 import {
   Bars,
   HeroIcon,
@@ -25,7 +36,7 @@ import {
 const inWindow = (t: number, w: [number, number]) => t >= w[0] && t <= w[1];
 
 // npc_dota_badguys_tower2_mid → 中路二塔, melee_rax_top → 上路近战兵营…
-function buildingName(key: string, t: ReturnType<typeof useLab>["t"]) {
+export function buildingName(key: string, t: ReturnType<typeof useLab>["t"]) {
   const k = key.replace(/^npc_dota_(good|bad)guys_/, "");
   const b = t.damage.building;
   const tower = /^tower(\d)(?:_(top|mid|bot))?$/.exec(k);
@@ -54,6 +65,19 @@ function cumulative(s: LabSide, kinds: LabFight["kind"][]) {
   return out;
 }
 
+// The share of the team's kills the player took part in, as it built up minute by minute.
+function killParticipation(s: LabSide) {
+  const enemy = new Set(s.enemies);
+  const len = s.minutes.netWorth.length;
+  if (!s.match.deaths.length) return null;
+  const team = Array.from({ length: len }, () => 0);
+  for (const d of s.match.deaths)
+    if (enemy.has(d.hero)) for (let m = Math.max(0, Math.ceil(d.t / 60)); m < len; m++) team[m]++;
+  const mine = cumulative(s, ["kill", "assist"]);
+  return team.map((n, m) => (n ? Math.min(1, mine[m] / n) : 0));
+}
+const pctFmt = (v: number) => `${Math.round(v * 100)}%`;
+
 function FightMap({ s, side }: { s: LabSide; side: SideKey }) {
   const w = useTimeWindow(s);
   const marks: MapMark[] = s.fights.events
@@ -79,7 +103,10 @@ export function FightsBody() {
   );
   return (
     <>
-      <LineCompare title={f.cumulative} series={ka} extra={deaths} step integer />
+      <div className="grid gap-x-6 gap-y-4 lg:grid-cols-2">
+        <LineCompare title={f.cumulative} series={ka} extra={deaths} step integer />
+        <LineCompare title={f.kpOverTime} series={killParticipation} format={pctFmt} />
+      </div>
       <Sub title={f.map}>
         <PerSide>
           {(k, s) => (
@@ -147,6 +174,7 @@ export function FightsBody() {
                     <th className="py-1 text-right font-normal">{f.dmg}</th>
                     <th className="py-1 text-right font-normal">{f.heal}</th>
                     <th className="py-1 text-right font-normal">{f.goldDelta}</th>
+                    <th className="py-1 text-right font-normal">{f.xpDelta}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,6 +197,7 @@ export function FightsBody() {
                       <td className="py-1 text-right tabular-nums">{num(x.damage)}</td>
                       <td className="py-1 text-right tabular-nums">{num(x.healing)}</td>
                       <td className="py-1 text-right tabular-nums">{num(x.goldDelta)}</td>
+                      <td className="py-1 text-right tabular-nums">{num(x.xpDelta)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -497,8 +526,8 @@ function MovementSide({ s, side, win }: { s: LabSide; side: SideKey; win: [numbe
   const heat = useMemo(
     () =>
       s.path.t
-        .map((tt, i) => ({ t: tt, x: s.path.x[i], y: s.path.y[i] }))
-        .filter((p) => p.t >= from && p.t <= to),
+        .map((tt, i) => ({ t: tt, x: s.path.x[i], y: s.path.y[i], alive: aliveAt(s, i) }))
+        .filter((p) => p.alive && p.t >= from && p.t <= to),
     [s, from, to],
   );
   const shares = areaShares(s, from, to);
@@ -555,6 +584,7 @@ export function ResourcesBody() {
     (s: LabSide) => (s.minutes.campsStacked.length ? s.minutes.campsStacked : null),
     [],
   );
+  const stacksAvg = useCallback((s: LabSide) => s.advanced.baseline?.minutes.campsStacked ?? null, []);
   return (
     <>
       <div className="grid gap-5 lg:grid-cols-2">
@@ -592,18 +622,40 @@ export function ResourcesBody() {
               <p className="text-xs">{r.stacked(s.resources.campsStacked, s.resources.creepsStacked)}</p>
             )}
           </PerSide>
-          <LineCompare title={r.stacks} series={stacks} height={160} step integer />
+          <LineCompare title={r.stacks} series={stacks} baseline={stacksAvg} height={160} step integer />
         </Sub>
-        <Sub title={r.pulls}>
+        <Sub title={r.pulls} hint={r.pullsHint}>
           <PerSide>
-            {(k, s) => (
-              <p className="text-xs">
-                <span className="font-semibold tabular-nums">{s.resources.pulls.length}</span>{" "}
-                <span className="text-muted-foreground">
-                  {s.resources.pulls.map((p) => clock(p.t)).join(t.insight.sep)}
-                </span>
-              </p>
-            )}
+            {(k, s) => {
+              const pulled = s.resources.pulls.filter((p) => p.pulled);
+              const farmed = s.resources.pulls.filter((p) => !p.pulled);
+              return (
+                <div className="flex flex-col gap-0.5 text-xs">
+                  <p>
+                    {r.pulledWaves(
+                      pulled.length,
+                      pulled.reduce((a, p) => a + p.n, 0),
+                    )}
+                    {pulled.length > 0 && (
+                      <span className="ml-1 text-muted-foreground">
+                        {pulled.map((p) => clock(p.t)).join(t.insight.sep)}
+                      </span>
+                    )}
+                  </p>
+                  <p>
+                    {r.farmedWaves(
+                      farmed.length,
+                      farmed.reduce((a, p) => a + p.n, 0),
+                    )}
+                    {farmed.length > 0 && (
+                      <span className="ml-1 text-muted-foreground">
+                        {farmed.map((p) => clock(p.t)).join(t.insight.sep)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              );
+            }}
           </PerSide>
         </Sub>
         <Sub title={r.roshan}>
@@ -733,24 +785,24 @@ export function GoldBody() {
             </tr>
           </thead>
           <tbody>
-            {[...GOLD_KINDS, "death" as const].map((kind) => (
+            {[...GOLD_KINDS, "death" as const, "sells" as const].map((kind) => (
               <tr key={kind} className="border-b last:border-0">
                 <td className="py-1">
                   <span
                     className="mr-1.5 inline-block size-2 rounded-sm"
-                    style={{ background: GOLD_COLOR[kind] ?? "#7f1d1d" }}
+                    style={{ background: GOLD_COLOR[kind] ?? (kind === "sells" ? "#0f766e" : "#7f1d1d") }}
                   />
                   {g.reasons[kind]}
                 </td>
                 {sides.map(([k, s]) => {
                   const sh = goldShares(s);
-                  const v = kind === "death" ? -sh.lost : sh.values[kind];
+                  const v = kind === "death" ? -sh.lost : kind === "sells" ? sh.sells : sh.values[kind];
                   return [
                     <td key={`${k}v`} className="py-1 text-right tabular-nums">
                       {num(v)}
                     </td>,
                     <td key={`${k}s`} className="py-1 text-right text-muted-foreground tabular-nums">
-                      {kind === "death" ? "" : pct(sh.shares[kind], 1)}
+                      {kind === "death" || kind === "sells" ? "" : pct(sh.shares[kind], 1)}
                     </td>,
                     <td key={`${k}m`} className="py-1 text-right text-muted-foreground tabular-nums">
                       {num(v / minutesOf(s))}

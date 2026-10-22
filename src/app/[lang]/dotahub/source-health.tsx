@@ -72,6 +72,13 @@ export function SourceHealthDots() {
               </span>
               {h?.ms != null && <span>{t.latency((h.ms / 1000).toFixed(1))}</span>}
               {h?.error && <span>{t.error(h.error)}</span>}
+              {h?.keyUntil != null && (
+                <span>
+                  {t.paidKey(
+                    new Date(h.keyUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  )}
+                </span>
+              )}
               {h &&
                 Object.entries(h.quota).map(([key, value]) => (
                   <span key={key}>{t.quota(t.periods[key as keyof typeof t.periods] ?? key, value)}</span>

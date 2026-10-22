@@ -1,4 +1,5 @@
 import "server-only";
+import { freeQuotaSpent, opendotaKeyUntil } from "./opendota-key";
 
 // How DotaHub's data sources are doing, for the dots in its navigation. Every real call records
 // its outcome (and the quota headers it came back with); when a source hasn't been called for a
@@ -15,6 +16,8 @@ export type SourceHealth = {
   error: string | null;
   // What the source reports as left, e.g. { day: 2784, minute: 59 }.
   quota: Record<string, number>;
+  // OpenDota: the free quota is spent, and calls go out with the paid key until then (ms).
+  keyUntil?: number | null;
 };
 
 type Sample = { at: number; ok: boolean; ms: number; error: string | null };
@@ -80,10 +83,17 @@ async function probe(source: DotaSource) {
   try {
     let response: Response;
     if (source === "opendota") {
+      // Free only: a probe never spends the paid key. A 429 then means the free quota is spent and
+      // the site's calls go out with the key, so OpenDota still answers.
       response = await fetch("https://api.opendota.com/api/constants/game_mode", {
         signal: AbortSignal.timeout(8000),
         cache: "no-store",
       });
+      if (response.status === 429 && process.env.OPENDOTA_API_KEY?.trim()) {
+        freeQuotaSpent(response.headers);
+        recordCall(source, started, { ok: true, headers: response.headers });
+        return;
+      }
     } else if (source === "stratz") {
       const token = process.env.STRATZ_API_TOKEN;
       if (!token) return;
@@ -130,6 +140,7 @@ function summarize(source: DotaSource, now: number): SourceHealth {
     at: last?.at ?? null,
     error: last && !last.ok ? last.error : null,
     quota: store.quota[source],
+    ...(source === "opendota" ? { keyUntil: opendotaKeyUntil() } : {}),
   };
 }
 

@@ -1,0 +1,170 @@
+// 局内科研 · baselines. Mounted as dotahub.research.x.baselines.
+const baselinesZh = {
+  // What the references are.
+  refsTitle: "对照的是什么",
+  refsHint: "同英雄、同段位、同位置的平均（STRATZ），每一局对照自己的",
+  bracket: "段位与位置",
+  anyPosition: "不分位置",
+  posFrom: {
+    stratz: "STRATZ 判定的位置",
+    override: "手动指定的位置",
+    opendota: "OpenDota 按分路推断的位置",
+    none: "没有位置",
+  },
+  period: "资料时间",
+  week: (from: string, to: string) => `比赛当周（${from} – ${to}，UTC）`,
+  recent: "最近一周（STRATZ 已经没有比赛那一周的资料，或场数太少）",
+  sample: "样本",
+  winRate: (rate: string, n: string) => `${n} 场，这个英雄在这个段位与位置的胜率 ${rate}`,
+  patch: "版本",
+  unknownPatch: "不明",
+  patchDiff: (a: string, b: string) =>
+    `A 和 B 不在同一个版本（${a} / ${b}）：物品、出装时间与同段位平均都不能直接比较。`,
+  ownBaselines: "A 和 B 的对照组不同（英雄、段位或位置不一样），各自跟自己的平均比。",
+  ownWeeks: "A 和 B 是同一组英雄、段位与位置，但各自用自己比赛那一周的平均。",
+  noBaseline: "没有同段位平均（STRATZ 没有回传）。",
+
+  // Games still going.
+  countsTitle: "每一分钟还在进行的比赛",
+  countsUnder: (minute: number, n: string) => `第 ${minute} 分钟起剩不到开局的 15%（${n} 场）。`,
+  countsAt: (who: string, at: string, n: string, share: string) =>
+    `${who} 在 ${at} 时同段位还有 ${n} 场（${share}）。`,
+  countsCaveat:
+    "每一分钟的平均只算到那时还没结束的比赛；越晚越只剩打得久的局（势均力敌或翻盘），所以后期跟平均的差距不全是个人水平。",
+  games: "场数",
+
+  // The wide table.
+  tableTitle: "这局 vs 同段位平均",
+  tableHint: "取上面时间范围结束的那一分钟",
+  tableAt: (at: string, n: string, share: string) => `${at} 时（同段位还在进行的有 ${n} 场，占 ${share}）`,
+  lateWarn: "这一分钟的平均只剩不到 15% 的比赛，偏向打得久的局。",
+  stat: "项目",
+  mine: "这局",
+  avg: "平均",
+  ratio: "倍数",
+  groups: {
+    economy: "经济",
+    fighting: "战斗",
+    taken: "承受的英雄伤害",
+    feeding: "死亡的代价",
+    support: "辅助与神符",
+    misc: "操作",
+  },
+  rows: {
+    networth: "净值",
+    xp: "经验",
+    cs: "正补",
+    dn: "反补",
+    level: "等级",
+    neutrals: "清野营地次数",
+    ancients: "清远古营地次数",
+    towerDamage: "建筑伤害",
+    kills: "击杀",
+    deaths: "死亡",
+    assists: "助攻",
+    kp: "参与击杀",
+    heroDamage: "英雄伤害",
+    attackDamage: "普攻伤害（本体）",
+    castDamage: "技能与物品伤害（本体）",
+    stunDuration: "眩晕敌人（秒）",
+    damageReceived: "合计",
+    physicalDamageReceived: "物理",
+    magicalDamageReceived: "魔法",
+    pureDamageReceived: "纯粹",
+    goldFed: "送给对面的金钱",
+    xpFed: "送给对面的经验",
+    goldLost: "自己掉的金钱",
+    campsStacked: "囤野",
+    healingAllies: "治疗队友",
+    runeBounty: "赏金神符",
+    runePower: "强化神符",
+    apm: "APM（到这一分钟的平均）",
+    casts: "施法与物品使用（含切换动力鞋）",
+    abilityCasts: "技能施放",
+  },
+  // Rows whose table label leans on its group, standing alone in a sentence.
+  alone: { damageReceived: "承受的英雄伤害", stunDuration: "眩晕敌人的秒数" } as Record<string, string>,
+  wholeMark: "＊",
+  wholeNote: "＊这项没有时间点，用整场的数字。",
+  campsNote: "清野次数按补刀估计：同一处 25 秒内的野怪补刀算一次。",
+  noTable: "没有这一分钟的平均。",
+
+  // OpenDota's benchmarks.
+  benchTitle: "OpenDota 同英雄基准：到下一档要多少",
+  benchHint: "这局的数值、胜过多少比例的玩家，以及到 50% / 75% / 90% 要的数值",
+  bench: {
+    gold_per_min: "GPM",
+    xp_per_min: "XPM",
+    kills_per_min: "每分钟击杀",
+    deaths_per_min: "每分钟死亡",
+    assists_per_min: "每分钟助攻",
+    last_hits_per_min: "每分钟正补",
+    denies_per_min: "每分钟反补",
+    hero_damage_per_min: "每分钟英雄伤害",
+    hero_healing_per_min: "每分钟治疗",
+    tower_damage: "建筑伤害",
+  } as Record<string, string>,
+  value: "这局",
+  better: "胜过",
+  benchNote: "死亡越少越好，所以死亡各档的数值往右越少。75% 由 OpenDota 相邻两档线性估计。",
+  noBench: "没有 OpenDota 的基准。",
+
+  // Item timings.
+  itemsTitle: "装备时间：跟同段位、自己与职业比",
+  itemsHint: "首次购买：关键装备，加上同段位两成以上的局会买的小件；职业是这个版本的职业比赛",
+  item: "装备",
+  time: "完成",
+  avgTime: "同段位平均",
+  boughtBy: (rate: string) => `${rate} 的局会买`,
+  wrMine: "这一分钟做出的胜率",
+  wrAvg: "平均时间做出的胜率",
+  personal: "自己的中位数",
+  pro: "职业中位数",
+  fasterThan: (share: string) => `快过 ${share}`,
+  edgeBefore: (m: number) => `≤${m}′`,
+  edgeAfter: (m: number) => `≥${m}′`,
+  noItems: "没有可以对照的装备。",
+  curveTitle: "按做出时间的胜率",
+  curveHint: "同段位同位置；场数少的点颜色较淡",
+  minuteOf: (m: number) => `${m}–${m + 1} 分`,
+  winRate2: "胜率",
+  avgMark: "平均",
+  itemsCaveat:
+    "胜率是 STRATZ 同段位同位置、在那一分钟做出这件装备的比赛；相关不是因果：做得早的局多半本来就顺。STRATZ 只列场数够多的购买分钟，所以「会买」的比例偏低一些。",
+
+  // The timeline's curves.
+  curvesTitle: "其他跟同段位平均比较的曲线",
+  curvesHint: "灰色虚线是同段位平均",
+  curves: {
+    kills: "累计击杀",
+    deaths: "累计死亡",
+    assists: "累计助攻",
+    campsStacked: "累计囤野",
+    goldFed: "累计死亡送出的金钱",
+    attackDamage: "累计普攻英雄伤害（本体）",
+    castDamage: "累计技能与物品英雄伤害（本体）",
+  },
+
+  // Sentences.
+  apart: (who: string, at: string, parts: string, thin: string | null) =>
+    `${who} 到 ${at} 跟同段位平均差最多的是${parts}${thin ? `；这一分钟同段位只剩 ${thin} 的局` : ""}。`,
+  versus: (label: string, mine: string, avg: string) => `${label} ${mine}（平均 ${avg}）`,
+  kda: (at: string | null, parts: string) => `${at ? `到 ${at} 的` : ""}击杀 / 死亡 / 助攻：${parts}。`,
+  kdaPart: (who: string, at: string | null, mine: string, avg: string) =>
+    `${who}${at ? ` 到 ${at}` : ""} ${mine}（同段位平均 ${avg}）`,
+  partSep: "；",
+  itemLine: (who: string, item: string, at: string, diff: string, wrMine: string, wrAvg: string) =>
+    `${who} 的${item}在 ${at} 做出（${diff}）；同段位在这一分钟做出的胜率 ${wrMine}，平均时间是 ${wrAvg}（相关，不是因果）。`,
+  itemPairLine: (item: string, a: string, wrA: string, b: string, wrB: string, avg: string, wrAvg: string) =>
+    `${item}：同段位在 A 做出的那一分钟（${a}）做出的胜率 ${wrA}，B 的（${b}）${wrB}，平均时间（${avg}）${wrAvg}（相关，不是因果）。`,
+  earlier: (d: string) => `比同段位平均早 ${d}`,
+  later: (d: string) => `比同段位平均晚 ${d}`,
+  itemPair: (item: string, a: string, b: string) => `${item}跟同段位平均比：A ${a}，B ${b}。`,
+  early: (d: string) => `早 ${d}`,
+  late: (d: string) => `晚 ${d}`,
+  ratioPair: (label: string, at: string, a: string, b: string) =>
+    `${label}跟各自的同段位平均比（到 ${at}）：A ${a} 倍，B ${b} 倍。`,
+  metricKeyItem: "核心装备比同段位平均（秒）",
+};
+
+export default baselinesZh;

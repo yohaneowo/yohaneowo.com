@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Fragment, useMemo, useState } from "react";
 import { ExternalLinkIcon } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useLocale } from "@/i18n/locale-provider";
@@ -82,29 +83,16 @@ import {
   deepVisionInsight,
   timeInsight,
 } from "./advanced";
-
-const SECTIONS = [
-  "context",
-  "timeline",
-  "time",
-  "laning",
-  "items",
-  "skills",
-  "fights",
-  "damage",
-  "vision",
-  "movement",
-  "resources",
-  "gold",
-  "misc",
-] as const;
-type SectionKey = (typeof SECTIONS)[number];
+import { MODULES } from "./x";
+import { type Ctx as ModuleCtx, SECTIONS, type SectionKey } from "./x/types";
 
 // The x range of the whole match(es) for an alignment.
 function domain(a: LabSide, b: LabSide | null, align: Align): [number, number] {
   const sides = b ? [a, b] : [a];
   if (align.kind === "level")
     return [1, Math.max(...sides.map((s) => s.levelTimes.filter((x) => x != null).length), 2)];
+  if (align.kind === "nw")
+    return [0, Math.ceil(Math.max(...sides.map((s) => Math.max(0, ...s.minutes.netWorth))) / 1000)];
   const xs = sides
     .flatMap((s) => [xOf(s, -90, align), xOf(s, s.duration, align)])
     .filter((x): x is number => x != null);
@@ -130,14 +118,15 @@ export function LabView({
   const alignKey = JSON.stringify(align);
   const range = rangeState?.for === alignKey ? rangeState.value : full;
   const [cursor] = useState(newCursor);
+  const [rotate, setRotate] = useState(false);
   const [open, setOpen] = useState<Record<SectionKey, boolean>>(
     () => Object.fromEntries(SECTIONS.map((k) => [k, true])) as Record<SectionKey, boolean>,
   );
   const common = useMemo(() => commonKeyItems(a, b, assets), [a, b, assets]);
 
   const ctx: LabCtx = useMemo(
-    () => ({ a, b, assets, heroes, align, range, cursor, t, lang }),
-    [a, b, assets, heroes, align, range, cursor, t, lang],
+    () => ({ a, b, assets, heroes, align, range, cursor, t, lang, rotate }),
+    [a, b, assets, heroes, align, range, cursor, t, lang, rotate],
   );
 
   return (
@@ -148,6 +137,7 @@ export function LabView({
           {b && <SideCard side="b" s={b} />}
         </div>
         <p className="text-xs text-muted-foreground">{t.header.sourceNote}</p>
+        <ModeGuard />
 
         {/* The controls stay in view: alignment, the shared range, and the sections. */}
         <div className="sticky top-[110px] z-20 flex flex-col gap-2 rounded-xl border bg-background/95 px-3 py-2 backdrop-blur transition-[top] duration-300 [html[data-header-hidden]_&]:top-14">
@@ -158,6 +148,7 @@ export function LabView({
                 ["time", t.controls.alignTime],
                 ["level", t.controls.alignLevel],
                 ["item", t.controls.alignItem],
+                ["nw", t.controls.alignNw],
               ] as const
             ).map(([kind, label]) => (
               <button
@@ -191,6 +182,12 @@ export function LabView({
                 ))}
               </select>
             )}
+            {(!a.radiant || (b && !b.radiant)) && (
+              <label className="flex cursor-pointer items-center gap-1 text-muted-foreground">
+                <input type="checkbox" checked={rotate} onChange={(e) => setRotate(e.target.checked)} />
+                {t.controls.rotate}
+              </label>
+            )}
             <span className="ml-auto flex gap-1">
               <button
                 type="button"
@@ -214,7 +211,11 @@ export function LabView({
           </div>
           <div className="flex items-center gap-3 text-xs">
             <span className="shrink-0 text-muted-foreground">
-              {align.kind === "level" ? t.controls.rangeLevel : t.controls.range}
+              {align.kind === "level"
+                ? t.controls.rangeLevel
+                : align.kind === "nw"
+                  ? t.controls.rangeNw
+                  : t.controls.range}
             </span>
             <Slider
               min={full[0]}
@@ -227,7 +228,9 @@ export function LabView({
             <span className="w-28 shrink-0 text-right tabular-nums">
               {align.kind === "level"
                 ? `Lv ${range[0]}–${range[1]}`
-                : `${clock(Math.round(range[0] * 60))}–${clock(Math.round(range[1] * 60))}`}
+                : align.kind === "nw"
+                  ? `${range[0]}k–${range[1]}k`
+                  : `${clock(Math.round(range[0] * 60))}–${clock(Math.round(range[1] * 60))}`}
             </span>
             <button
               type="button"
@@ -261,42 +264,91 @@ export function LabView({
   );
 }
 
+// Games the comparisons and the rank averages don't fit: Turbo (double gold and XP) and modes that
+// change the heroes or the picks, two games in different modes, league and practice lobbies set
+// against averages from public games, two patches, and two players from the same match.
+const ODD_MODES = new Set([5, 18, 19, 20, 21, 23]);
+
+function ModeGuard() {
+  const { a, b, t } = useLab();
+  const { t: dict } = useLocale();
+  const g = t.guard;
+  const sides: [SideKey, LabSide][] = b
+    ? [
+        ["a", a],
+        ["b", b],
+      ]
+    : [["a", a]];
+  const lines: string[] = [];
+  for (const [k, s] of sides)
+    if (ODD_MODES.has(s.gameMode))
+      lines.push(
+        g.oddMode(k === "a" ? t.insight.a : t.insight.b, modeName(s.gameMode, s.lobbyType, dict.dotahub)),
+      );
+  if (b && (a.gameMode !== b.gameMode || a.lobbyType !== b.lobbyType)) lines.push(g.differentMode);
+  if (sides.some(([, s]) => s.lobbyType === 1 || s.lobbyType === 2)) lines.push(g.proLobby);
+  if (b && a.patch && b.patch && a.patch.id !== b.patch.id) lines.push(g.patch(a.patch.name, b.patch.name));
+  if (b && a.matchId === b.matchId) lines.push(g.sameMatch);
+  if (!lines.length) return null;
+  return (
+    <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs">
+      <ul className="flex list-disc flex-col gap-0.5 pl-4">
+        {lines.map((l, i) => (
+          <li key={i}>{l}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function SectionFor({ k, open, onToggle }: { k: SectionKey; open: boolean; onToggle: () => void }) {
   const ctx = useInsightContext();
   const { t } = ctx;
   const insight = useMemo(() => {
     const { a, b, assets, names } = ctx;
     const join = (...parts: string[]) => parts.filter(Boolean).join(" ");
-    switch (k) {
-      case "context":
-        return contextInsight(a, b, t);
-      case "timeline":
-        return timelineInsight(a, b, t);
-      case "time":
-        return timeInsight(a, b, t);
-      case "laning":
-        return join(laningInsight(a, b, t), deepLaningInsight(a, b, t));
-      case "items":
-        return join(itemsInsight(a, b, assets, t, names), deepItemsInsight(a, b, assets, t, names));
-      case "skills":
-        return join(skillsInsight(a, b, t, names), deepSkillsInsight(a, b, t, names));
-      case "fights":
-        return join(fightsInsight(a, b, t), deepFightsInsight(a, b, t));
-      case "damage":
-        return damageInsight(a, b, t, names);
-      case "vision":
-        return join(visionInsight(a, b, t), deepVisionInsight(a, b, t));
-      case "movement":
-        return join(movementInsight(a, b, t), deepMovementInsight(a, b, t));
-      case "resources":
-        return resourcesInsight(a, b, t);
-      case "gold":
-        return join(goldInsight(a, b, t), deepGoldInsight(a, b, t));
-      default:
-        return miscInsight(a, b, t);
-    }
+    const base = (() => {
+      switch (k) {
+        case "context":
+          return contextInsight(a, b, t);
+        case "timeline":
+          return timelineInsight(a, b, t);
+        case "time":
+          return timeInsight(a, b, t);
+        case "laning":
+          return join(laningInsight(a, b, t), deepLaningInsight(a, b, t));
+        case "items":
+          return join(itemsInsight(a, b, assets, t, names), deepItemsInsight(a, b, assets, t, names));
+        case "skills":
+          return join(skillsInsight(a, b, t, names), deepSkillsInsight(a, b, t, names));
+        case "fights":
+          return join(fightsInsight(a, b, t), deepFightsInsight(a, b, t));
+        case "damage":
+          return damageInsight(a, b, t, names);
+        case "vision":
+          return join(visionInsight(a, b, t), deepVisionInsight(a, b, t));
+        case "movement":
+          return join(movementInsight(a, b, t), deepMovementInsight(a, b, t));
+        case "resources":
+          return resourcesInsight(a, b, t);
+        case "gold":
+          return join(goldInsight(a, b, t), deepGoldInsight(a, b, assets, t));
+        case "misc":
+          return miscInsight(a, b, t);
+        default:
+          return "";
+      }
+    })();
+    const more = MODULES.flatMap((m) => {
+      try {
+        return m.insights?.(ctx)[k] ?? [];
+      } catch {
+        return [];
+      }
+    });
+    return join(base, ...more);
   }, [ctx, k, t]);
-  const body = {
+  const base: Partial<Record<SectionKey, React.ReactNode>> = {
     context: <ContextBody />,
     timeline: (
       <>
@@ -361,32 +413,61 @@ function SectionFor({ k, open, onToggle }: { k: SectionKey; open: boolean; onTog
         <AttributesBlock />
       </>
     ),
-  }[k];
+  };
+  const blocks = MODULES.map((m) => m.blocks[k]).filter((B): B is React.ComponentType => !!B);
+  if (!base[k] && !blocks.length) return null;
   return (
     <Section id={k} title={t.sections[k]} insight={insight} open={open} onToggle={onToggle}>
-      {body}
+      {base[k]}
+      {blocks.map((B, i) => (
+        <Fragment key={i}>
+          <B />
+        </Fragment>
+      ))}
     </Section>
   );
 }
 
 // The sides, names and dictionary the sentences need (kept stable between renders).
-function useInsightContext() {
+function useInsightContext(): ModuleCtx {
   const { a, b, assets, t } = useLab();
   const names = useNames();
   return useMemo(() => ({ a, b, assets, t, names }), [a, b, assets, t, names]);
 }
 
+// A module's part that throws (unexpected data) is left out rather than breaking the page.
+function safe<T>(f: () => T, fallback: T): T {
+  try {
+    return f();
+  } catch {
+    return fallback;
+  }
+}
+
 function Summary() {
-  const { a, b, assets, t } = useInsightContext();
-  const names = useNames();
-  const lines = useMemo(
+  const ctx = useInsightContext();
+  const { a, b, assets, t, names } = ctx;
+  const lines = useMemo(() => {
+    const extra = MODULES.flatMap((m) => safe(() => m.summary?.(ctx) ?? [], []))
+      .sort((x, y) => y.w - x.w)
+      .slice(0, 6)
+      .map((x) => x.text);
+    return [...summary(a, b, assets, t, names), ...deepSummary(a, b, assets, t, names), ...extra].filter(
+      (l, i, all) => l && all.indexOf(l) === i,
+    );
+  }, [ctx, a, b, assets, t, names]);
+  const diffs = useMemo(
     () =>
-      [...summary(a, b, assets, t, names), ...deepSummary(a, b, assets, t, names)].filter(
-        (l, i, all) => all.indexOf(l) === i,
-      ),
-    [a, b, assets, t, names],
+      b ? biggestDiffs(a, b, [...DEEP_METRICS, ...MODULES.flatMap((m) => m.metrics ?? [])]).slice(0, 12) : [],
+    [a, b],
   );
-  const diffs = useMemo(() => (b ? biggestDiffs(a, b, DEEP_METRICS).slice(0, 10) : []), [a, b]);
+  const lessons = useMemo(
+    () =>
+      MODULES.flatMap((m) => safe(() => m.lessons?.(ctx) ?? [], []))
+        .filter((l) => l.gold > 0)
+        .sort((x, y) => y.gold - x.gold),
+    [ctx],
+  );
   return (
     <section className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
       <h2 className="font-semibold">{b ? t.summary.title : t.summary.single}</h2>
@@ -424,7 +505,20 @@ function Summary() {
               <tbody>
                 {diffs.map((d) => (
                   <tr key={d.key} className="border-b last:border-0">
-                    <td className="py-1">{t.metrics[d.key] ?? d.key}</td>
+                    <td className="py-1">
+                      {d.label?.(t) ?? t.metrics[d.key] ?? d.key}
+                      {(d.until != null || d.byPct || d.noise) && (
+                        <span className="ml-1.5 text-[10px] text-muted-foreground">
+                          {[
+                            d.until != null && t.summary.window(clock(d.until)),
+                            d.byPct && t.summary.byPct,
+                            d.noise && t.summary.noise,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      )}
+                    </td>
                     <td className={cn("py-1 text-right tabular-nums", d.better === "a" && "font-semibold")}>
                       {fmtMetric(d.a, d.fmt)}
                     </td>
@@ -439,6 +533,34 @@ function Summary() {
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">{t.summary.none}</p>
           )}
+        </div>
+      )}
+      {lessons.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-medium">
+            {t.summary.lessons}
+            <span className="ml-2 text-xs font-normal text-muted-foreground">{t.summary.lessonsHint}</span>
+          </h3>
+          <div className={cn("mt-2 grid gap-3", b && "lg:grid-cols-2")}>
+            {(["a", "b"] as const)
+              .filter((k) => k === "a" || b)
+              .map((k) => (
+                <ol key={k} className="flex flex-col gap-1 text-sm">
+                  {lessons
+                    .filter((l) => l.side === k)
+                    .slice(0, 8)
+                    .map((l, i) => (
+                      <li key={i} className="flex items-baseline gap-2">
+                        <SideDot side={k} />
+                        <span className="flex-1">{l.text}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                          ≈{Math.round(l.gold).toLocaleString()}
+                        </span>
+                      </li>
+                    ))}
+                </ol>
+              ))}
+          </div>
         </div>
       )}
     </section>
@@ -459,6 +581,16 @@ function SideCard({ side, s }: { side: SideKey; s: LabSide }) {
           {h.match} {s.matchId}
           <ExternalLinkIcon className="size-3" aria-hidden />
         </Link>
+        {s.match.replayUrl && (
+          <a
+            href={s.match.replayUrl}
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-muted-foreground hover:underline"
+            title={h.replayHint}
+          >
+            {h.replay}
+          </a>
+        )}
         <span className={s.win ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
           {s.win ? h.win : h.loss}
         </span>
@@ -491,7 +623,11 @@ function SideCard({ side, s }: { side: SideKey; s: LabSide }) {
           {t.insight.colon}
           {s.lane ? t.lanes[s.lane] : "–"}
           {s.position ? ` · ${h.position(s.position)}` : ""}
+          {s.positionFrom && (
+            <span className="ml-1 text-muted-foreground">（{h.positionFrom[s.positionFrom]}）</span>
+          )}
         </span>
+        <PositionPick side={side} s={s} />
         <span className="flex items-center gap-1">
           {h.opponents}
           {t.insight.colon}
@@ -516,6 +652,42 @@ function SideCard({ side, s }: { side: SideKey; s: LabSide }) {
         </div>
       )}
     </LabHeroCard>
+  );
+}
+
+// Choosing which position's rank average a side is compared with (?pa= / ?pb=).
+function PositionPick({ side, s }: { side: SideKey; s: LabSide }) {
+  const { t: dict } = useLocale();
+  const h = dict.dotahub.research.header;
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const key = side === "a" ? "pa" : "pb";
+  const current = params.get(key) ?? "";
+  return (
+    <label className="flex items-center gap-1 text-muted-foreground">
+      {h.positionPick}
+      <select
+        value={current}
+        onChange={(e) => {
+          const q = new URLSearchParams(params.toString());
+          if (e.target.value) q.set(key, e.target.value);
+          else q.delete(key);
+          router.push(`${pathname}?${q}`, { scroll: false });
+        }}
+        className="rounded border bg-background px-1 py-0.5"
+      >
+        <option value="">
+          {h.positionAuto}
+          {s.positionFrom !== "override" && s.position ? ` (${s.position})` : ""}
+        </option>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <option key={n} value={n}>
+            {h.position(n)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

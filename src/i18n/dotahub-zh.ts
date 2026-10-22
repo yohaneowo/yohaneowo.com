@@ -660,6 +660,7 @@ const dotahubZh = {
     latency: (s: string) => `最近一次回应 ${s} 秒`,
     error: (e: string) => `错误：${e}`,
     quota: (period: string, n: number) => `${period}剩 ${n} 次`,
+    paidKey: (until: string) => `免费额度用完，暂用付费金钥（到 ${until}）`,
     periods: { day: "今天", hour: "这小时", minute: "这分钟" },
     checked: (m: number) => (m ? `${m} 分钟前检查` : "刚刚检查"),
   },

@@ -1,10 +1,11 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import { recordCall, sourceOf } from "./health";
+import { opendotaFetch } from "./opendota-key";
 import { getStratzPeers } from "./stratz";
 
-// DotaHub's upstream data. OpenDota (no key needed on its free tier, about 60 requests a minute)
-// gives players and matches; Valve's own Dota 2 data feed gives hero and item names in Chinese and
+// DotaHub's upstream data. OpenDota (its free tier, about 60 requests a minute; the paid key only
+// when that's spent, see opendota-key.ts) gives players and matches; Valve's own Dota 2 data feed gives hero and item names in Chinese and
 // English. Everything is cached, so a page view costs few upstream calls.
 
 const OPENDOTA = "https://api.opendota.com/api";
@@ -23,7 +24,10 @@ export async function getJson<T>(url: string, options: { notFound?: "null" } = {
   const started = Date.now();
   let response;
   try {
-    response = await fetch(url, { signal: AbortSignal.timeout(12_000) });
+    response =
+      source === "opendota"
+        ? await opendotaFetch(url, () => ({ signal: AbortSignal.timeout(12_000) }))
+        : await fetch(url, { signal: AbortSignal.timeout(12_000) });
   } catch (error) {
     const reason = error instanceof Error ? error.name : "fetch failed";
     recordCall(source, started, { ok: false, error: reason });
@@ -342,10 +346,10 @@ export async function getMatch(matchId: number) {
 
 // Asks OpenDota to fetch and parse the replay (for the advantage curves); takes a few minutes.
 export async function requestParse(matchId: number) {
-  const response = await fetch(`${OPENDOTA}/request/${matchId}`, {
+  const response = await opendotaFetch(`${OPENDOTA}/request/${matchId}`, () => ({
     method: "POST",
     signal: AbortSignal.timeout(20_000),
-  });
+  }));
   return response.ok;
 }
 

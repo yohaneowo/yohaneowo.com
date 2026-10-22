@@ -623,6 +623,22 @@ export const ROADMAP: RoadmapItem[] = [
         "Deeper: item effects, ability use, damage types and disables, ward quality, movement and grouping, gold over time and on hand, attributes",
         true,
       ),
+      step(
+        "对照基准：同段位更多项目与出装时机的胜率曲线、OpenDota 同英雄基准、本人在这个英雄的分布、同版本职业局",
+        "References: more rank-average stats and win rate by item timing, OpenDota's hero benchmarks, the player's own spread on the hero, pro games on the patch",
+        true,
+      ),
+      step(
+        "新区块：打钱、目标与地图、关键时刻与决策；各区块加深（对线预期与均衡点、团战结果与准备、死亡代价、视野暴露与眼的价值、全图快照、同局对决）",
+        "New sections: farming, objectives and the map, key moments and decisions; deeper sections (lane expectation and equilibrium, fight results and readiness, death costs, vision exposure and ward value, a whole-map snapshot, a same-match duel)",
+        true,
+      ),
+      step(
+        "比较更公平：按净值对齐、两局时长不同时比相同的前段、好坏看位置、按百分位与正常波动排、模式与版本警告、推荐的对局 B",
+        "Fairer comparisons: align by net worth, the same window when lengths differ, better or worse by role, ranked by percentile and usual spread, mode and patch warnings, a suggested match B",
+        true,
+      ),
+      step("该改什么：换算成金钱的清单", "What to fix: a list valued in gold", true),
       step("用户审视后删减与调整", "Trim and adjust after review"),
     ],
     links: [{ label: { zh: "局内科研", en: "In-game lab" }, href: "/dotahub/research" }],

@@ -5,7 +5,7 @@ import type { LabSide } from "@/lib/dota/lab";
 import type { BaselineKey } from "@/lib/dota/lab-extra";
 import { clock } from "@/lib/dota/map";
 import { cn } from "@/lib/utils";
-import { firstBuys, laneGap10, minutesOf, num, signed, xOf } from "./insights";
+import { firstBuys, minutesOf, num, xOf } from "./insights";
 import {
   AbilityIcon,
   Bars,
@@ -56,6 +56,7 @@ export function TimelineBody() {
     [],
   );
   const hp = useCallback((s: LabSide) => (s.minutes.hpMin.length ? s.minutes.hpMin : null), []);
+  const hpAvg = useCallback((s: LabSide) => (s.minutes.hpAvg.length ? s.minutes.hpAvg : null), []);
   const imp = useCallback((s: LabSide) => (s.minutes.imp.length ? s.minutes.imp : null), []);
   // STRATZ's "per minute" received damage is a running total.
   const taken = useCallback(
@@ -75,6 +76,7 @@ export function TimelineBody() {
       <LineCompare title={tl.towerDamage} series={td} baseline={blTd} />
       <LineCompare title={tl.nwShare} series={share} format={pctFmt} />
       <LineCompare title={tl.hp} series={hp} format={pctFmt} />
+      <LineCompare title={tl.hpAvg} series={hpAvg} format={pctFmt} />
       <LineCompare title={tl.imp} series={imp} />
       <LineCompare title={tl.taken} series={taken} />
       <LineCompare title={tl.healing} series={heal} />
@@ -109,14 +111,6 @@ export function LaningBody() {
     { key: "gold", label: t.timeline.gold, get: (s) => num(s.laning.at10?.gold) },
     { key: "xp", label: t.timeline.xp, get: (s) => num(s.laning.at10?.xp) },
     { key: "level", label: t.timeline.level, get: (s) => num(s.laning.at10?.level) },
-    {
-      key: "gap",
-      label: l.nwDiff,
-      get: (s) => {
-        const g = laneGap10(s);
-        return g == null ? "–" : signed(g);
-      },
-    },
     {
       key: "kd",
       label: l.killsDeaths,
@@ -515,56 +509,108 @@ export function ItemsBody() {
 
 // ── Skills ───────────────────────────────────────────────────────────────────────────────────
 
+// The skill build as a grid: a row per ability (the talents in one row), a column per hero level
+// at which either side took a point; each cell is the ability's point number. Comparing the same
+// hero, a level where the other side took something else is marked.
+function SkillGrid({ s, other, levels }: { s: LabSide; other: LabSide | null; levels: number[] }) {
+  const { assets, t } = useLab();
+  const names = useNames();
+  const learned = s.skills.learned;
+  const order = assets.heroAbilities[String(s.heroId)] ?? [];
+  const keys = [
+    ...new Set([
+      ...order.filter((k) => learned.some((l) => l.key === k && !l.talent)),
+      ...learned.filter((l) => !l.talent).map((l) => l.key),
+    ]),
+  ];
+  const cells = new Map<string, { n: string; key: string; t: number }>();
+  const counts = new Map<string, number>();
+  for (const l of learned) {
+    if (l.talent) {
+      cells.set(`talent|${l.level}`, { n: "T", key: l.key, t: l.t });
+      continue;
+    }
+    const n = (counts.get(l.key) ?? 0) + 1;
+    counts.set(l.key, n);
+    cells.set(`${l.key}|${l.level}`, { n: String(n), key: l.key, t: l.t });
+  }
+  const theirs = new Map(other?.skills.learned.map((l) => [l.level, l.talent ? "talent" : l.key]) ?? []);
+  const rows = [...keys, ...(learned.some((l) => l.talent) ? ["talent"] : [])];
+  return (
+    <div className="overflow-x-auto">
+      <table className="text-[11px]">
+        <thead className="text-muted-foreground">
+          <tr>
+            <th className="sticky left-0 bg-background pr-2 text-left font-normal">{t.skills.levelCol}</th>
+            {levels.map((lv) => (
+              <th key={lv} className="w-5 text-center font-normal tabular-nums">
+                {lv}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row} className="border-t">
+              <td className="sticky left-0 bg-background py-0.5 pr-2">
+                <span className="flex items-center gap-1">
+                  {row === "talent" ? (
+                    <span className="text-muted-foreground">{t.skills.talent}</span>
+                  ) : (
+                    <>
+                      <AbilityIcon k={row} size={16} />
+                      <span className="max-w-28 truncate">{names.abilities(row)}</span>
+                    </>
+                  )}
+                </span>
+              </td>
+              {levels.map((lv) => {
+                const c = cells.get(`${row}|${lv}`);
+                const differ = !!c && !!other && theirs.has(lv) && theirs.get(lv) !== row;
+                return (
+                  <td
+                    key={lv}
+                    title={c ? `${names.abilities(c.key)} · Lv ${lv} · ${clock(c.t)}` : undefined}
+                    className={cn(
+                      "text-center tabular-nums",
+                      c && "bg-muted font-semibold",
+                      differ && "bg-amber-500/30",
+                    )}
+                  >
+                    {c?.n ?? ""}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function SkillsBody() {
   const { t } = useLab();
   const sk = t.skills;
   const sides = useSides();
   const names = useNames();
-  const levels = Math.max(...sides.map(([, s]) => s.skills.learned.length), 0);
   const sameHero = sides.length > 1 && sides[0][1].heroId === sides[1][1].heroId;
+  const levels = [...new Set(sides.flatMap(([, s]) => s.skills.learned.map((l) => l.level)))].sort(
+    (a, b) => a - b,
+  );
   return (
     <>
-      <Sub title={sk.order}>
-        {levels ? (
-          <div className="overflow-x-auto">
-            <table className="text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr className="border-b">
-                  <th className="py-1 pr-3 font-normal">{sk.levelCol}</th>
-                  {sides.map(([k]) => (
-                    <th key={k} className="py-1 pr-6 font-normal">
-                      <SideDot side={k} className="mr-1" />
-                      {k === "a" ? t.insight.a : t.insight.b}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: levels }, (_, i) => {
-                  const picks = sides.map(([, s]) => s.skills.learned[i]);
-                  const differ = sameHero && picks[0]?.key !== picks[1]?.key;
-                  return (
-                    <tr key={i} className={cn("border-b last:border-0", differ && "bg-amber-500/10")}>
-                      <td className="py-0.5 pr-3 text-muted-foreground tabular-nums">{i + 1}</td>
-                      {picks.map((p, j) => (
-                        <td key={j} className="py-0.5 pr-6">
-                          {p ? (
-                            <span className="flex items-center gap-2">
-                              <AbilityIcon k={p.key} size={22} />
-                              <span className="max-w-48 truncate text-xs">{names.abilities(p.key)}</span>
-                              <span className="text-xs text-muted-foreground tabular-nums">{clock(p.t)}</span>
-                            </span>
-                          ) : (
-                            "–"
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      <Sub title={sk.order} hint={sameHero ? sk.orderHint : undefined}>
+        {levels.length ? (
+          <PerSide>
+            {(k, s) => (
+              <SkillGrid
+                s={s}
+                levels={levels}
+                other={sameHero ? (sides.find(([key]) => key !== k)?.[1] ?? null) : null}
+              />
+            )}
+          </PerSide>
         ) : (
           <p className="text-xs text-muted-foreground">{sk.noTiming}</p>
         )}

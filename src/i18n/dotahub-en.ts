@@ -695,6 +695,7 @@ const dotahubEn: typeof dotahubZh = {
     latency: (s: string) => `Last answer took ${s}s`,
     error: (e: string) => `Error: ${e}`,
     quota: (period: string, n: number) => `${n} calls left ${period}`,
+    paidKey: (until: string) => `Free quota spent: using the paid key until ${until}`,
     periods: { day: "today", hour: "this hour", minute: "this minute" },
     checked: (m: number) => (m ? `Checked ${m} min ago` : "Just checked"),
   },

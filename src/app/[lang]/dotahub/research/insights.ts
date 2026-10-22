@@ -41,12 +41,15 @@ export function areaOf(x: number, y: number, radiant: boolean): Area {
   return radiant ? "enemyBase" : "ownBase";
 }
 
-// Share of the path's samples in each area, within [from, to] seconds (alive or not).
+// Whether the hero was alive at a path sample (the position is carried forward while dead).
+export const aliveAt = (s: LabSide, i: number) => s.advanced.activity[i] !== "dead";
+
+// Share of the path's samples in each area, within [from, to] seconds, while alive.
 export function areaShares(s: LabSide, from = -Infinity, to = Infinity) {
   const counts = Object.fromEntries(AREAS.map((a) => [a, 0])) as Record<Area, number>;
   let n = 0;
   s.path.t.forEach((t, i) => {
-    if (t < Math.max(0, from) || t > to) return;
+    if (t < Math.max(0, from) || t > to || !aliveAt(s, i)) return;
     counts[areaOf(s.path.x[i], s.path.y[i], s.radiant)]++;
     n++;
   });
@@ -82,12 +85,14 @@ const REASON: Record<string, GoldKind> = {
   "18": "heroes",
   "19": "other",
   "20": "other",
-  "21": "other",
-  "6": "other",
+  // The bonus for the courier kill itself (16 is the share every hero gets).
+  "21": "couriers",
 };
 
-// Gold earned by kind (the starting 600 and the losses left out). Passive income isn't logged as a
-// reason: it's what's left of the total gold earned once the logged reasons are taken off.
+// Gold earned by kind: the income reasons (11–21) and passive income, which isn't logged as a
+// reason — what the ledger's earned gold (spent + kept + lost to deaths and buybacks, less sells and
+// the starting gold) leaves once the reasons are taken off. Sells are money back, not income: their
+// own line, outside the shares.
 export function goldShares(s: LabSide) {
   const out = Object.fromEntries(GOLD_KINDS.map((k) => [k, 0])) as Record<GoldKind, number>;
   for (const [reason, value] of Object.entries(s.goldReasons)) {
@@ -95,8 +100,8 @@ export function goldShares(s: LabSide) {
     if (kind && value > 0) out[kind] += value;
   }
   const logged = Object.values(out).reduce((a, b) => a + b, 0);
-  const earned = s.minutes.gold[s.minutes.gold.length - 1] ?? s.totals.totalGold ?? 0;
-  out.passive = Math.max(0, earned - logged);
+  const earned = s.totals.earned ?? s.totals.totalGold ?? s.minutes.gold[s.minutes.gold.length - 1] ?? 0;
+  out.passive = Math.max(0, s.totals.passiveGold ?? earned - logged);
   const total = Object.values(out).reduce((a, b) => a + b, 0);
   return {
     values: out,
@@ -106,6 +111,7 @@ export function goldShares(s: LabSide) {
       number
     >,
     lost: -(s.goldReasons["1"] ?? 0),
+    sells: s.totals.sells,
   };
 }
 
@@ -144,11 +150,22 @@ export function isKeyItem(key: string, assets: LabAssets) {
 
 // ── Alignment ────────────────────────────────────────────────────────────────────────────────
 
-export type Align = { kind: "time" } | { kind: "level" } | { kind: "item"; key: string };
+export type Align = { kind: "time" } | { kind: "level" } | { kind: "item"; key: string } | { kind: "nw" };
 
-// The x value of a moment for a side (minutes, levels, or minutes from the item), and back.
+// Net worth in thousands at a second (the side's own resources as the x axis).
+const nwAt = (s: LabSide, t: number) => (valueAt(s.minutes.netWorth, t) ?? 0) / 1000;
+
+// The x value of a moment for a side (minutes, levels, minutes from the item, or net worth in
+// thousands), and back.
 export function xOf(s: LabSide, t: number, align: Align): number | null {
   if (align.kind === "time") return t / 60;
+  if (align.kind === "nw") {
+    // Net worth drops on deaths: the axis keeps the highest reached so far, so it only goes forward.
+    const m = Math.min(s.minutes.netWorth.length - 1, Math.max(0, Math.floor(t / 60)));
+    let peak = 0;
+    for (let i = 0; i <= m; i++) peak = Math.max(peak, s.minutes.netWorth[i] ?? 0);
+    return Math.max(peak / 1000, nwAt(s, t));
+  }
   if (align.kind === "level") {
     const lt = s.levelTimes;
     let level = 1;
@@ -166,6 +183,19 @@ export function xOf(s: LabSide, t: number, align: Align): number | null {
 
 export function timeOf(s: LabSide, x: number, align: Align): number | null {
   if (align.kind === "time") return x * 60;
+  if (align.kind === "nw") {
+    // The first moment the net worth reached x thousand (between minutes, linearly).
+    const nw = s.minutes.netWorth;
+    const goal = x * 1000;
+    if (!nw.length) return null;
+    if (goal <= (nw[0] ?? 0)) return 0;
+    for (let m = 1; m < nw.length; m++)
+      if (nw[m] >= goal) {
+        const a = nw[m - 1];
+        return (m - 1 + (goal - a) / Math.max(1, nw[m] - a)) * 60;
+      }
+    return s.duration;
+  }
   if (align.kind === "level") {
     const i = Math.floor(x) - 1;
     const lt = s.levelTimes;
@@ -200,87 +230,290 @@ export function firstBuys(s: LabSide, assets: LabAssets) {
 
 // ── Metrics compared ─────────────────────────────────────────────────────────────────────────
 
-type Fmt = "int" | "dec" | "pct" | "clock" | "signed";
-export type Metric = { key: string; fmt: Fmt; higher: boolean; get: (s: LabSide) => number | null };
+export type Fmt = "int" | "dec" | "pct" | "clock" | "signed";
+export type Metric = {
+  key: string;
+  fmt: Fmt;
+  // Which way is better (null: neither, e.g. it depends on the role).
+  higher: boolean | null;
+  get: (s: LabSide) => number | null;
+  // The value over the first `until` seconds, so games of different lengths compare over the same
+  // window.
+  getUntil?: (s: LabSide, until: number) => number | null;
+  // Which way is better for this side (by its role), overriding `higher`; null when neither.
+  dir?: (s: LabSide) => boolean | null;
+  // Where a value falls among the side's references (0–1), to rank gaps by how unusual they are.
+  pct?: (s: LabSide, v: number) => number | null;
+  // The side's own game-to-game spread (standard deviation over their games on the hero, in the
+  // metric's units): a gap smaller than it is within normal variation.
+  spread?: (s: LabSide) => number | null;
+  // Only compared between two games on the same hero (casts, item uses…).
+  sameHero?: boolean;
+  // The row's label when it isn't in t.metrics.
+  label?: (t: R) => string;
+};
 
-const castsPerMin = (s: LabSide) => s.skills.uses.reduce((a, b) => a + b.count, 0) / minutesOf(s);
+// Where a value falls on OpenDota's benchmark curve for the hero (percentile 0–1, between its
+// points; below the 10th linearly towards 0).
+export function benchPct(s: LabSide, key: string, v: number | null | undefined): number | null {
+  const list = s.refs.od?.benchmarks[key];
+  if (!list?.length || v == null || !Number.isFinite(v)) return null;
+  const pts = [...list].sort((a, b) => a.p - b.p);
+  if (v <= pts[0].v) return pts[0].v > 0 ? Math.max(0, pts[0].p * (v / pts[0].v)) : pts[0].p;
+  for (let i = 1; i < pts.length; i++)
+    if (v <= pts[i].v) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      return a.p + ((b.p - a.p) * (v - a.v)) / Math.max(1e-9, b.v - a.v);
+    }
+  return pts[pts.length - 1].p;
+}
+
+// Map interactions logged as abilities (twin gates, watchers, lotus pools, outposts, walking
+// through Underlord's portal): not casts.
+export const MAP_INTERACTIONS = new Set([
+  "twin_gate_portal_warp",
+  "ability_lamp_use",
+  "ability_pluck_famango",
+  "ability_capture",
+  "abyssal_underlord_portal_warp",
+]);
+
+// Per minute of a cumulative per-minute curve over the first `until` seconds. The game that ends
+// first is compared over all of it, and its curves stop at the last whole minute: its whole-game
+// rate (`whole`) stands in, else the minutes after the last one would count with nothing in them.
+const perMinUntil = (s: LabSide, arr: number[], until: number, whole: number | null) => {
+  if (until >= s.duration && whole != null) return whole;
+  const v = valueAt(arr, until);
+  return v == null || until <= 0 ? null : (v - (arr[0] ?? 0)) / (until / 60);
+};
+// Without STRATZ's parse the events are OpenDota's kill and death logs, which have no assists.
+const eventsUntil = (s: LabSide, kind: "kill" | "death" | "assist", until: number) => {
+  if (kind === "assist" && !s.parsed.stratz)
+    return until >= s.duration ? s.totals.assists / minutesOf(s) : null;
+  return s.fights.events.filter((f) => f.kind === kind && f.t <= until).length / Math.max(1, until / 60);
+};
+// STRATZ's damage taken is a running total by the end of each minute (index m = (m + 1):00).
+const takenUntil = (s: LabSide, until: number) => {
+  if (!s.minutes.damageTaken.length) return null;
+  if (until >= s.duration && s.damage.takenByKind.heroes != null)
+    return s.damage.takenByKind.heroes / minutesOf(s);
+  const v = valueAt([0, ...s.minutes.damageTaken], until);
+  return v == null || until <= 0 ? null : v / (until / 60);
+};
+const sd = (s: LabSide, key: keyof NonNullable<LabSide["refs"]["personal"]>["od"]) =>
+  s.refs.personal?.od[key]?.sd ?? null;
+const isCore = (s: LabSide) => s.position != null && s.position <= 3;
+const isSupport = (s: LabSide) => s.position != null && s.position >= 4;
+
+const castsPerMin = (s: LabSide) =>
+  s.skills.uses.filter((u) => !MAP_INTERACTIONS.has(u.key)).reduce((a, b) => a + b.count, 0) / minutesOf(s);
 const itemUsesPerMin = (s: LabSide) =>
   s.items.uses.filter((u) => u.key !== "power_treads").reduce((a, b) => a + b.count, 0) / minutesOf(s);
 const kaPerMin = (s: LabSide) => (s.totals.kills + s.totals.assists) / minutesOf(s);
-export const laneGap10 = (s: LabSide) => {
-  if (!s.laning.at10 || !s.laning.opponents10.length) return null;
-  const opp = s.laning.opponents10.reduce((a, b) => a + b.netWorth, 0) / s.laning.opponents10.length;
-  return s.laning.at10.netWorth - opp;
-};
 
+// Seconds dead over the first `until` seconds.
+const deadUntil = (s: LabSide, until: number) =>
+  s.fights.events
+    .filter((f) => f.kind === "death" && f.t <= until)
+    .reduce((a, f) => a + Math.max(0, Math.min(until, f.t + (f.timeDead ?? 0)) - f.t), 0);
+
+// Rates over the whole game, or over the first `until` seconds when the two games differ in length
+// (getUntil); percentiles against OpenDota's benchmarks for the hero (pct), the player's own spread on
+// the hero (spread); 'better' by role where it depends on it (dir: null = neither).
 export const METRICS: Metric[] = [
-  { key: "gpm", fmt: "int", higher: true, get: (s) => s.totals.gpm },
-  { key: "xpm", fmt: "int", higher: true, get: (s) => s.totals.xpm },
-  { key: "lhpm", fmt: "dec", higher: true, get: (s) => s.totals.lastHits / minutesOf(s) },
-  { key: "dnpm", fmt: "dec", higher: true, get: (s) => s.totals.denies / minutesOf(s) },
-  { key: "kpm", fmt: "dec", higher: true, get: (s) => s.totals.kills / minutesOf(s) },
-  { key: "dpm", fmt: "dec", higher: false, get: (s) => s.totals.deaths / minutesOf(s) },
-  { key: "apm", fmt: "dec", higher: true, get: (s) => s.totals.assists / minutesOf(s) },
-  { key: "hdpm", fmt: "int", higher: true, get: (s) => s.totals.heroDamage / minutesOf(s) },
-  { key: "tdpm", fmt: "int", higher: true, get: (s) => s.totals.towerDamage / minutesOf(s) },
+  {
+    key: "gpm",
+    fmt: "int",
+    higher: true,
+    get: (s) => s.totals.gpm,
+    getUntil: (s, u) => perMinUntil(s, s.minutes.gold, u, s.totals.gpm),
+    pct: (s, v) => benchPct(s, "gold_per_min", v),
+    spread: (s) => sd(s, "gpm"),
+    dir: (s) => (isSupport(s) ? null : true),
+  },
+  {
+    key: "xpm",
+    fmt: "int",
+    higher: true,
+    get: (s) => s.totals.xpm,
+    getUntil: (s, u) => perMinUntil(s, s.minutes.xp, u, s.totals.xpm),
+    pct: (s, v) => benchPct(s, "xp_per_min", v),
+    spread: (s) => sd(s, "xpm"),
+  },
+  {
+    key: "lhpm",
+    fmt: "dec",
+    higher: true,
+    get: (s) => s.totals.lastHits / minutesOf(s),
+    getUntil: (s, u) => perMinUntil(s, s.minutes.lh, u, s.totals.lastHits / minutesOf(s)),
+    pct: (s, v) => benchPct(s, "last_hits_per_min", v),
+    spread: (s) => sd(s, "lhpm"),
+    dir: (s) => (isSupport(s) ? null : true),
+  },
+  {
+    key: "dnpm",
+    fmt: "dec",
+    higher: true,
+    get: (s) => s.totals.denies / minutesOf(s),
+    getUntil: (s, u) => perMinUntil(s, s.minutes.dn, u, s.totals.denies / minutesOf(s)),
+    pct: (s, v) => benchPct(s, "denies_per_min", v),
+  },
+  {
+    key: "kpm",
+    fmt: "dec",
+    higher: true,
+    get: (s) => s.totals.kills / minutesOf(s),
+    getUntil: (s, u) => eventsUntil(s, "kill", u),
+    pct: (s, v) => benchPct(s, "kills_per_min", v),
+  },
+  {
+    key: "dpm",
+    fmt: "dec",
+    higher: false,
+    get: (s) => s.totals.deaths / minutesOf(s),
+    getUntil: (s, u) => eventsUntil(s, "death", u),
+    pct: (s, v) => benchPct(s, "deaths_per_min", v),
+  },
+  {
+    key: "apm",
+    fmt: "dec",
+    higher: true,
+    get: (s) => s.totals.assists / minutesOf(s),
+    getUntil: (s, u) => eventsUntil(s, "assist", u),
+    pct: (s, v) => benchPct(s, "assists_per_min", v),
+  },
+  {
+    key: "hdpm",
+    fmt: "int",
+    higher: true,
+    get: (s) => s.totals.heroDamage / minutesOf(s),
+    getUntil: (s, u) => perMinUntil(s, s.minutes.heroDamage, u, s.totals.heroDamage / minutesOf(s)),
+    pct: (s, v) => benchPct(s, "hero_damage_per_min", v),
+  },
+  {
+    key: "tdpm",
+    fmt: "int",
+    higher: true,
+    get: (s) => s.totals.towerDamage / minutesOf(s),
+    getUntil: (s, u) => perMinUntil(s, s.minutes.towerDamage, u, s.totals.towerDamage / minutesOf(s)),
+    dir: (s) => (isSupport(s) ? null : true),
+  },
   {
     key: "tkpm",
     fmt: "int",
-    higher: false,
+    higher: null,
     get: (s) => (s.damage.takenByKind.heroes != null ? s.damage.takenByKind.heroes / minutesOf(s) : null),
+    getUntil: takenUntil,
   },
-  { key: "participation", fmt: "pct", higher: true, get: (s) => s.fights.participation },
-  { key: "lh10", fmt: "int", higher: true, get: (s) => s.laning.at10?.lh ?? null },
-  { key: "nw10", fmt: "int", higher: true, get: (s) => s.laning.at10?.netWorth ?? null },
-  { key: "lane10", fmt: "signed", higher: true, get: laneGap10 },
+  {
+    key: "participation",
+    fmt: "pct",
+    higher: true,
+    get: (s) => s.fights.participation,
+    getUntil: (s, u) => {
+      // OpenDota's logs (no STRATZ parse) have no assists: only the whole game, when it's the window.
+      if (!s.parsed.stratz) return u >= s.duration ? s.fights.participation : null;
+      const enemy = new Set(s.enemies);
+      const team = s.match.deaths.filter((d) => enemy.has(d.hero) && d.t <= u).length;
+      const mine = s.fights.events.filter(
+        (f) => (f.kind === "kill" || f.kind === "assist") && f.t <= u,
+      ).length;
+      return team ? Math.min(1, mine / team) : null;
+    },
+  },
+  {
+    key: "lh10",
+    fmt: "int",
+    higher: true,
+    get: (s) => s.laning.at10?.lh ?? null,
+    dir: (s) => (isSupport(s) ? null : true),
+  },
+  {
+    key: "nw10",
+    fmt: "int",
+    higher: true,
+    get: (s) => s.laning.at10?.netWorth ?? null,
+    dir: (s) => (isSupport(s) ? null : true),
+  },
   { key: "lvl6", fmt: "clock", higher: false, get: (s) => s.levelTimes[5] ?? null },
   { key: "lvl12", fmt: "clock", higher: false, get: (s) => s.levelTimes[11] ?? null },
   { key: "lvl18", fmt: "clock", higher: false, get: (s) => s.levelTimes[17] ?? null },
-  { key: "creepShare", fmt: "pct", higher: true, get: (s) => goldShares(s).shares.creeps },
-  { key: "neutralShare", fmt: "pct", higher: true, get: (s) => goldShares(s).shares.neutrals },
-  { key: "killShare", fmt: "pct", higher: true, get: (s) => goldShares(s).shares.heroes },
+  // How the gold came: a style, not better or worse.
+  { key: "creepShare", fmt: "pct", higher: null, get: (s) => goldShares(s).shares.creeps },
+  { key: "neutralShare", fmt: "pct", higher: null, get: (s) => goldShares(s).shares.neutrals },
+  { key: "killShare", fmt: "pct", higher: null, get: (s) => goldShares(s).shares.heroes },
   {
     key: "deadPct",
     fmt: "pct",
     higher: false,
     get: (s) => (s.totals.deadSeconds != null ? s.totals.deadSeconds / s.duration : null),
+    getUntil: (s, u) => (s.totals.deadSeconds != null ? deadUntil(s, u) / u : null),
   },
   {
     key: "wards",
     fmt: "dec",
-    higher: true,
+    higher: null,
     get: (s) => (s.vision.wards.length * 10) / minutesOf(s),
+    getUntil: (s, u) => (s.vision.wards.filter((w) => w.t <= u).length * 10) / Math.max(1, u / 60),
+    dir: (s) => (isSupport(s) ? true : null),
   },
-  { key: "dewards", fmt: "int", higher: true, get: (s) => s.vision.observerKills + s.vision.sentryKills },
-  { key: "stacks", fmt: "int", higher: true, get: (s) => s.resources.campsStacked },
+  {
+    key: "dewards",
+    fmt: "int",
+    higher: null,
+    get: (s) => s.vision.observerKills + s.vision.sentryKills,
+    dir: (s) => (isSupport(s) ? true : null),
+  },
+  {
+    key: "stacks",
+    fmt: "int",
+    higher: null,
+    get: (s) => s.resources.campsStacked,
+    dir: (s) => (isSupport(s) ? true : null),
+  },
   {
     key: "runes",
     fmt: "int",
-    higher: true,
+    higher: null,
     get: (s) => s.resources.runes.filter((r) => r.action === "PICKUP" || r.action === "BOTTLE").length,
+    dir: (s) => (s.position === 2 || isSupport(s) ? true : null),
   },
-  { key: "castpm", fmt: "dec", higher: true, get: castsPerMin },
-  { key: "itempm", fmt: "dec", higher: true, get: itemUsesPerMin },
+  { key: "castpm", fmt: "dec", higher: null, get: castsPerMin, sameHero: true },
+  { key: "itempm", fmt: "dec", higher: null, get: itemUsesPerMin, sameHero: true },
   {
     key: "stunpm",
     fmt: "dec",
     higher: true,
     get: (s) => (s.totals.stuns != null ? s.totals.stuns / minutesOf(s) : null),
+    sameHero: true,
   },
-  { key: "actionspm", fmt: "int", higher: true, get: (s) => s.totals.apm },
+  { key: "actionspm", fmt: "int", higher: null, get: (s) => s.totals.apm },
   {
     key: "enemyJungle",
     fmt: "pct",
-    higher: true,
+    higher: null,
     get: (s) => (s.path.t.length ? areaShares(s).shares.enemyJungle : null),
+    getUntil: (s, u) => (s.path.t.length ? areaShares(s, 0, u).shares.enemyJungle : null),
   },
   {
     key: "lanePct",
     fmt: "pct",
-    higher: true,
+    higher: null,
     get: (s) => (s.path.t.length ? areaShares(s).shares.lane : null),
+    getUntil: (s, u) => (s.path.t.length ? areaShares(s, 0, u).shares.lane : null),
   },
-  { key: "nwShare", fmt: "pct", higher: true, get: (s) => s.totals.teamNetWorthShare },
+  {
+    key: "nwShare",
+    fmt: "pct",
+    higher: null,
+    get: (s) => s.totals.teamNetWorthShare,
+    getUntil: (s, u) => {
+      const m = Math.min(s.minutes.netWorth.length - 1, Math.floor(u / 60));
+      return s.minutes.teamNetWorth[m] ? s.minutes.netWorth[m] / s.minutes.teamNetWorth[m] : null;
+    },
+    dir: (s) => (isCore(s) ? true : null),
+  },
 ];
 
 export function fmtMetric(v: number | null, fmt: Fmt) {
@@ -292,26 +525,70 @@ export function fmtMetric(v: number | null, fmt: Fmt) {
   return num(v);
 }
 
-export type Diff = { key: string; a: number; b: number; fmt: Fmt; score: number; better: "a" | "b" | null };
+export type Diff = {
+  key: string;
+  a: number;
+  b: number;
+  fmt: Fmt;
+  score: number;
+  better: "a" | "b" | null;
+  label?: (t: R) => string;
+  // The window compared (seconds from the start), when the metric was taken over the same window.
+  until: number | null;
+  // Ranked by the gap in percentiles against the references (else by the relative gap).
+  byPct: boolean;
+  // The gap is smaller than the players' own game-to-game spread on the hero.
+  noise: boolean;
+};
 
-// The differences that stand out, largest first: relative for counts and rates, in points for
-// shares, in proportion to the slower time for timings.
+// The differences that stand out, largest first. Where the metric can be taken over the same
+// window, both sides are (the shorter game's length). Where both values have a percentile against
+// their references, the gap in percentiles ranks them (how unusual, not how big); else relative for
+// counts and rates, in points for shares, in proportion to the slower time for timings. 'Better' only
+// where the direction is the same for both sides' roles; a gap inside the players' usual spread is
+// marked and ranked lower.
 export function biggestDiffs(a: LabSide, b: LabSide, extra: Metric[] = []): Diff[] {
   const out: Diff[] = [];
+  const until = Math.min(a.duration, b.duration);
+  const sameLength = Math.abs(a.duration - b.duration) / Math.max(a.duration, b.duration) < 0.1;
   for (const m of [...METRICS, ...extra]) {
-    const va = m.get(a);
-    const vb = m.get(b);
+    if (m.sameHero && a.heroId !== b.heroId) continue;
+    const windowed = !sameLength && !!m.getUntil;
+    const va = windowed ? m.getUntil!(a, until) : m.get(a);
+    const vb = windowed ? m.getUntil!(b, until) : m.get(b);
     if (va == null || vb == null) continue;
+    const pa = m.pct?.(a, va);
+    const pb = m.pct?.(b, vb);
+    const byPct = pa != null && pb != null;
     let score: number;
-    if (m.fmt === "pct") score = Math.abs(va - vb) / Math.max(0.15, Math.max(va, vb));
-    else if (m.fmt === "signed") score = Math.abs(va - vb) / Math.max(800, Math.abs(va), Math.abs(vb));
-    else score = Math.abs(va - vb) / Math.max(1e-6, Math.abs(va), Math.abs(vb));
+    if (byPct) score = Math.abs(pa - pb);
+    else if (m.fmt === "pct") score = Math.abs(va - vb) / Math.max(0.15, Math.max(va, vb));
+    else if (m.fmt === "signed")
+      score = Math.abs(va - vb) / Math.max(800, Math.abs(va), Math.abs(vb), Math.abs(va - vb));
+    else score = Math.abs(va - vb) / Math.max(1e-6, Math.abs(va), Math.abs(vb), Math.abs(va - vb));
     if (!Number.isFinite(score) || score < 0.12) continue;
     // Tiny absolute values (0.1 deaths a minute against 0.05) say little.
-    if (m.fmt === "dec" && Math.max(va, vb) < 0.15) continue;
-    if (m.fmt === "int" && Math.max(Math.abs(va), Math.abs(vb)) < 3) continue;
-    const aBetter = m.higher ? va > vb : va < vb;
-    out.push({ key: m.key, a: va, b: vb, fmt: m.fmt, score, better: va === vb ? null : aBetter ? "a" : "b" });
+    if (!byPct && m.fmt === "dec" && Math.max(va, vb) < 0.15) continue;
+    if (!byPct && m.fmt === "int" && Math.max(Math.abs(va), Math.abs(vb)) < 3) continue;
+    const da = m.dir ? m.dir(a) : m.higher;
+    const db = m.dir ? m.dir(b) : m.higher;
+    const dirSame = da != null && da === db;
+    const aBetter = da ? va > vb : va < vb;
+    // Windowed values aren't on the same footing as whole-game spreads.
+    const spread = windowed ? null : Math.max(m.spread?.(a) ?? 0, m.spread?.(b) ?? 0) || null;
+    const noise = spread != null && Math.abs(va - vb) < spread;
+    out.push({
+      key: m.key,
+      a: va,
+      b: vb,
+      fmt: m.fmt,
+      score: noise ? score / 2 : score,
+      better: !dirSame || va === vb ? null : aBetter ? "a" : "b",
+      label: m.label,
+      until: windowed ? until : null,
+      byPct,
+      noise,
+    });
   }
   return out.sort((x, y) => y.score - x.score);
 }
@@ -370,21 +647,12 @@ export function timelineInsight(a: LabSide, b: LabSide | null, t: R) {
 
 export function laningInsight(a: LabSide, b: LabSide | null, t: R) {
   const i = t.insight;
-  const ga = laneGap10(a);
   const swaps = [a, b]
     .filter(Boolean)
     .map((s, k) => (s!.laning.swaps.length ? i.laneSwap(k ? i.b : i.a, s!.laning.swaps.length) : ""));
-  if (!b) {
-    if (ga == null) return i.laneNone;
-    return [i.laneSingle(signed(ga), a.laning.at10?.lh ?? 0, a.laning.at10?.dn ?? 0), ...swaps]
-      .filter(Boolean)
-      .join(" ");
-  }
-  const gb = laneGap10(b);
-  if (ga == null && gb == null) return i.laneNone;
-  return [i.lanePair(ga == null ? "–" : signed(ga), gb == null ? "–" : signed(gb)), ...swaps]
-    .filter(Boolean)
-    .join(" ");
+  const at10 = (s: LabSide) => (s.laning.at10 ? `${s.laning.at10.lh} / ${s.laning.at10.dn}` : "–");
+  if (!a.laning.at10 && !b?.laning.at10) return i.laneNone;
+  return [b ? i.lanePair(at10(a), at10(b)) : i.laneSingle(at10(a)), ...swaps].filter(Boolean).join(" ");
 }
 
 export function itemsInsight(a: LabSide, b: LabSide | null, assets: LabAssets, t: R, n: Names) {
@@ -416,12 +684,21 @@ function firstMaxed(s: LabSide) {
   return null;
 }
 
+const topCast = (s: LabSide) => s.skills.uses.find((u) => !MAP_INTERACTIONS.has(u.key));
+
 export function skillsInsight(a: LabSide, b: LabSide | null, t: R, n: Names) {
   const i = t.insight;
-  if (!b) {
-    const top = a.skills.uses[0];
-    return i.skillsSingle(num(castsPerMin(a), 1), top ? n.abilities(top.key) : "–");
-  }
+  const top = (s: LabSide) => {
+    const u = topCast(s);
+    return u ? n.abilities(u.key) : "–";
+  };
+  if (!b) return i.skillsSingle(num(castsPerMin(a), 1), top(a));
+  // Casts mean different things on different heroes: each side on its own.
+  if (a.heroId !== b.heroId)
+    return [
+      i.skillsOther(i.a, num(castsPerMin(a), 1), top(a)),
+      i.skillsOther(i.b, num(castsPerMin(b), 1), top(b)),
+    ].join(" ");
   const parts = [i.skillsPair(num(castsPerMin(a), 1), num(castsPerMin(b), 1))];
   const ma = firstMaxed(a);
   const mb = firstMaxed(b);
@@ -513,15 +790,25 @@ export function movementInsight(a: LabSide, b: LabSide | null, t: R) {
   const i = t.insight;
   const zones = t.movement.zoneNames;
   const ta = topArea(a);
-  if (!ta) return i.movementNone;
-  if (!b) return i.movementSingle(zones[ta[0]], pct(ta[1]), pct(areaShares(a).shares.enemyJungle));
+  if (!b)
+    return ta
+      ? i.movementSingle(zones[ta[0]], pct(ta[1]), pct(areaShares(a).shares.enemyJungle))
+      : i.movementNone;
   const tb = topArea(b);
-  if (!tb) return i.movementNone;
-  return i.movementPair(`${zones[ta[0]]}（${pct(ta[1])}）`, `${zones[tb[0]]}（${pct(tb[1])}）`);
+  if (ta && tb) return i.movementPair(zones[ta[0]], pct(ta[1]), zones[tb[0]], pct(tb[1]));
+  if (!ta && !tb) return i.movementNone;
+  // One side without positions (no STRATZ parse): the other side's alone.
+  const [who, top, other] = ta ? [i.a, ta, i.b] : [i.b, tb!, i.a];
+  return i.movementOne(who, zones[top[0]], pct(top[1]), other);
 }
 
+// Pulls are found from STRATZ's last hits: unknown without its parse.
 const resourceLine = (s: LabSide, t: R) =>
-  t.insight.resourcesLine(s.resources.runes.length, s.resources.campsStacked, s.resources.pulls.length);
+  t.insight.resourcesLine(
+    s.resources.runes.length,
+    s.resources.campsStacked,
+    s.parsed.stratz ? s.resources.pulls.length : null,
+  );
 
 export function resourcesInsight(a: LabSide, b: LabSide | null, t: R) {
   const i = t.insight;
@@ -592,11 +879,6 @@ export function summary(a: LabSide, b: LabSide | null, assets: LabAssets, t: R, 
     w: Math.abs(ka) / Math.max(0.1, kaPerMin(a), kaPerMin(b)),
   });
 
-  const la = laneGap10(a);
-  const lb = laneGap10(b);
-  if (la != null && lb != null)
-    out.push({ text: i.summaryLane(who(la - lb), num(Math.abs(la - lb))), w: Math.abs(la - lb) / 1500 });
-
   const fa = firstBuys(a, assets);
   const fb = firstBuys(b, assets);
   const common = [...fa.keys()].filter((k) => fb.has(k));
@@ -609,9 +891,14 @@ export function summary(a: LabSide, b: LabSide | null, assets: LabAssets, t: R, 
     });
   }
 
+  // 'More time dead' only when the dead-time shares say so too.
   const dd = a.totals.deaths / minutesOf(a) - b.totals.deaths / minutesOf(b);
+  const deadShare = (s: LabSide) => (s.totals.deadSeconds != null ? s.totals.deadSeconds / s.duration : null);
+  const da = deadShare(a);
+  const db = deadShare(b);
+  const deadToo = da != null && db != null && (dd > 0 ? da > db : da < db);
   out.push({
-    text: i.summaryDeaths(who(dd), num(Math.abs(dd), 2)),
+    text: (deadToo ? i.summaryDeaths : i.summaryDeathsOnly)(who(dd), num(Math.abs(dd), 2)),
     w: (Math.abs(dd) / Math.max(0.05, a.totals.deaths / minutesOf(a), b.totals.deaths / minutesOf(b))) * 0.8,
   });
 
@@ -622,11 +909,13 @@ export function summary(a: LabSide, b: LabSide | null, assets: LabAssets, t: R, 
       w: Math.abs(wd) / Math.max(a.vision.wards.length, b.vision.wards.length),
     });
 
-  const cd = castsPerMin(a) - castsPerMin(b);
-  out.push({
-    text: i.summaryCast(who(cd), num(Math.abs(cd), 1)),
-    w: (Math.abs(cd) / Math.max(0.5, castsPerMin(a), castsPerMin(b))) * 0.7,
-  });
+  if (a.heroId === b.heroId) {
+    const cd = castsPerMin(a) - castsPerMin(b);
+    out.push({
+      text: i.summaryCast(who(cd), num(Math.abs(cd), 1)),
+      w: (Math.abs(cd) / Math.max(0.5, castsPerMin(a), castsPerMin(b))) * 0.7,
+    });
+  }
 
   return out
     .filter((x) => x.w >= 0.15)

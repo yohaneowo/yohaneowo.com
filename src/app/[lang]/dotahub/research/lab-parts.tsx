@@ -49,6 +49,8 @@ export type LabCtx = {
   cursor: Cursor;
   t: Dictionary["dotahub"]["research"];
   lang: "zh" | "en";
+  // Turn Dire games' maps half a turn, so every side's base is at the bottom left.
+  rotate: boolean;
 };
 
 const Ctx = createContext<LabCtx | null>(null);
@@ -83,6 +85,40 @@ export function useCursorTime(s: LabSide) {
   const { cursor, align } = useLab();
   const x = useSyncExternalStore(cursor.subscribe, cursor.get, () => null);
   return x == null ? null : timeOf(s, x, align);
+}
+
+// Whether a side's maps are drawn turned (Dire games, with rotation on).
+export function useFlip(s: LabSide | null | undefined) {
+  const { rotate } = useLab();
+  return rotate && !!s && !s.radiant;
+}
+
+// A small label on a reading: worked out in hindsight from replay positions the player couldn't
+// see, an estimate from a rule, or where the numbers come from.
+export function Caveat({
+  kind,
+  children,
+}: {
+  kind: "hindsight" | "estimate" | "source";
+  children?: ReactNode;
+}) {
+  const { t } = useLab();
+  const tone = {
+    hindsight: "border-violet-500/40 bg-violet-500/10 text-violet-800 dark:text-violet-200",
+    estimate: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+    source: "border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-200",
+  }[kind];
+  return (
+    <p className="flex flex-wrap items-baseline gap-1.5 text-xs text-muted-foreground">
+      <span
+        className={cn("rounded border px-1 text-[10px] font-medium", tone)}
+        title={t.notes[`${kind}Hint`]}
+      >
+        {t.notes[kind]}
+      </span>
+      {children}
+    </p>
+  );
 }
 
 // ── Names and pictures ───────────────────────────────────────────────────────────────────────
@@ -327,11 +363,13 @@ export const GROUP = "dota-lab";
 function axisName(t: LabCtx["t"], align: Align, item: string) {
   if (align.kind === "level") return t.timeline.levelAxis;
   if (align.kind === "item") return t.timeline.itemAxis(item);
+  if (align.kind === "nw") return t.timeline.nwAxis;
   return t.timeline.minute;
 }
 
 export function fmtX(x: number, align: Align) {
   if (align.kind === "level") return `Lv ${x.toFixed(1)}`;
+  if (align.kind === "nw") return `${x.toFixed(1)}k`;
   const s = Math.round(x * 60);
   return align.kind === "item" ? `${s >= 0 ? "+" : "−"}${clock(Math.abs(s))}` : clock(s);
 }
@@ -418,25 +456,50 @@ export function LineCompare({
           tooltip: { show: false },
         });
     }
-    // The rank average: one line per distinct baseline.
+    // The rank average: one line per distinct baseline, placed by its own curves (its level, its
+    // purchase time of the item, its net worth — not the player's), faded from the minute fewer
+    // than 15% of its games are still going (late minutes average only the long games).
     const drawn = new Set<string>();
     for (const [k, s] of sides) {
       const bl = baseline?.(s);
       const meta = s.advanced.baseline;
       if (!bl?.length || !meta) continue;
-      const id = `${s.heroId}-${meta.position}-${meta.bracket}`;
-      if (drawn.has(id) && align.kind === "time") continue;
+      const id = `${s.heroId}-${meta.position}-${meta.bracket}-${meta.week}`;
+      if (drawn.has(id)) continue;
       drawn.add(id);
-      lines.push({
-        name: `${t.deep.baseline}${sides.length > 1 && drawn.size > 1 ? ` (${k === "a" ? t.insight.a : t.insight.b})` : ""}`,
-        type: "line",
-        data: bl
-          .map((v, m) => [xOf(s, m * 60, align), v] as [number | null, number | null])
-          .filter((p): p is [number, number] => p[0] != null && p[1] != null),
+      const xAt = (m: number): number | null => {
+        if (align.kind === "time") return m;
+        if (align.kind === "level") return meta.minutes.level[m] ?? null;
+        if (align.kind === "nw") {
+          const v = meta.minutes.networth[m];
+          return v == null ? null : v / 1000;
+        }
+        const it = meta.items[align.key];
+        return it ? m - it.time / 60 : null;
+      };
+      const few = Math.max(30, 0.15 * (meta.counts[0] ?? 0));
+      const cut = meta.counts.findIndex((c, m) => m > 0 && c < few);
+      const points = bl
+        .map((v, m) => ({ x: xAt(m), v, m }))
+        .filter((p): p is { x: number; v: number; m: number } => p.x != null && p.v != null);
+      const name = `${t.deep.baseline}${sides.length > 1 && drawn.size > 1 ? ` (${k === "a" ? t.insight.a : t.insight.b})` : ""}`;
+      const style = (faded: boolean) => ({
+        type: "line" as const,
         showSymbol: false,
-        lineStyle: { width: 1.5, type: "dashed", color: "#9ca3af" },
+        lineStyle: { width: 1.5, type: "dashed" as const, color: "#9ca3af", opacity: faded ? 0.35 : 1 },
         itemStyle: { color: "#9ca3af" },
       });
+      lines.push({
+        ...style(false),
+        name,
+        data: points.filter((p) => cut < 0 || p.m <= cut).map((p) => [p.x, p.v]),
+      });
+      if (cut >= 0)
+        lines.push({
+          ...style(true),
+          name: `${name} · ${t.deep.fewGames}`,
+          data: points.filter((p) => p.m >= cut).map((p) => [p.x, p.v]),
+        });
     }
     return {
       animation: false,
@@ -512,7 +575,7 @@ export function TimeStrip({
                 <span
                   key={i}
                   title={clock(t)}
-                  className="absolute top-0.5 h-3 w-[2px] rounded"
+                  className="absolute top-0.5 h-3 w-0.5 rounded"
                   style={{
                     left: `${((x - range[0]) / span) * 100}%`,
                     background: SIDE_COLOR[side],
@@ -549,6 +612,7 @@ export function LabMap({
   heat,
   heatColor,
   cursorOf,
+  of,
   className,
 }: {
   marks?: MapMark[];
@@ -556,14 +620,18 @@ export function LabMap({
   heatColor?: string;
   // The sides whose position at the hovered moment is marked.
   cursorOf?: { side: SideKey; s: LabSide }[];
+  // Whose game this map shows (turned half a turn when it's a Dire game and rotation is on).
+  of?: LabSide;
   className?: string;
 }) {
+  const flip = useFlip(of ?? cursorOf?.[0]?.s);
+  const pt = (x: number, y: number) => (flip ? mapPoint(256 - x, 256 - y) : mapPoint(x, y));
   const cells = useMemo(() => {
     if (!heat?.length) return [];
     const N = 32;
     const grid = new Map<string, number>();
     for (const h of heat) {
-      const p = mapPoint(h.x, h.y);
+      const p = flip ? mapPoint(256 - h.x, 256 - h.y) : mapPoint(h.x, h.y);
       const k = `${Math.min(N - 1, Math.floor(p.left * N))},${Math.min(N - 1, Math.floor(p.top * N))}`;
       grid.set(k, (grid.get(k) ?? 0) + 1);
     }
@@ -572,10 +640,17 @@ export function LabMap({
       const [i, j] = k.split(",").map(Number);
       return { i, j, f: Math.sqrt(c / max), N };
     });
-  }, [heat]);
+  }, [heat, flip]);
   return (
     <div className={cn("relative aspect-square w-full overflow-hidden rounded-lg bg-muted", className)}>
-      <Image src={MAP_IMAGE} alt="" fill unoptimized sizes="480px" className="object-cover" />
+      <Image
+        src={MAP_IMAGE}
+        alt=""
+        fill
+        unoptimized
+        sizes="480px"
+        className={cn("object-cover", flip && "rotate-180")}
+      />
       <svg viewBox="0 0 100 100" className="absolute inset-0 size-full">
         {cells.map((c) => (
           <rect
@@ -589,7 +664,7 @@ export function LabMap({
           />
         ))}
         {marks.map((m, i) => {
-          const p = mapPoint(m.x, m.y);
+          const p = pt(m.x, m.y);
           const cx = p.left * 100;
           const cy = p.top * 100;
           const r = m.size ?? 1.6;
@@ -619,19 +694,19 @@ export function LabMap({
           );
         })}
         {cursorOf?.map(({ side, s }) => (
-          <CursorMark key={side} side={side} s={s} />
+          <CursorMark key={side} side={side} s={s} flip={flip} />
         ))}
       </svg>
     </div>
   );
 }
 
-function CursorMark({ side, s }: { side: SideKey; s: LabSide }) {
+function CursorMark({ side, s, flip }: { side: SideKey; s: LabSide; flip: boolean }) {
   const t = useCursorTime(s);
   if (t == null || !s.path.t.length) return null;
   let i = s.path.t.findIndex((x) => x >= t);
   if (i < 0) i = s.path.t.length - 1;
-  const p = mapPoint(s.path.x[i], s.path.y[i]);
+  const p = flip ? mapPoint(256 - s.path.x[i], 256 - s.path.y[i]) : mapPoint(s.path.x[i], s.path.y[i]);
   return (
     <g>
       <circle
