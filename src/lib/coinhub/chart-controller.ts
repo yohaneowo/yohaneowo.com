@@ -955,7 +955,7 @@ export class ChartController {
   private applyFillMarks() {
     this.chart.removeOverlay({ groupId: "fills" });
     if (!this.fillMarks.length || !this.raw.length) return;
-    type Group = { bar: KLineData; side: "BUY" | "SELL"; hollow: boolean; count: number; ids: string[] };
+    type Group = { bar: KLineData; side: "BUY" | "SELL"; hollow: boolean; ids: string[] };
     const groups = new Map<string, Group>();
     for (const f of this.fillMarks) {
       const i = indexAt(this.raw, f.time);
@@ -963,8 +963,7 @@ export class ChartController {
       // Futures fills are hollow marks (contracts, not coins).
       const hollow = f.product === "coinm";
       const key = `${this.raw[i].timestamp}_${f.side}_${hollow ? "f" : "s"}`;
-      const g = groups.get(key) ?? { bar: this.raw[i], side: f.side, hollow, count: 0, ids: [] };
-      g.count += 1;
+      const g = groups.get(key) ?? { bar: this.raw[i], side: f.side, hollow, ids: [] };
       g.ids.push(f.id);
       groups.set(key, g);
     }
@@ -976,11 +975,7 @@ export class ChartController {
         groupId: "fills",
         lock: true,
         points: [{ timestamp: g.bar.timestamp, value: buy ? g.bar.low : g.bar.high }],
-        extendData: {
-          side: g.side,
-          hollow: g.hollow,
-          text: `${buy ? "B" : "S"}${g.count > 1 ? g.count : ""}`,
-        },
+        extendData: { side: g.side, hollow: g.hollow, text: buy ? "B" : "S" },
         onClick: () => this.emit("fillMark", g.ids),
         onRightClick: (e) => e.preventDefault?.(),
       });

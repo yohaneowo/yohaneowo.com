@@ -557,7 +557,7 @@ const coinhubZh = {
     fee: "手续费",
     order: "订单",
     marker:
-      "图上的标记：买入是最低价下面的 B，卖出是最高价上面的 S；实心是现货或股票，空心是币本位合约；同一根 K 线有几笔就写几。",
+      "图上的标记：买入是最低价下面的 B，卖出是最高价上面的 S；实心是现货或股票，空心是币本位合约；同一根 K 线的成交合并成一个，点它看明细。",
     noChart: "没有这个标的的图表。",
     syncLine: (done: number, total: number, fills: number) =>
       `${done} / ${total} 个标的已读完历史，共 ${fills} 笔成交`,
