@@ -87,9 +87,9 @@ const fillMark: OverlayTemplate = tool(
     const { x, y } = coordinates[0];
     const buy = o.side === "BUY";
     const color = buy ? "#0ecb81" : "#f6465d";
-    const size = 18;
-    const lead = 8;
-    const tip = 4;
+    const size = 20;
+    const lead = 7;
+    const tip = 5;
     // d: +1 draws downwards (under a low), −1 upwards (over a high).
     const d = buy ? 1 : -1;
     const tipY = y + d * lead;
@@ -111,8 +111,8 @@ const fillMark: OverlayTemplate = tool(
         attrs: {
           coordinates: [
             { x, y: tipY },
-            { x: x - tip - 1, y: boxStart + d * 1.5 },
-            { x: x + tip + 1, y: boxStart + d * 1.5 },
+            { x: x - 3.5, y: boxStart + d * 2 },
+            { x: x + 3.5, y: boxStart + d * 2 },
           ],
         },
         styles: fill,
@@ -120,11 +120,12 @@ const fillMark: OverlayTemplate = tool(
       {
         type: "rect",
         attrs: { x: x - size / 2, y: boxTop, width: size, height: size },
-        styles: { ...fill, borderRadius: 4 },
+        styles: { ...fill, borderRadius: 6 },
       },
       label(x, boxTop + size / 2, o.text, {
         color: o.hollow ? color : "#fff",
         size: 11,
+        bold: true,
         align: "center",
         baseline: "middle",
         ignoreEvent: true,
