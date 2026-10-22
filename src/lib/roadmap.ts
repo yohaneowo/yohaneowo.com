@@ -220,8 +220,9 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
-        "网站：帐户分页（余额、持仓、同步状态、绑定管理）、图表上的成交标记、成交时间线",
-        "Site: an account tab (balances, positions, sync status, key management), fill markers on the chart, a fills timeline",
+        "网站：帐户分页（余额、持仓、同步状态、绑定管理）、图表上的成交标记、成交列表",
+        "Site: an account tab (balances, positions, sync status, key management), fill markers on the chart, a fills list",
+        true,
       ),
       step(
         "现货成本（移动加权平均）与持仓变化；笔记挂在标的或成交上",

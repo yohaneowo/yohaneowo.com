@@ -43,6 +43,7 @@ import {
   getState,
   type ChartConfig,
 } from "@/lib/coinhub/store";
+import { trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 import { Legend } from "./legend";
 import { SelectionToolbar } from "./selection-toolbar";
@@ -176,6 +177,11 @@ export function ChartPanel({
           },
         })),
       ),
+      // A fill mark opens the account panel on those fills.
+      ctrl.on("fillMark", (ids) => {
+        trade.set({ tab: "fills", highlight: ids });
+        setState({ panel: "account", active: index });
+      }),
     ];
     return () => {
       offs.forEach((off) => off());
@@ -323,6 +329,17 @@ export function ChartPanel({
     if (!controller || status.loading) return;
     controller.setAlertLines(lines.alerts, lines.orders);
   }, [controller, lines, status.loading]);
+
+  // The user's real fills on this symbol, from the exchange account the panel uses.
+  const tradeShow = useTerminal((s) => s.trade.show);
+  const tradeConnection = useTerminal((s) => s.trade.connection);
+  const connections = useTrade((s) => s.connections);
+  const fillConnection = tradeShow ? (tradeConnection ?? connections?.[0]?.id ?? null) : null;
+  const fills = useChartFills(symbol, fillConnection);
+  useEffect(() => {
+    if (!controller) return;
+    controller.setFillMarks(fills);
+  }, [controller, fills]);
 
   const sel = selection?.chart === index ? selection.overlay : null;
   const precision = symbol?.pricePrecision ?? 2;

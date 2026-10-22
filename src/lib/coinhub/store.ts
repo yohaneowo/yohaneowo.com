@@ -49,7 +49,8 @@ export const LAYOUT_COUNT: Record<LayoutKey, number> = { "1": 1, "2h": 2, "2v": 
 
 export type MagnetMode = "normal" | "weak_magnet" | "strong_magnet";
 export type CursorMode = "cross" | "dot" | "arrow" | "eraser";
-export type SidePanel = "watchlist" | "hotlists" | "alerts" | "objects" | "data" | "trading" | "info" | null;
+export type SidePanel =
+  "watchlist" | "hotlists" | "alerts" | "objects" | "data" | "trading" | "account" | "info" | null;
 
 export interface ChartSettings {
   upColor: string;
@@ -159,6 +160,9 @@ export interface TerminalState {
   alertLog: AlertLog[];
   indicatorTemplates: Array<{ name: string; indicators: IndicatorConfig[] }>;
   paper: PaperAccount;
+  // The user's exchange accounts (lib/coinhub/trade.ts): whether the charts mark their fills, and
+  // which connection the marks and the account panel use (null: the first).
+  trade: { show: boolean; connection: number | null };
   // The floating market-indicators panel over the chart. x/y are its left/top in px inside the
   // chart area; null means the default spot (top right). `collapsed` lists folded group keys.
   marketPanel: { open: boolean; x: number | null; y: number | null; collapsed: string[] };
@@ -262,6 +266,7 @@ function initialState(): TerminalState {
     alertLog: [],
     indicatorTemplates: [],
     paper: { balance: 10_000, initial: 10_000, positions: [], orders: [], fills: [] },
+    trade: { show: true, connection: null },
     marketPanel: { open: false, x: null, y: null, collapsed: [] },
     favoritesBar: true,
   };
@@ -285,6 +290,7 @@ function load(): TerminalState {
       sync: { ...base.sync, ...saved.sync },
       favorites: { ...base.favorites, ...saved.favorites },
       paper: { ...base.paper, ...saved.paper },
+      trade: { ...base.trade, ...saved.trade },
       marketPanel: { ...base.marketPanel, ...saved.marketPanel },
       tool: null,
     };

@@ -16,7 +16,7 @@ import { fetchBars, subscribeBars } from "./datafeed";
 import { registerIndicators } from "./indicators";
 import { bucketStart, type IntervalDef } from "./intervals";
 import { registerDrawingTools } from "./overlays";
-import { DEFAULT_COLOR } from "./overlays/utils";
+import { DEFAULT_COLOR, indexAt } from "./overlays/utils";
 import type {
   ChartSettings,
   ChartType,
@@ -26,6 +26,7 @@ import type {
   SavedDrawing,
   ScaleMode,
 } from "./store";
+import type { TradeFill } from "./trade";
 import type { CoinSymbol } from "./types";
 
 // Imperative wrapper around one KLineChart instance: data loading (with Heikin Ashi, replay and
@@ -52,6 +53,8 @@ export type ControllerEvents = {
   alertMoved: { id: string; price: number };
   orderMoved: { id: string; price: number };
   click: { price: number | null; timestamp: number | null };
+  // A fill mark was clicked: the ids of the fills it stands for.
+  fillMark: string[];
 };
 
 export interface ReplayState {
@@ -104,6 +107,7 @@ export class ChartController {
   private theme: ThemeColors | null = null;
   private gen = 0;
   private raw: KLineData[] = [];
+  private fillMarks: TradeFill[] = [];
   private unsubscribe: (() => void) | null = null;
   private liveCallback: ((bar: KLineData) => void) | null = null;
   private more = { forward: false };
@@ -251,6 +255,7 @@ export class ChartController {
           this.atRealtime = this.anchorEnd === null;
           callback(this.transform(bars), { forward: more, backward: !this.atRealtime });
           this.emit("status", { loading: false, error: false, empty: bars.length === 0 });
+          this.applyFillMarks();
           if (this.anchorEnd !== null) {
             const target = this.anchorEnd - interval.ms * 50;
             this.anchorEnd = null;
@@ -261,6 +266,8 @@ export class ChartController {
           const older = bars.filter((b) => b.timestamp < (this.raw[0]?.timestamp ?? Infinity));
           this.raw = older.concat(this.raw);
           callback(this.transform(older), { forward: more && older.length > 0 });
+          // Older candles can now carry the fills that fell before the chart's start.
+          if (older.length) this.applyFillMarks();
         }
       } catch {
         if (gen !== this.gen) return;
@@ -931,6 +938,68 @@ export class ChartController {
         extendData: { text: o.text, color: o.color, dashed: o.draggable },
         onPressedMoveEnd: (e) =>
           this.emit("orderMoved", { id: o.id, price: e.overlay.points[0].value ?? o.price }),
+        onRightClick: (e) => e.preventDefault?.(),
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // Fills from the user's exchange account: one mark per candle and side, at the average price.
+
+  setFillMarks(fills: TradeFill[]) {
+    this.fillMarks = fills;
+    this.applyFillMarks();
+  }
+
+  private applyFillMarks() {
+    this.chart.removeOverlay({ groupId: "fills" });
+    if (!this.fillMarks.length || !this.raw.length) return;
+    type Group = {
+      timestamp: number;
+      side: "BUY" | "SELL";
+      hollow: boolean;
+      qty: number;
+      notional: number;
+      count: number;
+      ids: string[];
+    };
+    const groups = new Map<string, Group>();
+    for (const f of this.fillMarks) {
+      const i = indexAt(this.raw, f.time);
+      if (i < 0) continue;
+      // Futures fills are hollow marks (contracts, not coins).
+      const hollow = f.product === "coinm";
+      const key = `${this.raw[i].timestamp}_${f.side}_${hollow ? "f" : "s"}`;
+      const g = groups.get(key) ?? {
+        timestamp: this.raw[i].timestamp,
+        side: f.side,
+        hollow,
+        qty: 0,
+        notional: 0,
+        count: 0,
+        ids: [],
+      };
+      const qty = Number(f.qty);
+      g.qty += qty;
+      g.notional += qty * Number(f.price);
+      g.count += 1;
+      g.ids.push(f.id);
+      groups.set(key, g);
+    }
+    for (const [key, g] of groups) {
+      const qty = g.qty.toLocaleString("en-US", { maximumFractionDigits: 6 });
+      this.chart.createOverlay({
+        id: `fill_${key}`,
+        name: "fillMark",
+        groupId: "fills",
+        lock: true,
+        points: [{ timestamp: g.timestamp, value: g.qty ? g.notional / g.qty : 0 }],
+        extendData: {
+          side: g.side,
+          hollow: g.hollow,
+          text: `${g.side === "BUY" ? "B" : "S"} ${qty}${g.count > 1 ? ` ×${g.count}` : ""}`,
+        },
+        onClick: () => this.emit("fillMark", g.ids),
         onRightClick: (e) => e.preventDefault?.(),
       });
     }
