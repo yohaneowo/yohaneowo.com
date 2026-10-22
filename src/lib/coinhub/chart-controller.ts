@@ -26,6 +26,7 @@ import type {
   SavedDrawing,
   ScaleMode,
 } from "./store";
+import type { HoldingLineStyle } from "./store";
 import type { TradeFill } from "./trade";
 import type { CoinSymbol } from "./types";
 
@@ -953,7 +954,7 @@ export class ChartController {
 
   // Prices the account holds at on this symbol (cost, break-even, liquidation), as Binance-style
   // dashed lines with a title tag.
-  setHoldingLines(lines: Array<{ id: string; price: number; title: string; color: string }>) {
+  setHoldingLines(lines: Array<{ id: string; price: number; title: string } & HoldingLineStyle>) {
     this.chart.removeOverlay({ groupId: "holding" });
     const t = this.raw[this.raw.length - 1]?.timestamp;
     for (const l of lines) {
@@ -963,7 +964,7 @@ export class ChartController {
         groupId: "holding",
         lock: true,
         points: [{ timestamp: t, value: l.price }],
-        extendData: { title: l.title, color: l.color },
+        extendData: { title: l.title, color: l.color, width: l.width, style: l.style },
         onRightClick: (e) => e.preventDefault?.(),
       });
     }

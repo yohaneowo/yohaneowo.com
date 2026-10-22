@@ -70,40 +70,83 @@ function priceTagLine(name: string): OverlayTemplate {
 }
 
 // A price the account holds at (the average cost, a position's break-even or liquidation), drawn
-// like Binance's cost line: dashed, with a title tag above the line and the price below it at the
-// left, and the price on the axis. Not draggable.
-export type HoldingLineOptions = { title: string; color: string };
+// like Binance's cost line: a line in its own colour, width and style, with a bordered label at the
+// left — the title as a filled tag over the price — and the price on the axis. Not draggable.
+export type HoldingLineOptions = {
+  title: string;
+  color: string;
+  width: number;
+  style: "solid" | "dashed" | "dotted";
+};
+
+const DASHES: Record<HoldingLineOptions["style"], number[]> = { solid: [], dashed: [6, 4], dotted: [2, 3] };
+const LABEL_FONT =
+  "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+let measurer: CanvasRenderingContext2D | null = null;
+
+function textWidth(text: string) {
+  measurer ??= document.createElement("canvas").getContext("2d");
+  if (!measurer) return text.length * 7;
+  measurer.font = LABEL_FONT;
+  return measurer.measureText(text).width;
+}
 
 const holdingLine: OverlayTemplate = tool(
   "holdingLine",
   1,
   ({ coordinates, bounding, overlay, chart }) => {
-    const o = ext(overlay, { title: "", color: "#0ecb81" } as HoldingLineOptions);
+    const o = ext(overlay, { title: "", color: "#0ecb81", width: 1, style: "dashed" } as HoldingLineOptions);
     const y = coordinates[0].y;
-    const value = overlay.points[0]?.value ?? 0;
+    const price = fmtPrice(chart, overlay.points[0]?.value ?? 0);
+    const rowHeight = 17;
+    const left = 8;
+    const width = Math.ceil(Math.max(textWidth(o.title), textWidth(price))) + 12;
+    const top = y - rowHeight;
     return [
       line(
         [
           { x: 0, y },
           { x: bounding.width, y },
         ],
-        { color: o.color, size: 1, style: "dashed", dashedValue: [4, 4] },
+        {
+          color: o.color,
+          size: o.width,
+          style: o.style === "solid" ? "solid" : "dashed",
+          dashedValue: DASHES[o.style],
+        },
       ),
-      label(8, y - 3, o.title, {
+      // The group's border and tinted background, the title's filled tag inside it.
+      {
+        type: "rect",
+        attrs: { x: left, y: top, width, height: rowHeight * 2 },
+        styles: {
+          style: "stroke_fill",
+          color: alpha(o.color, 0.12),
+          borderColor: o.color,
+          borderSize: 1,
+          borderRadius: 4,
+        },
+        ignoreEvent: true,
+      },
+      {
+        type: "rect",
+        attrs: { x: left, y: top, width, height: rowHeight },
+        styles: { style: "fill", color: o.color, borderRadius: [4, 4, 0, 0] },
+        ignoreEvent: true,
+      },
+      label(left + width / 2, top + rowHeight / 2, o.title, {
         color: "#fff",
-        background: o.color,
-        baseline: "bottom",
-        padding: 3,
         size: 11,
+        align: "center",
+        baseline: "middle",
         ignoreEvent: true,
       }),
-      label(8, y + 3, fmtPrice(chart, value), {
+      label(left + width / 2, y + rowHeight / 2, price, {
         color: o.color,
-        background: alpha(o.color, 0.12),
-        borderColor: o.color,
-        baseline: "top",
-        padding: 3,
         size: 11,
+        bold: true,
+        align: "center",
+        baseline: "middle",
         ignoreEvent: true,
       }),
     ];

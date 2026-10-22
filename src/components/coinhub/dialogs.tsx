@@ -35,6 +35,7 @@ import {
   useTerminal,
   type AlertCondition,
   type ChartSettings,
+  type HoldingLineStyle,
 } from "@/lib/coinhub/store";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 import { TIMEZONES } from "./bottom-bar";
@@ -69,6 +70,68 @@ function ColorButton({
         <ColorGrid value={value} onChange={onChange} />
       </PopoverContent>
     </Popover>
+  );
+}
+
+// One holding line's look: colour, width and line style, like a drawing's.
+function HoldingLineRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: HoldingLineStyle;
+  onChange: (style: HoldingLineStyle) => void;
+}) {
+  const { t } = useLocale();
+  const d = t.coinhub.drawing;
+  return (
+    <Row label={label}>
+      <ColorButton value={value.color} onChange={(color) => onChange({ ...value, color })} />
+      <div className="flex items-center">
+        {[1, 2, 3, 4].map((w) => (
+          <button
+            key={w}
+            type="button"
+            className={cn(
+              "flex h-8 w-7 items-center justify-center rounded-md hover:bg-muted",
+              value.width === w && "bg-muted",
+            )}
+            title={`${d.lineWidth} ${w}`}
+            onClick={() => onChange({ ...value, width: w })}
+          >
+            <span className="w-4 rounded-full bg-current" style={{ height: w }} />
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center">
+        {(["solid", "dashed", "dotted"] as const).map((style) => (
+          <button
+            key={style}
+            type="button"
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted",
+              value.style === style && "bg-muted",
+            )}
+            title={d[style]}
+            onClick={() => onChange({ ...value, style })}
+          >
+            <svg width="18" height="6" viewBox="0 0 18 6" aria-hidden>
+              <line
+                x1="1"
+                y1="3"
+                x2="17"
+                y2="3"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeDasharray={style === "dashed" ? "4 3" : style === "dotted" ? "1.5 2.5" : undefined}
+                strokeLinecap={style === "dotted" ? "round" : undefined}
+              />
+            </svg>
+          </button>
+        ))}
+      </div>
+    </Row>
   );
 }
 
@@ -444,6 +507,15 @@ function SettingsBody() {
           {toggle("countdown", s.countdown)}
           {toggle("axisWheelTradingView", s.axisWheel)}
           {toggle("showHoldingLines", s.holdingLines)}
+          {settings.showHoldingLines &&
+            (["cost", "breakEven", "liquidation"] as const).map((key) => (
+              <HoldingLineRow
+                key={key}
+                label={t.coinhub.account.lines[key]}
+                value={settings.holdingStyles[key]}
+                onChange={(style) => set({ holdingStyles: { ...settings.holdingStyles, [key]: style } })}
+              />
+            ))}
           <Row label={s.timezone}>
             <select
               className="h-8 rounded-md border bg-background px-2 text-sm"

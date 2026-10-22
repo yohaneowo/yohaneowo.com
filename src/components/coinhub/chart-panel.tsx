@@ -42,6 +42,7 @@ import {
   alertPrice,
   getState,
   type ChartConfig,
+  type HoldingLineStyle,
 } from "@/lib/coinhub/store";
 import { costBasis, fillSources, loadWallets, trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
@@ -350,22 +351,22 @@ export function ChartPanel({
   const holdingLines = useMemo(() => {
     if (!symbol || !settings.showHoldingLines) return [];
     const l = c.account.lines;
-    const out: Array<{ id: string; price: number; title: string; color: string }> = [];
+    const st = settings.holdingStyles;
+    const out: Array<{ id: string; price: number; title: string } & HoldingLineStyle> = [];
     const cost = costBasis(fills);
-    if (cost) out.push({ id: "cost", price: cost.avg, title: l.cost, color: "#0ecb81" });
+    if (cost) out.push({ id: "cost", price: cost.avg, title: l.cost, ...st.cost });
     const futures = fillSources(symbol).find((s) => s.product === "coinm");
     const position =
       futures && wallets?.positions.find((p) => p.symbol === futures.symbol && Number(p.qty) !== 0);
     if (position) {
       const breakEven = Number(position.breakEvenPrice ?? position.entryPrice);
-      if (breakEven > 0)
-        out.push({ id: "breakEven", price: breakEven, title: l.breakEven, color: "#2962ff" });
+      if (breakEven > 0) out.push({ id: "breakEven", price: breakEven, title: l.breakEven, ...st.breakEven });
       const liquidation = Number(position.liquidationPrice);
       if (liquidation > 0)
-        out.push({ id: "liquidation", price: liquidation, title: l.liquidation, color: "#f6465d" });
+        out.push({ id: "liquidation", price: liquidation, title: l.liquidation, ...st.liquidation });
     }
     return out;
-  }, [symbol, settings.showHoldingLines, fills, wallets, c]);
+  }, [symbol, settings.showHoldingLines, settings.holdingStyles, fills, wallets, c]);
 
   useEffect(() => {
     if (!controller || status.loading) return;

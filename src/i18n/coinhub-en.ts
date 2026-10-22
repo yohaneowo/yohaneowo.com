@@ -206,6 +206,7 @@ const coinhubEn: typeof coinhubZh = {
     lineStyle: "Style",
     solid: "Solid",
     dashed: "Dashed",
+    dotted: "Dotted",
     fill: "Background",
     text: "Text",
     textColor: "Text color",

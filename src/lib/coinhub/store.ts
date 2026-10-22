@@ -54,6 +54,14 @@ export type CursorMode = "cross" | "dot" | "arrow" | "eraser";
 export type SidePanel =
   "watchlist" | "hotlists" | "alerts" | "objects" | "data" | "trading" | "account" | "info" | null;
 
+// How one holding line is drawn (the chart settings).
+export interface HoldingLineStyle {
+  color: string;
+  width: number;
+  style: "solid" | "dashed" | "dotted";
+}
+export type HoldingLineKey = "cost" | "breakEven" | "liquidation";
+
 export interface ChartSettings {
   upColor: string;
   downColor: string;
@@ -68,6 +76,7 @@ export interface ChartSettings {
   // Lines at what the account holds on this symbol: the cost of a spot / stock holding, a futures
   // position's break-even and liquidation prices.
   showHoldingLines: boolean;
+  holdingStyles: Record<HoldingLineKey, HoldingLineStyle>;
   showLastPrice: boolean;
   countdown: boolean;
   showLegendValues: boolean;
@@ -217,6 +226,11 @@ export const DEFAULT_SETTINGS: ChartSettings = {
   showHighLow: true,
   axisWheelTradingView: true,
   showHoldingLines: true,
+  holdingStyles: {
+    cost: { color: "#0ecb81", width: 1, style: "dashed" },
+    breakEven: { color: "#2962ff", width: 1, style: "dashed" },
+    liquidation: { color: "#f6465d", width: 1, style: "dashed" },
+  },
   showLastPrice: true,
   countdown: true,
   showLegendValues: true,
@@ -299,7 +313,11 @@ function load(): TerminalState {
     const merged: TerminalState = {
       ...base,
       ...saved,
-      settings: { ...base.settings, ...saved.settings },
+      settings: {
+        ...base.settings,
+        ...saved.settings,
+        holdingStyles: { ...base.settings.holdingStyles, ...saved.settings?.holdingStyles },
+      },
       sync: { ...base.sync, ...saved.sync },
       favorites: { ...base.favorites, ...saved.favorites },
       paper: { ...base.paper, ...saved.paper },

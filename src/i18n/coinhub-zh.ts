@@ -205,6 +205,7 @@ const coinhubZh = {
     lineStyle: "线型",
     solid: "实线",
     dashed: "虚线",
+    dotted: "点线",
     fill: "填充",
     text: "文字",
     textColor: "文字颜色",
