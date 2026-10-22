@@ -171,8 +171,10 @@ export interface TerminalState {
   // The floating market-indicators panel over the chart. x/y are its left/top in px inside the
   // chart area; null means the default spot (top right). `collapsed` lists folded group keys.
   marketPanel: { open: boolean; x: number | null; y: number | null; collapsed: string[] };
-  // Whether the floating favourite-tools bar is shown over the chart.
+  // Whether the floating favourite-tools bar is shown over the chart, and where it was dragged to
+  // (px inside the chart area; null: the default spot, top centre).
   favoritesBar: boolean;
+  favoritesBarPos: { x: number; y: number } | null;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -275,6 +277,7 @@ function initialState(): TerminalState {
     trade: { show: true, connection: null, currency: "USD" },
     marketPanel: { open: false, x: null, y: null, collapsed: [] },
     favoritesBar: true,
+    favoritesBarPos: null,
   };
 }
 

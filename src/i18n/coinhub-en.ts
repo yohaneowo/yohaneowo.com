@@ -17,6 +17,7 @@ const coinhubEn: typeof coinhubZh = {
   },
   terminal: "Chart",
   toolbar: {
+    dragBar: "Drag the bar",
     symbolSearch: "Symbol search",
     compare: "Compare or add symbol",
     interval: "Interval",

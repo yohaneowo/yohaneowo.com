@@ -16,6 +16,7 @@ const coinhubZh = {
   } as Record<string, string>,
   terminal: "图表",
   toolbar: {
+    dragBar: "拖动工具列",
     symbolSearch: "商品代码搜索",
     compare: "比较或叠加商品",
     interval: "周期",
