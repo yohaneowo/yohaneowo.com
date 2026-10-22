@@ -388,6 +388,31 @@ function Overview({ connection }: { connection: TradeConnection }) {
   );
 }
 
+// A coin's logo from CoinCap's icon CDN (by symbol), the first letter when it has none; stocks
+// (EQ_<ticker>) just get the letter.
+function CoinIcon({ asset }: { asset: string }) {
+  const [failed, setFailed] = useState(false);
+  const ticker = asset.replace(/^EQ_/, "");
+  if (asset.startsWith("EQ_") || failed)
+    return (
+      <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground">
+        {ticker[0]}
+      </span>
+    );
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- a tiny third-party icon, not worth the optimizer
+    <img
+      src={`https://assets.coincap.io/assets/icons/${ticker.toLowerCase()}@2x.png`}
+      alt=""
+      width={16}
+      height={16}
+      loading="lazy"
+      className="size-4 shrink-0 rounded-full"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function Row({ label, value, tone }: { label: React.ReactNode; value: string; tone?: string }) {
   return (
     <>
@@ -432,9 +457,10 @@ function Wallets({ connection }: { connection: TradeConnection }) {
                   label={
                     <button
                       type="button"
-                      className="hover:text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 hover:text-primary hover:underline"
                       onClick={() => void openAssetChart(b.asset, tr.noChart)}
                     >
+                      <CoinIcon asset={b.asset} />
                       {b.asset.replace(/^EQ_/, "")}
                     </button>
                   }
@@ -465,9 +491,10 @@ function Wallets({ connection }: { connection: TradeConnection }) {
                   <div className="flex justify-between">
                     <button
                       type="button"
-                      className="font-medium hover:text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 font-medium hover:text-primary hover:underline"
                       onClick={() => void openPositionChart(p.symbol, tr.noChart)}
                     >
+                      <CoinIcon asset={p.symbol.replace(/USD_.*$/, "")} />
                       {p.symbol}
                     </button>
                     <span className={long ? UP : DOWN}>
