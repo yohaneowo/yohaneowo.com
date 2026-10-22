@@ -65,7 +65,7 @@ function ColorButton({
         <span className="size-4 rounded-sm border" style={{ background: value }} />
         {label}
       </PopoverTrigger>
-      <PopoverContent className="w-56">
+      <PopoverContent className="w-auto">
         <ColorGrid value={value} onChange={onChange} />
       </PopoverContent>
     </Popover>

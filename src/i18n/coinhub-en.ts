@@ -200,6 +200,8 @@ const coinhubEn: typeof coinhubZh = {
   },
   drawing: {
     color: "Color",
+    opacity: "Opacity",
+    customColor: "Custom colour",
     lineWidth: "Width",
     lineStyle: "Style",
     solid: "Solid",
@@ -569,7 +571,7 @@ const coinhubEn: typeof coinhubZh = {
     marker:
       "On the chart: a buy is a B under the candle's low, a sell an S over its high; solid for spot and stocks, hollow for COIN-M futures; the fills of one candle share a mark, click it for the list.",
     noChart: "No chart for this symbol.",
-    lines: { cost: "Cost", breakEven: "Break-even", liquidation: "Liq." },
+    lines: { cost: "Average cost", breakEven: "Break-even price", liquidation: "Liquidation price" },
     syncLine: (done: number, total: number, fills: number) =>
       `${done} / ${total} symbols fully read, ${fills} fills`,
     syncErrors: "Symbols that failed",

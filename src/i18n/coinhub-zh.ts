@@ -199,6 +199,8 @@ const coinhubZh = {
   },
   drawing: {
     color: "颜色",
+    opacity: "透明度",
+    customColor: "自订颜色",
     lineWidth: "线宽",
     lineStyle: "线型",
     solid: "实线",
@@ -568,7 +570,7 @@ const coinhubZh = {
     marker:
       "图上的标记：买入是最低价下面的 B，卖出是最高价上面的 S；实心是现货或股票，空心是币本位合约；同一根 K 线的成交合并成一个，点它看明细。",
     noChart: "没有这个标的的图表。",
-    lines: { cost: "成本", breakEven: "损益平衡", liquidation: "强平" },
+    lines: { cost: "平均购买价格", breakEven: "损益平衡价格", liquidation: "强平价格" },
     syncLine: (done: number, total: number, fills: number) =>
       `${done} / ${total} 个标的已读完历史，共 ${fills} 笔成交`,
     syncErrors: "读取失败的标的",

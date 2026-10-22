@@ -951,6 +951,24 @@ export class ChartController {
     }
   }
 
+  // Prices the account holds at on this symbol (cost, break-even, liquidation), as Binance-style
+  // dashed lines with a title tag.
+  setHoldingLines(lines: Array<{ id: string; price: number; title: string; color: string }>) {
+    this.chart.removeOverlay({ groupId: "holding" });
+    const t = this.raw[this.raw.length - 1]?.timestamp;
+    for (const l of lines) {
+      this.chart.createOverlay({
+        id: `holding_${l.id}`,
+        name: "holdingLine",
+        groupId: "holding",
+        lock: true,
+        points: [{ timestamp: t, value: l.price }],
+        extendData: { title: l.title, color: l.color },
+        onRightClick: (e) => e.preventDefault?.(),
+      });
+    }
+  }
+
   // -------------------------------------------------------------------------------------------
   // Fills from the user's exchange account: one mark per candle and side, under the low for buys
   // and over the high for sells (like Binance's own chart).

@@ -350,46 +350,32 @@ export function ChartPanel({
   const holdingLines = useMemo(() => {
     if (!symbol || !settings.showHoldingLines) return [];
     const l = c.account.lines;
-    const out: Array<{ id: string; price: number; text: string; color: string; draggable: boolean }> = [];
+    const out: Array<{ id: string; price: number; title: string; color: string }> = [];
     const cost = costBasis(fills);
-    if (cost)
-      out.push({
-        id: "cost",
-        price: cost.avg,
-        text: `${l.cost} ${fmtNumber(cost.qty, 6)}`,
-        color: "#2962ff",
-        draggable: false,
-      });
+    if (cost) out.push({ id: "cost", price: cost.avg, title: l.cost, color: "#0ecb81" });
     const futures = fillSources(symbol).find((s) => s.product === "coinm");
     const position =
       futures && wallets?.positions.find((p) => p.symbol === futures.symbol && Number(p.qty) !== 0);
     if (position) {
       const breakEven = Number(position.breakEvenPrice ?? position.entryPrice);
       if (breakEven > 0)
-        out.push({
-          id: "breakEven",
-          price: breakEven,
-          text: `${l.breakEven} ${position.symbol}`,
-          color: "#2962ff",
-          draggable: false,
-        });
+        out.push({ id: "breakEven", price: breakEven, title: l.breakEven, color: "#2962ff" });
       const liquidation = Number(position.liquidationPrice);
       if (liquidation > 0)
-        out.push({
-          id: "liquidation",
-          price: liquidation,
-          text: `${l.liquidation} ${position.symbol}`,
-          color: "#f23645",
-          draggable: false,
-        });
+        out.push({ id: "liquidation", price: liquidation, title: l.liquidation, color: "#f6465d" });
     }
     return out;
   }, [symbol, settings.showHoldingLines, fills, wallets, c]);
 
   useEffect(() => {
     if (!controller || status.loading) return;
-    controller.setAlertLines(lines.alerts, [...lines.orders, ...holdingLines]);
-  }, [controller, lines, holdingLines, status.loading]);
+    controller.setAlertLines(lines.alerts, lines.orders);
+  }, [controller, lines, status.loading]);
+
+  useEffect(() => {
+    if (!controller || status.loading) return;
+    controller.setHoldingLines(holdingLines);
+  }, [controller, holdingLines, status.loading]);
 
   const sel = selection?.chart === index ? selection.overlay : null;
   const precision = symbol?.pricePrecision ?? 2;

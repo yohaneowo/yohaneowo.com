@@ -69,6 +69,66 @@ function priceTagLine(name: string): OverlayTemplate {
   );
 }
 
+// A price the account holds at (the average cost, a position's break-even or liquidation), drawn
+// like Binance's cost line: dashed, with a title tag above the line and the price below it at the
+// left, and the price on the axis. Not draggable.
+export type HoldingLineOptions = { title: string; color: string };
+
+const holdingLine: OverlayTemplate = tool(
+  "holdingLine",
+  1,
+  ({ coordinates, bounding, overlay, chart }) => {
+    const o = ext(overlay, { title: "", color: "#0ecb81" } as HoldingLineOptions);
+    const y = coordinates[0].y;
+    const value = overlay.points[0]?.value ?? 0;
+    return [
+      line(
+        [
+          { x: 0, y },
+          { x: bounding.width, y },
+        ],
+        { color: o.color, size: 1, style: "dashed", dashedValue: [4, 4] },
+      ),
+      label(8, y - 3, o.title, {
+        color: "#fff",
+        background: o.color,
+        baseline: "bottom",
+        padding: 3,
+        size: 11,
+        ignoreEvent: true,
+      }),
+      label(8, y + 3, fmtPrice(chart, value), {
+        color: o.color,
+        background: alpha(o.color, 0.12),
+        borderColor: o.color,
+        baseline: "top",
+        padding: 3,
+        size: 11,
+        ignoreEvent: true,
+      }),
+    ];
+  },
+  {
+    needDefaultPointFigure: false,
+    needDefaultXAxisFigure: false,
+    needDefaultYAxisFigure: false,
+    createYAxisFigures: ({ chart, coordinates, overlay }) => {
+      const o = ext(overlay, { title: "", color: "#0ecb81" } as HoldingLineOptions);
+      const value = overlay.points[0]?.value;
+      if (value === undefined) return [];
+      return [
+        label(0, coordinates[0].y, fmtPrice(chart, value), {
+          color: "#fff",
+          background: o.color,
+          baseline: "middle",
+          padding: 3,
+          size: 11,
+        }),
+      ];
+    },
+  },
+);
+
 // A real fill (or the fills of one candle) from the user's exchange account, drawn like Binance's
 // own marks: a rounded square with a small point towards the candle and a thin line up to its
 // wick — "B" under the low for a buy, "S" over the high for a sell (the point is that low or
@@ -139,5 +199,6 @@ const fillMark: OverlayTemplate = tool(
 export const TRADING_OVERLAYS: OverlayTemplate[] = [
   priceTagLine("alertLine"),
   priceTagLine("orderLine"),
+  holdingLine,
   fillMark,
 ];
