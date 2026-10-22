@@ -558,7 +558,8 @@ const coinhubEn: typeof coinhubZh = {
     fee: "Fee",
     order: "Order",
     marker:
-      "On the chart: solid marks are spot or stock fills, hollow ones COIN-M futures (in contracts); fills in the same candle are merged.",
+      "On the chart: a buy is a B under the candle's low, a sell an S over its high; solid for spot and stocks, hollow for COIN-M futures; several fills in one candle show their count.",
+    noChart: "No chart for this symbol.",
     syncLine: (done: number, total: number, fills: number) =>
       `${done} / ${total} symbols fully read, ${fills} fills`,
     syncErrors: "Symbols that failed",

@@ -69,9 +69,9 @@ function priceTagLine(name: string): OverlayTemplate {
   );
 }
 
-// A real fill (or the fills of one candle) from the user's exchange account: a triangle at the
-// price, pointing up under a buy and down over a sell, with the quantity beside it. Futures fills
-// are hollow. Not draggable; a click opens the fills list.
+// A real fill (or the fills of one candle) from the user's exchange account, like Binance's own
+// marks: a badge with "B" under the candle's low for a buy, "S" over its high for a sell (the point
+// is that low or high). Futures fills are hollow. Not draggable; a click opens the fills list.
 export type FillMarkOptions = {
   side: "BUY" | "SELL";
   text: string;
@@ -82,41 +82,36 @@ const fillMark: OverlayTemplate = tool(
   "fillMark",
   1,
   ({ coordinates, overlay }) => {
-    const o = ext(overlay, { side: "BUY", text: "", hollow: false } as FillMarkOptions);
+    const o = ext(overlay, { side: "BUY", text: "B", hollow: false } as FillMarkOptions);
     const { x, y } = coordinates[0];
     const buy = o.side === "BUY";
     const color = buy ? "#089981" : "#f23645";
-    const s = 5;
-    // The apex sits on the price; the base is away from the candle body.
-    const tri = buy
-      ? [
-          { x, y: y + 2 },
-          { x: x - s, y: y + 2 + s * 1.6 },
-          { x: x + s, y: y + 2 + s * 1.6 },
-        ]
-      : [
-          { x, y: y - 2 },
-          { x: x - s, y: y - 2 - s * 1.6 },
-          { x: x + s, y: y - 2 - s * 1.6 },
-        ];
+    const height = 16;
+    const width = Math.max(height, o.text.length * 7 + 6);
+    const gap = 5;
+    const top = buy ? y + gap : y - gap - height;
     const figures: OverlayFigure[] = [
-      o.hollow
-        ? {
-            type: "polygon",
-            attrs: { coordinates: tri },
-            styles: { style: "stroke_fill", color: alpha(color, 0.15), borderColor: color, borderSize: 1.5 },
-          }
-        : { type: "polygon", attrs: { coordinates: tri }, styles: { style: "fill", color } },
+      {
+        type: "rect",
+        attrs: { x: x - width / 2, y: top, width, height },
+        styles: o.hollow
+          ? {
+              style: "stroke_fill",
+              color: alpha(color, 0.15),
+              borderColor: color,
+              borderSize: 1.5,
+              borderRadius: 4,
+            }
+          : { style: "fill", color, borderRadius: 4 },
+      },
+      label(x, top + height / 2, o.text, {
+        color: o.hollow ? color : "#fff",
+        size: 10,
+        align: "center",
+        baseline: "middle",
+        ignoreEvent: true,
+      }),
     ];
-    if (o.text)
-      figures.push(
-        label(x + s + 3, buy ? y + 2 + s * 0.8 : y - 2 - s * 0.8, o.text, {
-          color,
-          size: 10,
-          baseline: "middle",
-          ignoreEvent: true,
-        }),
-      );
     return figures;
   },
   { needDefaultPointFigure: false, needDefaultXAxisFigure: false, needDefaultYAxisFigure: false },

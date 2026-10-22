@@ -944,7 +944,8 @@ export class ChartController {
   }
 
   // -------------------------------------------------------------------------------------------
-  // Fills from the user's exchange account: one mark per candle and side, at the average price.
+  // Fills from the user's exchange account: one mark per candle and side, under the low for buys
+  // and over the high for sells (like Binance's own chart).
 
   setFillMarks(fills: TradeFill[]) {
     this.fillMarks = fills;
@@ -954,15 +955,7 @@ export class ChartController {
   private applyFillMarks() {
     this.chart.removeOverlay({ groupId: "fills" });
     if (!this.fillMarks.length || !this.raw.length) return;
-    type Group = {
-      timestamp: number;
-      side: "BUY" | "SELL";
-      hollow: boolean;
-      qty: number;
-      notional: number;
-      count: number;
-      ids: string[];
-    };
+    type Group = { bar: KLineData; side: "BUY" | "SELL"; hollow: boolean; count: number; ids: string[] };
     const groups = new Map<string, Group>();
     for (const f of this.fillMarks) {
       const i = indexAt(this.raw, f.time);
@@ -970,34 +963,23 @@ export class ChartController {
       // Futures fills are hollow marks (contracts, not coins).
       const hollow = f.product === "coinm";
       const key = `${this.raw[i].timestamp}_${f.side}_${hollow ? "f" : "s"}`;
-      const g = groups.get(key) ?? {
-        timestamp: this.raw[i].timestamp,
-        side: f.side,
-        hollow,
-        qty: 0,
-        notional: 0,
-        count: 0,
-        ids: [],
-      };
-      const qty = Number(f.qty);
-      g.qty += qty;
-      g.notional += qty * Number(f.price);
+      const g = groups.get(key) ?? { bar: this.raw[i], side: f.side, hollow, count: 0, ids: [] };
       g.count += 1;
       g.ids.push(f.id);
       groups.set(key, g);
     }
     for (const [key, g] of groups) {
-      const qty = g.qty.toLocaleString("en-US", { maximumFractionDigits: 6 });
+      const buy = g.side === "BUY";
       this.chart.createOverlay({
         id: `fill_${key}`,
         name: "fillMark",
         groupId: "fills",
         lock: true,
-        points: [{ timestamp: g.timestamp, value: g.qty ? g.notional / g.qty : 0 }],
+        points: [{ timestamp: g.bar.timestamp, value: buy ? g.bar.low : g.bar.high }],
         extendData: {
           side: g.side,
           hollow: g.hollow,
-          text: `${g.side === "BUY" ? "B" : "S"} ${qty}${g.count > 1 ? ` ×${g.count}` : ""}`,
+          text: `${buy ? "B" : "S"}${g.count > 1 ? g.count : ""}`,
         },
         onClick: () => this.emit("fillMark", g.ids),
         onRightClick: (e) => e.preventDefault?.(),

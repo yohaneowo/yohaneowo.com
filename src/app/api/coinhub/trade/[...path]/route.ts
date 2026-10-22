@@ -6,7 +6,6 @@ import { TradeAdminUnavailable, tradeAdmin, type TradeMethod } from "@/lib/coinh
 // request can never name another user's connections; only these paths pass through.
 const ALLOWED: Array<[TradeMethod, RegExp]> = [
   ["GET", /^ip$/],
-  ["GET", /^tokenized$/],
   ["GET", /^connections$/],
   ["POST", /^connections$/],
   ["DELETE", /^connections\/\d+$/],
@@ -22,8 +21,7 @@ async function proxy(request: Request, method: TradeMethod, params: Promise<{ pa
   const session = await getSession();
   // Signed-out visitors list their connections on every terminal load: that's normal, not an error.
   if (!session && method === "GET" && rel === "connections") return NextResponse.json({ data: null });
-  // The tokenized-stock list is market data, the same for everyone.
-  if (!session && rel !== "tokenized") return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   let body: unknown;
   if (method === "POST" || method === "PUT") {
     const text = await request.text();
@@ -34,10 +32,7 @@ async function proxy(request: Request, method: TradeMethod, params: Promise<{ pa
       return NextResponse.json({ error: "badJson" }, { status: 400 });
     }
   }
-  const target =
-    rel === "ip" || rel === "tokenized"
-      ? `/${rel}`
-      : `/users/${session!.user.id}/${rel}${new URL(request.url).search}`;
+  const target = rel === "ip" ? "/ip" : `/users/${session.user.id}/${rel}${new URL(request.url).search}`;
   try {
     const result = await tradeAdmin(target, method, body);
     if (result.error) {

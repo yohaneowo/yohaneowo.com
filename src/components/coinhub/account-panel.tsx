@@ -11,14 +11,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocale } from "@/i18n/locale-provider";
-import { setState, useTerminal } from "@/lib/coinhub/store";
+import { resolveSymbol } from "@/lib/coinhub/datafeed";
+import { getState, setChartSymbol, setState, useTerminal } from "@/lib/coinhub/store";
 import {
   connectExchange,
   disconnectExchange,
   fillSources,
   fillsKey,
   fmtDec,
-  holdingAssets,
+  holdingAsset,
   loadConnections,
   loadFills,
   loadIp,
@@ -41,6 +42,29 @@ import { useActiveSymbol } from "./hooks";
 
 const UP = "text-[#089981]";
 const DOWN = "text-[#f23645]";
+
+// Switches the active chart to the first of these symbols the terminal knows.
+async function openChart(candidates: string[], noChart: string) {
+  for (const id of candidates) {
+    if (await resolveSymbol(id)) {
+      setChartSymbol(getState().active, id);
+      return;
+    }
+  }
+  toast.error(noChart);
+}
+
+// A wallet asset's chart: a stock (EQ_<ticker>) on Yahoo, a coin against USDT (else USDC, BTC).
+function openAssetChart(asset: string, noChart: string) {
+  if (asset.startsWith("EQ_")) return openChart([`YAHOO:${asset.slice(3)}`], noChart);
+  return openChart([`BINANCE:${asset}USDT`, `BINANCE:${asset}USDC`, `BINANCE:${asset}BTC`], noChart);
+}
+
+// A COIN-M position's chart: the USDT perpetual of its base, else the spot pair.
+function openPositionChart(symbol: string, noChart: string) {
+  const base = symbol.replace(/USD_.*$/, "");
+  return openChart([`BINANCE:${base}USDT.P`, `BINANCE:${base}USDT`], noChart);
+}
 
 function useAgo() {
   const { t } = useLocale();
@@ -299,11 +323,10 @@ function Overview({ connection }: { connection: TradeConnection }) {
   useEffect(() => {
     loadWallets(connection.id).catch(() => {});
   }, [connection.id]);
-  const tokenized = useTrade((s) => s.tokenized);
-  const sources = symbol ? fillSources(symbol, tokenized) : [];
-  // Spot and stock holdings behind the chart across the wallets (stocks are EQ_<ticker>).
-  const assets = symbol ? holdingAssets(symbol, tokenized) : [];
-  const held = wallets?.balances.filter((b) => assets.includes(b.asset) && b.wallet !== "coinm") ?? [];
+  const sources = symbol ? fillSources(symbol) : [];
+  // The spot or stock holding behind the chart across the wallets (stocks are EQ_<ticker>).
+  const asset = symbol ? holdingAsset(symbol) : null;
+  const held = wallets?.balances.filter((b) => b.asset === asset && b.wallet !== "coinm") ?? [];
   const position = wallets?.positions.find((p) =>
     sources.some((s) => s.product === "coinm" && s.symbol === p.symbol),
   );
@@ -365,7 +388,7 @@ function Overview({ connection }: { connection: TradeConnection }) {
   );
 }
 
-function Row({ label, value, tone }: { label: string; value: string; tone?: string }) {
+function Row({ label, value, tone }: { label: React.ReactNode; value: string; tone?: string }) {
   return (
     <>
       <dt className="text-muted-foreground">{label}</dt>
@@ -406,7 +429,15 @@ function Wallets({ connection }: { connection: TradeConnection }) {
               {g.rows.map((b) => (
                 <Row
                   key={b.asset}
-                  label={b.asset.replace(/^EQ_/, "")}
+                  label={
+                    <button
+                      type="button"
+                      className="hover:text-primary hover:underline"
+                      onClick={() => void openAssetChart(b.asset, tr.noChart)}
+                    >
+                      {b.asset.replace(/^EQ_/, "")}
+                    </button>
+                  }
                   value={
                     b.unrealized && Number(b.unrealized) !== 0
                       ? `${fmtDec(b.total)} (${Number(b.unrealized) > 0 ? "+" : ""}${fmtDec(b.unrealized)})`
@@ -432,7 +463,13 @@ function Wallets({ connection }: { connection: TradeConnection }) {
                   className="rounded-md border px-2 py-1.5"
                 >
                   <div className="flex justify-between">
-                    <span className="font-medium">{p.symbol}</span>
+                    <button
+                      type="button"
+                      className="font-medium hover:text-primary hover:underline"
+                      onClick={() => void openPositionChart(p.symbol, tr.noChart)}
+                    >
+                      {p.symbol}
+                    </button>
                     <span className={long ? UP : DOWN}>
                       {fmtDec(p.qty)} {tr.contracts} · {p.leverage ?? "–"}x {p.marginType ?? ""}
                     </span>
