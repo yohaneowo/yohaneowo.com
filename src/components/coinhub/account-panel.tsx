@@ -388,27 +388,39 @@ function Overview({ connection }: { connection: TradeConnection }) {
   );
 }
 
-// A coin's logo from CoinCap's icon CDN (by symbol), the first letter when it has none; stocks
-// (EQ_<ticker>) just get the letter.
-function CoinIcon({ asset }: { asset: string }) {
-  const [failed, setFailed] = useState(false);
+// The sources a coin's logo is tried from, in order: Binance's own asset logos (every asset it
+// lists, by symbol), then CoinCap's; a stock (EQ_<ticker>) from Parqet's symbol logos. The first
+// letter when none has it.
+function iconSources(asset: string): string[] {
   const ticker = asset.replace(/^EQ_/, "");
-  if (asset.startsWith("EQ_") || failed)
+  if (asset.startsWith("EQ_")) return [`https://assets.parqet.com/logos/symbol/${ticker}?format=png`];
+  return [
+    `https://bin.bnbstatic.com/static/assets/logos/${ticker}.png`,
+    `https://assets.coincap.io/assets/icons/${ticker.toLowerCase()}@2x.png`,
+  ];
+}
+
+function CoinIcon({ asset }: { asset: string }) {
+  const [attempt, setAttempt] = useState(0);
+  const sources = iconSources(asset);
+  const src = sources[attempt];
+  if (!src)
     return (
       <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground">
-        {ticker[0]}
+        {asset.replace(/^EQ_/, "")[0]}
       </span>
     );
   return (
     // eslint-disable-next-line @next/next/no-img-element -- a tiny third-party icon, not worth the optimizer
     <img
-      src={`https://assets.coincap.io/assets/icons/${ticker.toLowerCase()}@2x.png`}
+      key={src}
+      src={src}
       alt=""
       width={16}
       height={16}
       loading="lazy"
       className="size-4 shrink-0 rounded-full"
-      onError={() => setFailed(true)}
+      onError={() => setAttempt((n) => n + 1)}
     />
   );
 }
