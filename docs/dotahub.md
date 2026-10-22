@@ -19,7 +19,8 @@ STRATZ 要设 `User-Agent: STRATZ_API`。OpenDota 的统计接口（`/wl`、`/he
 
 - `"use cache"` 不会快取丢出的错误，所以 STRATZ 一失败，每次页面浏览（与背后的 `prewarm`）都会再送一次。`stratz.ts` 的 `guarded(key, run)` 给玩家层级的查询（最近 100 场、历史、训练赛、英雄等级、个人资料、队友、单场）加了 5 分钟冷却：同一个键失败后 5 分钟内直接丢 `StratzCoolingDown`，不打 STRATZ。
 - `prewarm.ts` 只对登录用户预热（`getSession()`），爬虫（`User-Agent` 含 bot / crawl / spider…）一律不预热：公开页不用登录就能开，GOAT 又连到几百个职业选手，陌生人或爬虫逛一圈就是几千次呼叫；没登录的人页面照样能看，只是下一页第一次要等几秒。
-- `public/robots.txt` 禁止爬 `/dotahub/players/` 与 `/dotahub/matches/`（含 `/en/`）：任何玩家、任何比赛的页面有几千个。只挡守规矩的爬虫。
+- `public/robots.txt` 禁止爬 `/dotahub/players/`、`/dotahub/matches/` 与 `/dotahub/goat/compare`（含 `/en/`）：任何玩家、任何比赛的页面有几千个，对比的 `?ids=` 组合无限。只挡守规矩的爬虫。
+- **查到是谁了**（2026-10-23 上线日志后 10 分钟）：全部是匿名、美国、UA 为 `Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) …` 的请求，也就是 Googlebot 的手机版爬虫，顺着 GOAT 的连结把玩家页、经济、IMP、局内科研、比赛详情一页页爬；STRATZ 当天额度被爬到 0。robots.txt 生效前 Google 可能还会爬一天（它快取 robots.txt）。
 - **还没做、以后可能用的**：(a) 公开页按 IP 限速，例如 `proxy.ts` 里记每个 IP 5 分钟内开了几个不同玩家页，超过 30 个就回「稍后再试」（挡不守规矩的爬虫；要注意 Cloudflare 后面要用 `cf-connecting-ip`）；(b) 别人的页面也要登录（最彻底，但公开页就不公开了）；(c) 把 OpenDota 的回应像 GOAT 快照一样存进 Postgres `dota_snapshot`，部署清掉记忆体快取后不必重抓（昨天正式站部署三次，每次 GOAT 与玩家页全部重抓）。
 - `src/proxy.ts` 把每个 DotaHub 页面请求（不含预取）记一行 `[dotahub] <路径> user|anon <国家> page|rsc ua="…"`，正式站用 `docker logs <site 容器> | grep "\[dotahub\]"` 就能看出是谁在逛哪些页面。Cloudflare 的 API token 没有 Analytics 权限，拿不到访问统计；要的话在 Cloudflare 给 token 加 `Zone / Analytics / Read`，scratchpad 的 `cf_analytics.py` 就能列出路径、UA、国家与每小时请求数。
 
