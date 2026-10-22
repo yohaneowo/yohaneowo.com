@@ -111,6 +111,9 @@ export interface TradeState {
   // Fills by connection, product and symbol; all of a symbol's fills, oldest first.
   fills: Record<string, { rows: TradeFill[]; at: number }>;
   ip: string | null;
+  // Binance's tokenized stocks by the ticker they track ({MSTRB: "MSTR"}), loaded once.
+  tokenized: Record<string, string>;
+  tokenizedAt: number | null;
   // The panel's tab, switched to the fills when a mark on the chart is clicked.
   tab: "overview" | "wallets" | "fills" | "sync";
   // Fills to point out in the list (a mark on the chart was clicked).
@@ -126,6 +129,8 @@ let state: TradeState = {
   wallets: {},
   fills: {},
   ip: null,
+  tokenized: {},
+  tokenizedAt: null,
   tab: "overview",
   highlight: [],
 };
@@ -286,20 +291,58 @@ export async function loadIp() {
 // The exchange symbols whose fills a chart symbol shows: a Binance spot chart has its own spot
 // fills and the COIN-M perpetual of its base (prices in USD ≈ USDT), a Binance perpetual chart the
 // COIN-M perpetual, a Yahoo stock chart its Binance Stocks fills.
-export function fillSources(symbol: CoinSymbol): Array<{ product: TradeProduct; symbol: string }> {
+// A Binance tokenized stock (bStock, e.g. MSTRB on spot) tracks a US ticker, so a stock bought in
+// Binance's stocks section belongs on the bStock's chart too, and the other way round.
+export function fillSources(
+  symbol: CoinSymbol,
+  tokenized: Record<string, string> = trade.get().tokenized,
+): Array<{ product: TradeProduct; symbol: string }> {
   if (symbol.source === "binance") {
     const out: Array<{ product: TradeProduct; symbol: string }> = [
       { product: "spot", symbol: symbol.ticker },
     ];
     if (symbol.base) out.push({ product: "coinm", symbol: `${symbol.base}USD_PERP` });
+    const underlying = symbol.base ? tokenized[symbol.base] : undefined;
+    if (underlying) out.push({ product: "stock", symbol: underlying });
     return out;
   }
   if (symbol.source === "binance-futures" && symbol.base)
     return [{ product: "coinm", symbol: `${symbol.base}USD_PERP` }];
   if (symbol.source === "yahoo" && (symbol.kind === "stock" || symbol.kind === "etf")) {
-    return [{ product: "stock", symbol: symbol.ticker }];
+    const out: Array<{ product: TradeProduct; symbol: string }> = [
+      { product: "stock", symbol: symbol.ticker },
+    ];
+    for (const [asset, ticker] of Object.entries(tokenized))
+      if (ticker === symbol.ticker) out.push({ product: "spot", symbol: `${asset}USDT` });
+    return out;
   }
   return [];
+}
+
+// The assets a chart's holding is counted from: the base, the stock behind a bStock (EQ_<ticker>)
+// or a stock's bStock.
+export function holdingAssets(
+  symbol: CoinSymbol,
+  tokenized: Record<string, string> = trade.get().tokenized,
+): string[] {
+  if (symbol.source === "yahoo") {
+    const assets = [`EQ_${symbol.ticker}`];
+    for (const [asset, ticker] of Object.entries(tokenized)) if (ticker === symbol.ticker) assets.push(asset);
+    return assets;
+  }
+  if (!symbol.base) return [];
+  const underlying = tokenized[symbol.base];
+  return underlying ? [symbol.base, `EQ_${underlying}`] : [symbol.base];
+}
+
+export async function loadTokenized() {
+  if (trade.get().tokenizedAt) return;
+  try {
+    const map = await tradeApi<Record<string, string>>("tokenized");
+    trade.set({ tokenized: map, tokenizedAt: Date.now() });
+  } catch {
+    // Market-data nicety: the charts just miss the bStock marks until the next load.
+  }
 }
 
 const EMPTY: TradeFill[] = [];
@@ -307,7 +350,8 @@ const EMPTY: TradeFill[] = [];
 // The fills a chart marks (oldest first), loaded when the connection or symbol changes and cached
 // a minute.
 export function useChartFills(symbol: CoinSymbol | null, connection: number | null): TradeFill[] {
-  const sources = useMemo(() => (symbol ? fillSources(symbol) : []), [symbol]);
+  const tokenized = useTrade((s) => s.tokenized);
+  const sources = useMemo(() => (symbol ? fillSources(symbol, tokenized) : []), [symbol, tokenized]);
   const keys = useMemo(
     () => (connection === null ? [] : sources.map((s) => fillsKey(connection, s.product, s.symbol))),
     [connection, sources],

@@ -18,6 +18,7 @@ import {
   fillSources,
   fillsKey,
   fmtDec,
+  holdingAssets,
   loadConnections,
   loadFills,
   loadIp,
@@ -298,10 +299,11 @@ function Overview({ connection }: { connection: TradeConnection }) {
   useEffect(() => {
     loadWallets(connection.id).catch(() => {});
   }, [connection.id]);
-  const sources = symbol ? fillSources(symbol) : [];
-  // Spot and stock holdings of the chart's base asset across the wallets (stocks are EQ_<ticker>).
-  const asset = symbol?.source === "yahoo" ? `EQ_${symbol.ticker}` : symbol?.base;
-  const held = wallets?.balances.filter((b) => b.asset === asset && b.wallet !== "coinm") ?? [];
+  const tokenized = useTrade((s) => s.tokenized);
+  const sources = symbol ? fillSources(symbol, tokenized) : [];
+  // Spot and stock holdings behind the chart across the wallets (stocks are EQ_<ticker>).
+  const assets = symbol ? holdingAssets(symbol, tokenized) : [];
+  const held = wallets?.balances.filter((b) => assets.includes(b.asset) && b.wallet !== "coinm") ?? [];
   const position = wallets?.positions.find((p) =>
     sources.some((s) => s.product === "coinm" && s.symbol === p.symbol),
   );
@@ -335,7 +337,11 @@ function Overview({ connection }: { connection: TradeConnection }) {
       ) : (
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
           {held.map((b) => (
-            <Row key={b.wallet} label={`${tr.holding} · ${tr.wallets[b.wallet]}`} value={fmtDec(b.total)} />
+            <Row
+              key={`${b.wallet}:${b.asset}`}
+              label={`${tr.holding} ${b.asset.replace(/^EQ_/, "")} · ${tr.wallets[b.wallet]}`}
+              value={fmtDec(b.total)}
+            />
           ))}
           {position && (
             <Row

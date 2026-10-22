@@ -35,7 +35,7 @@ import { TOOL_HOTKEYS } from "./tool-catalog";
 import { TopToolbar } from "./top-toolbar";
 import { usePaperEngine } from "./trading-panel";
 import { useWorkspaceSync } from "@/lib/coinhub/sync";
-import { loadConnections } from "@/lib/coinhub/trade";
+import { loadConnections, loadTokenized } from "@/lib/coinhub/trade";
 import { openDialog, registry, ui } from "./ui-store";
 
 const GRID: Record<LayoutKey, string> = {
@@ -183,6 +183,7 @@ export function Terminal() {
   // The exchange accounts, so the charts can mark the fills before the panel is ever opened.
   useEffect(() => {
     void loadConnections();
+    void loadTokenized();
   }, []);
   useHotkeys();
   useCrosshairSync();
