@@ -108,10 +108,15 @@ export async function getStratzMatch(matchId: number): Promise<StratzMatch | nul
       }),
       signal: AbortSignal.timeout(20_000),
     }).catch((error) => {
-      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      recordCall("stratz", started, {
+        label: "getStratzMatch",
+        ok: false,
+        error: error instanceof Error ? error.name : "failed",
+      });
       throw error;
     });
     recordCall("stratz", started, {
+      label: "getStratzMatch",
       ok: response.ok,
       error: response.ok ? null : `HTTP ${response.status}`,
       headers: response.headers,
@@ -331,10 +336,15 @@ export async function getStratzRanked(accountId: number): Promise<RankedMatch[]>
       }),
       signal: AbortSignal.timeout(45_000),
     }).catch((error) => {
-      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      recordCall("stratz", started, {
+        label: "getStratzRanked",
+        ok: false,
+        error: error instanceof Error ? error.name : "failed",
+      });
       throw error;
     });
     recordCall("stratz", started, {
+      label: "getStratzRanked",
       ok: response.ok,
       error: response.ok ? null : `HTTP ${response.status}`,
       headers: response.headers,
@@ -401,6 +411,7 @@ export async function requestStratzParse(matchId: number): Promise<"sent" | "thr
       signal: AbortSignal.timeout(15_000),
     });
     recordCall("stratz", started, {
+      label: "requestStratzParse",
       ok: response.ok,
       error: response.ok ? null : `HTTP ${response.status}`,
       headers: response.headers,
@@ -408,7 +419,11 @@ export async function requestStratzParse(matchId: number): Promise<"sent" | "thr
     const body = (await response.json()) as { data?: { retryMatchDownload?: boolean } };
     if (body.data?.retryMatchDownload) return "sent";
   } catch (error) {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    recordCall("stratz", started, {
+      label: "requestStratzParse",
+      ok: false,
+      error: error instanceof Error ? error.name : "failed",
+    });
   }
   // Let it be tried again right away when the request itself failed.
   reparsed.delete(id);
@@ -445,10 +460,15 @@ export async function getHeroCvSample(heroId: number, accounts: number[]): Promi
     body: JSON.stringify({ query: `{ ${query} }` }),
     signal: AbortSignal.timeout(30_000),
   }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    recordCall("stratz", started, {
+      label: "getHeroCvSample",
+      ok: false,
+      error: error instanceof Error ? error.name : "failed",
+    });
     throw error;
   });
   recordCall("stratz", started, {
+    label: "getHeroCvSample",
     ok: response.ok,
     error: response.ok ? null : `HTTP ${response.status}`,
     headers: response.headers,
@@ -571,10 +591,15 @@ export async function getRankAverages(heroId: number, tier: number): Promise<Ran
     body: JSON.stringify({ query: `{ heroStats { ${query} } }` }),
     signal: AbortSignal.timeout(30_000),
   }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    recordCall("stratz", started, {
+      label: "getRankAverages",
+      ok: false,
+      error: error instanceof Error ? error.name : "failed",
+    });
     throw error;
   });
   recordCall("stratz", started, {
+    label: "getRankAverages",
     ok: response.ok,
     error: response.ok ? null : `HTTP ${response.status}`,
     headers: response.headers,
@@ -626,10 +651,15 @@ export async function getStratzPeers(accountId: number): Promise<Peer[]> {
       }),
       signal: AbortSignal.timeout(20_000),
     }).catch((error) => {
-      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      recordCall("stratz", started, {
+        label: "getStratzPeers",
+        ok: false,
+        error: error instanceof Error ? error.name : "failed",
+      });
       throw error;
     });
     recordCall("stratz", started, {
+      label: "getStratzPeers",
       ok: response.ok,
       error: response.ok ? null : `HTTP ${response.status}`,
       headers: response.headers,
@@ -693,10 +723,15 @@ export async function getStratzProfile(
       }),
       signal: AbortSignal.timeout(15_000),
     }).catch((error) => {
-      recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+      recordCall("stratz", started, {
+        label: "getStratzProfile",
+        ok: false,
+        error: error instanceof Error ? error.name : "failed",
+      });
       throw error;
     });
     recordCall("stratz", started, {
+      label: "getStratzProfile",
       ok: response.ok,
       error: response.ok ? null : `HTTP ${response.status}`,
       headers: response.headers,
@@ -772,10 +807,15 @@ export async function getRankedHistory(accountId: number): Promise<HistoryMatch[
         body: JSON.stringify({ query: `{ ${query} }` }),
         signal: AbortSignal.timeout(45_000),
       }).catch((error) => {
-        recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+        recordCall("stratz", started, {
+          label: "getRankedHistory",
+          ok: false,
+          error: error instanceof Error ? error.name : "failed",
+        });
         throw error;
       });
       recordCall("stratz", started, {
+        label: "getRankedHistory",
         ok: response.ok,
         error: response.ok ? null : `HTTP ${response.status}`,
         headers: response.headers,
@@ -887,10 +927,15 @@ export async function getHeroLeaderboard(heroId: number, tier: number): Promise<
     }),
     signal: AbortSignal.timeout(20_000),
   }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    recordCall("stratz", started, {
+      label: "getHeroLeaderboard",
+      ok: false,
+      error: error instanceof Error ? error.name : "failed",
+    });
     throw error;
   });
   recordCall("stratz", started, {
+    label: "getHeroLeaderboard",
     ok: response.ok,
     error: response.ok ? null : `HTTP ${response.status}`,
     headers: response.headers,
@@ -948,6 +993,11 @@ export type LevelRow = {
 const LEVEL_TAKE = 50;
 const LEVEL_POOL_PAGES = 30;
 
+// The first field of a GraphQL query (an alias stripped): what a generic query asked for.
+function queryLabel(query: string) {
+  return /\{\s*(?:\w+:\s*)?(\w+)/.exec(query)?.[1] ?? "?";
+}
+
 export async function stratzQuery<T>(query: string, timeout: number): Promise<T> {
   const token = process.env.STRATZ_API_TOKEN;
   if (!token) throw new Error("STRATZ_API_TOKEN is not set");
@@ -963,10 +1013,15 @@ export async function stratzQuery<T>(query: string, timeout: number): Promise<T>
     body: JSON.stringify({ query }),
     signal: AbortSignal.timeout(timeout),
   }).catch((error) => {
-    recordCall("stratz", started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    recordCall("stratz", started, {
+      label: `query:${queryLabel(query)}`,
+      ok: false,
+      error: error instanceof Error ? error.name : "failed",
+    });
     throw error;
   });
   recordCall("stratz", started, {
+    label: `query:${queryLabel(query)}`,
     ok: response.ok,
     error: response.ok ? null : `HTTP ${response.status}`,
     headers: response.headers,

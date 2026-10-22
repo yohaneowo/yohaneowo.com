@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "@/i18n/locale-provider";
 import type { HeroInfo } from "@/lib/dota/data";
+import { cn } from "@/lib/utils";
 import { HeroPicker } from "./deaths/hero-picker";
-import { Chips } from "./stats/controls";
 
 export type MatchResult = "all" | "win" | "loss";
 
@@ -46,12 +46,34 @@ export function MatchFilters({
           counts={countMap}
         />
       </div>
-      <Chips
-        label={t.deaths.result}
-        value={result}
-        options={(["all", "win", "loss"] as const).map((v) => [v, t.deaths.results[v]])}
-        onChange={(next) => go({ hero, result: next })}
-      />
+      {/* Won / lost as the W and L of the stats pages' side panel. */}
+      <div role="group" aria-label={t.deaths.result} className="flex items-center gap-1.5">
+        <span className="mr-1 text-xs text-muted-foreground">{t.deaths.result}</span>
+        {(["all", "win", "loss"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={result === v}
+            aria-label={t.deaths.results[v]}
+            title={t.deaths.results[v]}
+            onClick={() => go({ hero, result: v })}
+            className={cn(
+              "flex h-8 min-w-8 items-center justify-center rounded-full border px-2.5 text-xs transition-colors",
+              result === v
+                ? "border-foreground/40 bg-muted font-medium"
+                : "text-muted-foreground opacity-80 hover:text-foreground hover:opacity-100",
+            )}
+          >
+            {v === "all" ? (
+              t.deaths.results.all
+            ) : (
+              <span className={cn("font-semibold", v === "win" ? "text-emerald-500" : "text-red-500")}>
+                {t.deaths.resultsShort[v]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

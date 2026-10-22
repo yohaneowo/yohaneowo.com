@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { recordCall, sourceOf } from "./health";
+import { callLabel, recordCall, sourceOf } from "./health";
 import { opendotaFetch } from "./opendota-key";
 import { getStratzPeers } from "./stratz";
 
@@ -30,7 +30,7 @@ export async function getJson<T>(url: string, options: { notFound?: "null" } = {
         : await fetch(url, { signal: AbortSignal.timeout(12_000) });
   } catch (error) {
     const reason = error instanceof Error ? error.name : "fetch failed";
-    recordCall(source, started, { ok: false, error: reason });
+    recordCall(source, started, { ok: false, error: reason, label: callLabel(url) });
     throw new DotaUnavailable(`${reason} ${host}`);
   }
   // A 404 is an answer (no such match), not the source failing.
@@ -39,6 +39,7 @@ export async function getJson<T>(url: string, options: { notFound?: "null" } = {
     ok: answered,
     error: answered ? null : `HTTP ${response.status}`,
     headers: response.headers,
+    label: callLabel(url),
   });
   if (response.status === 404 && options.notFound === "null") return null as T;
   if (!response.ok) throw new DotaUnavailable(`${response.status} ${host}`);
