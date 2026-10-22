@@ -42,13 +42,13 @@ import {
   alertPrice,
   getState,
   type ChartConfig,
+  type HoldingLineStyle,
 } from "@/lib/coinhub/store";
+import { costBasis, fillSources, loadWallets, trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
-import { Legend } from "./legend";
+import { COMPARE_COLORS, Legend } from "./legend";
 import { SelectionToolbar } from "./selection-toolbar";
 import { openDialog, registry, ui, useUi } from "./ui-store";
-
-const COMPARE_COLORS = ["#ff9800", "#e91e63", "#00bcd4", "#9c27b0", "#4caf50"];
 
 function themeColors(dark: boolean): ThemeColors {
   const font = getComputedStyle(document.body).fontFamily || "sans-serif";
@@ -176,6 +176,11 @@ export function ChartPanel({
           },
         })),
       ),
+      // A fill mark opens the account panel on those fills.
+      ctrl.on("fillMark", (ids) => {
+        trade.set({ tab: "fills", highlight: ids });
+        setState({ panel: "account", active: index });
+      }),
     ];
     return () => {
       offs.forEach((off) => off());
@@ -254,19 +259,24 @@ export function ChartPanel({
   }, [controller, config.scale, config.invert]);
 
   useEffect(() => {
+    controller?.setAxisWheel(settings.axisWheelTradingView);
+  }, [controller, settings.axisWheelTradingView]);
+
+  useEffect(() => {
     if (!controller || !symbol) return;
     let cancelled = false;
+    const hidden = new Set(config.compareHidden ?? []);
     Promise.all(config.compare.map((id) => resolveSymbol(id))).then((list) => {
       if (cancelled) return;
       const symbols = list.flatMap((s, i) =>
-        s ? [{ symbol: s, color: COMPARE_COLORS[i % COMPARE_COLORS.length] }] : [],
+        s && !hidden.has(s.id) ? [{ symbol: s, color: COMPARE_COLORS[i % COMPARE_COLORS.length] }] : [],
       );
       void controller.setCompare(symbols);
     });
     return () => {
       cancelled = true;
     };
-  }, [controller, symbol, config.compare, config.interval]);
+  }, [controller, symbol, config.compare, config.compareHidden, config.interval]);
 
   useEffect(() => {
     controller?.setDrawingOptions({
@@ -319,10 +329,54 @@ export function ChartPanel({
     return { alerts: alerts.filter((a) => a.symbolId === symbol.id && !a.line), orders };
   }, [symbol, alerts, paper]);
 
+  // The user's real fills on this symbol, from the exchange account the panel uses.
+  const tradeShow = useTerminal((s) => s.trade.show);
+  const tradeConnection = useTerminal((s) => s.trade.connection);
+  const connections = useTrade((s) => s.connections);
+  const accountId = tradeConnection ?? connections?.[0]?.id ?? null;
+  const fillConnection = tradeShow || settings.showHoldingLines ? accountId : null;
+  const fills = useChartFills(symbol, fillConnection);
+  useEffect(() => {
+    if (!controller) return;
+    controller.setFillMarks(tradeShow ? fills : []);
+  }, [controller, fills, tradeShow]);
+
+  // Lines at what the account holds here: the cost of a spot / stock holding (from the fills), a
+  // futures position's break-even and liquidation prices (from the exchange).
+  const wallets = useTrade((s) => (accountId === null ? undefined : s.wallets[accountId]));
+  useEffect(() => {
+    if (accountId === null || !settings.showHoldingLines) return;
+    loadWallets(accountId).catch(() => {});
+  }, [accountId, settings.showHoldingLines]);
+  const holdingLines = useMemo(() => {
+    if (!symbol || !settings.showHoldingLines) return [];
+    const l = c.account.lines;
+    const st = settings.holdingStyles;
+    const out: Array<{ id: string; price: number; title: string } & HoldingLineStyle> = [];
+    const cost = costBasis(fills);
+    if (cost) out.push({ id: "cost", price: cost.avg, title: l.cost, ...st.cost });
+    const futures = fillSources(symbol).find((s) => s.product === "coinm");
+    const position =
+      futures && wallets?.positions.find((p) => p.symbol === futures.symbol && Number(p.qty) !== 0);
+    if (position) {
+      const breakEven = Number(position.breakEvenPrice ?? position.entryPrice);
+      if (breakEven > 0) out.push({ id: "breakEven", price: breakEven, title: l.breakEven, ...st.breakEven });
+      const liquidation = Number(position.liquidationPrice);
+      if (liquidation > 0)
+        out.push({ id: "liquidation", price: liquidation, title: l.liquidation, ...st.liquidation });
+    }
+    return out;
+  }, [symbol, settings.showHoldingLines, settings.holdingStyles, fills, wallets, c]);
+
   useEffect(() => {
     if (!controller || status.loading) return;
     controller.setAlertLines(lines.alerts, lines.orders);
   }, [controller, lines, status.loading]);
+
+  useEffect(() => {
+    if (!controller || status.loading) return;
+    controller.setHoldingLines(holdingLines);
+  }, [controller, holdingLines, status.loading]);
 
   const sel = selection?.chart === index ? selection.overlay : null;
   const precision = symbol?.pricePrecision ?? 2;
@@ -355,6 +409,21 @@ export function ChartPanel({
     }));
   const removeIndicator = (id: string) =>
     updateChart(index, (cfg) => ({ indicators: cfg.indicators.filter((i) => i.id !== id) }));
+  // Compared symbols: hidden ones stay in the legend; removing the last one leaves the percentage scale.
+  const toggleCompare = (id: string) =>
+    updateChart(index, (cfg) => {
+      const hidden = cfg.compareHidden ?? [];
+      return { compareHidden: hidden.includes(id) ? hidden.filter((h) => h !== id) : [...hidden, id] };
+    });
+  const removeCompare = (id: string) =>
+    updateChart(index, (cfg) => {
+      const compare = cfg.compare.filter((c) => c !== id);
+      return {
+        compare,
+        compareHidden: (cfg.compareHidden ?? []).filter((h) => h !== id),
+        ...(compare.length === 0 && cfg.scale === "percentage" ? { scale: "normal" as const } : {}),
+      };
+    });
 
   return (
     <div
@@ -395,6 +464,8 @@ export function ChartPanel({
           onToggle={toggleIndicator}
           onSettings={(id) => openDialog({ type: "indicatorSettings", chart: index, id })}
           onRemove={removeIndicator}
+          onCompareToggle={toggleCompare}
+          onCompareRemove={removeCompare}
         />
       )}
       {status.loading && (

@@ -901,6 +901,32 @@ export async function getHomeMarket(): Promise<HomeMarket> {
   return { coins, btcCloses, fearGreed: today ? { value: today.value, label: today.label } : null };
 }
 
+// Every Binance spot price, for valuing what an account holds: one request a minute for everyone.
+export async function getSpotPrices(): Promise<Record<string, number>> {
+  "use cache";
+  cacheLife({ stale: 30, revalidate: 60, expire: 600 });
+  const rows = await getBinanceSpot<Array<{ symbol: string; price: string }>>("/api/v3/ticker/price");
+  return Object.fromEntries(
+    rows.flatMap((r) => {
+      const price = num(r.price);
+      return price ? [[r.symbol, price]] : [];
+    }),
+  );
+}
+
+// USD exchange rates (open.er-api.com, refreshed daily) for the account panel's choice of currency.
+export async function getFxRates(): Promise<{ at: number; rates: Record<string, number> } | null> {
+  "use cache";
+  cacheLife("hours");
+  const json = await getJson<{
+    result: string;
+    time_last_update_unix: number;
+    rates: Record<string, number>;
+  }>("https://open.er-api.com/v6/latest/USD");
+  if (json.result !== "success") return null;
+  return { at: json.time_last_update_unix * 1000, rates: json.rates };
+}
+
 export async function getYahooQuote(ticker: string): Promise<Quote | null> {
   "use cache";
   cacheLife({ stale: 30, revalidate: 60, expire: 600 });

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { type PointerEvent, useRef, useState } from "react";
 import {
   ChevronRightIcon,
   EyeIcon,
   EyeOffIcon,
+  GripVerticalIcon,
   ListTreeIcon,
   LockIcon,
   LockOpenIcon,
@@ -378,14 +379,84 @@ export function DrawingToolbar() {
 }
 
 // Floating bar with the favourite tools, over the chart (TradingView's "favorites toolbar").
+// Keeps a floating panel inside the chart area.
+function clampToParent(el: HTMLDivElement, point: { x: number; y: number }) {
+  const bounds = el.parentElement!.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(point.x, bounds.width - el.offsetWidth)),
+    y: Math.max(0, Math.min(point.y, bounds.height - el.offsetHeight)),
+  };
+}
+
+// The favourite tools over the chart, like TradingView's: dragged by the grip at its left, the
+// spot remembered with the workspace (null: top centre).
 export function FavoritesBar() {
   const { t } = useLocale();
   const favorites = useTerminal((s) => s.favorites.tools);
   const tool = useTerminal((s) => s.tool);
   const show = useTerminal((s) => s.favoritesBar);
+  const saved = useTerminal((s) => s.favoritesBarPos);
+  const root = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ id: number; dx: number; dy: number; point: { x: number; y: number } } | null>(null);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   if (!show || favorites.length === 0) return null;
+  const start = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || !e.isPrimary) return;
+    const el = root.current!;
+    const rect = el.getBoundingClientRect();
+    drag.current = {
+      id: e.pointerId,
+      dx: e.clientX - rect.left,
+      dy: e.clientY - rect.top,
+      point: { x: el.offsetLeft, y: el.offsetTop },
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setPosition(drag.current.point);
+  };
+  const move = (e: PointerEvent<HTMLDivElement>) => {
+    const current = drag.current;
+    if (!current || current.id !== e.pointerId) return;
+    const el = root.current!;
+    const rect = el.parentElement!.getBoundingClientRect();
+    current.point = clampToParent(el, {
+      x: e.clientX - rect.left - current.dx,
+      y: e.clientY - rect.top - current.dy,
+    });
+    setPosition(current.point);
+  };
+  const finish = (e: PointerEvent<HTMLDivElement>) => {
+    if (!drag.current || drag.current.id !== e.pointerId) return;
+    const point = clampToParent(root.current!, drag.current.point);
+    drag.current = null;
+    setState({ favoritesBarPos: point });
+    setPosition(null);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+  const at = position ?? saved;
+  const style = at
+    ? { left: at.x, top: at.y, transform: "none" }
+    : { left: "50%", top: "3rem", transform: "translateX(-50%)" };
   return (
-    <div className="absolute top-12 left-1/2 z-30 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border bg-popover p-1 shadow-md">
+    <div
+      ref={root}
+      style={style}
+      className="absolute z-30 flex items-center gap-0.5 rounded-lg border bg-popover p-1 shadow-md"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div
+        className={cn(
+          "flex h-8 w-4 shrink-0 touch-none items-center justify-center text-muted-foreground",
+          position ? "cursor-grabbing" : "cursor-grab",
+        )}
+        onPointerDown={start}
+        onPointerMove={move}
+        onPointerUp={finish}
+        onPointerCancel={finish}
+        aria-label={t.coinhub.toolbar.dragBar}
+        title={t.coinhub.toolbar.dragBar}
+      >
+        <GripVerticalIcon className="size-3.5" />
+      </div>
       {favorites.map((name) => (
         <Tip key={name} label={t.coinhub.tools.names[name] ?? name}>
           <button

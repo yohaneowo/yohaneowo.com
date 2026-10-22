@@ -16,7 +16,7 @@ import { fetchBars, subscribeBars } from "./datafeed";
 import { registerIndicators } from "./indicators";
 import { bucketStart, type IntervalDef } from "./intervals";
 import { registerDrawingTools } from "./overlays";
-import { DEFAULT_COLOR } from "./overlays/utils";
+import { DEFAULT_COLOR, indexAt } from "./overlays/utils";
 import type {
   ChartSettings,
   ChartType,
@@ -26,6 +26,8 @@ import type {
   SavedDrawing,
   ScaleMode,
 } from "./store";
+import type { HoldingLineStyle } from "./store";
+import type { TradeFill } from "./trade";
 import type { CoinSymbol } from "./types";
 
 // Imperative wrapper around one KLineChart instance: data loading (with Heikin Ashi, replay and
@@ -52,6 +54,8 @@ export type ControllerEvents = {
   alertMoved: { id: string; price: number };
   orderMoved: { id: string; price: number };
   click: { price: number | null; timestamp: number | null };
+  // A fill mark was clicked: the ids of the fills it stands for.
+  fillMark: string[];
 };
 
 export interface ReplayState {
@@ -104,6 +108,7 @@ export class ChartController {
   private theme: ThemeColors | null = null;
   private gen = 0;
   private raw: KLineData[] = [];
+  private fillMarks: TradeFill[] = [];
   private unsubscribe: (() => void) | null = null;
   private liveCallback: ((bar: KLineData) => void) | null = null;
   private more = { forward: false };
@@ -157,6 +162,7 @@ export class ChartController {
     });
     this.resizeObserver.observe(el);
     el.addEventListener("contextmenu", this.onContextMenu);
+    el.addEventListener("wheel", this.onWheel, { capture: true, passive: false });
     el.addEventListener("click", this.onClick);
   }
 
@@ -166,6 +172,7 @@ export class ChartController {
     this.resizeObserver.disconnect();
     this.el.removeEventListener("contextmenu", this.onContextMenu);
     this.el.removeEventListener("click", this.onClick);
+    this.el.removeEventListener("wheel", this.onWheel, { capture: true });
     dispose(this.chart);
     this.listeners.clear();
   }
@@ -251,6 +258,7 @@ export class ChartController {
           this.atRealtime = this.anchorEnd === null;
           callback(this.transform(bars), { forward: more, backward: !this.atRealtime });
           this.emit("status", { loading: false, error: false, empty: bars.length === 0 });
+          this.applyFillMarks();
           if (this.anchorEnd !== null) {
             const target = this.anchorEnd - interval.ms * 50;
             this.anchorEnd = null;
@@ -261,6 +269,8 @@ export class ChartController {
           const older = bars.filter((b) => b.timestamp < (this.raw[0]?.timestamp ?? Infinity));
           this.raw = older.concat(this.raw);
           callback(this.transform(older), { forward: more && older.length > 0 });
+          // Older candles can now carry the fills that fell before the chart's start.
+          if (older.length) this.applyFillMarks();
         }
       } catch {
         if (gen !== this.gen) return;
@@ -548,7 +558,8 @@ export class ChartController {
             id: symbol.id,
             display: symbol.display,
             color,
-            closes: new Map(bars.map((b) => [bucketStart(interval, b.timestamp), b.close])),
+            closes: Object.fromEntries(bars.map((b) => [bucketStart(interval, b.timestamp), b.close])),
+            bucket: (t: number) => bucketStart(interval, t),
           });
         } catch {
           // Skip symbols that fail to load.
@@ -571,12 +582,17 @@ export class ChartController {
     }
     const interval = this.interval;
     const extendData = { series: this.compareSeries, bucket: (t: number) => bucketStart(interval, t) };
-    if (exists) this.chart.overrideIndicator({ name: "CH_COMPARE", extendData });
-    else
-      this.chart.createIndicator(
-        { name: "CH_COMPARE", id: "CH_COMPARE", paneId: CANDLE_PANE, extendData },
-        true,
-      );
+    // The override needs the id (the name alone matches nothing in KLineChart 10).
+    if (
+      exists &&
+      this.chart.overrideIndicator({ name: "CH_COMPARE", id: "CH_COMPARE", paneId: CANDLE_PANE, extendData })
+    )
+      return;
+    if (exists) this.chart.removeIndicator({ name: "CH_COMPARE" });
+    this.chart.createIndicator(
+      { name: "CH_COMPARE", id: "CH_COMPARE", paneId: CANDLE_PANE, extendData },
+      true,
+    );
   }
 
   getCompareSeries() {
@@ -936,6 +952,63 @@ export class ChartController {
     }
   }
 
+  // Prices the account holds at on this symbol (cost, break-even, liquidation), as Binance-style
+  // dashed lines with a title tag.
+  setHoldingLines(lines: Array<{ id: string; price: number; title: string } & HoldingLineStyle>) {
+    this.chart.removeOverlay({ groupId: "holding" });
+    const t = this.raw[this.raw.length - 1]?.timestamp;
+    for (const l of lines) {
+      this.chart.createOverlay({
+        id: `holding_${l.id}`,
+        name: "holdingLine",
+        groupId: "holding",
+        lock: true,
+        points: [{ timestamp: t, value: l.price }],
+        extendData: { title: l.title, color: l.color, width: l.width, style: l.style },
+        onRightClick: (e) => e.preventDefault?.(),
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // Fills from the user's exchange account: one mark per candle and side, under the low for buys
+  // and over the high for sells (like Binance's own chart).
+
+  setFillMarks(fills: TradeFill[]) {
+    this.fillMarks = fills;
+    this.applyFillMarks();
+  }
+
+  private applyFillMarks() {
+    this.chart.removeOverlay({ groupId: "fills" });
+    if (!this.fillMarks.length || !this.raw.length) return;
+    type Group = { bar: KLineData; side: "BUY" | "SELL"; hollow: boolean; ids: string[] };
+    const groups = new Map<string, Group>();
+    for (const f of this.fillMarks) {
+      const i = indexAt(this.raw, f.time);
+      if (i < 0) continue;
+      // Futures fills are hollow marks (contracts, not coins).
+      const hollow = f.product === "coinm";
+      const key = `${this.raw[i].timestamp}_${f.side}_${hollow ? "f" : "s"}`;
+      const g = groups.get(key) ?? { bar: this.raw[i], side: f.side, hollow, ids: [] };
+      g.ids.push(f.id);
+      groups.set(key, g);
+    }
+    for (const [key, g] of groups) {
+      const buy = g.side === "BUY";
+      this.chart.createOverlay({
+        id: `fill_${key}`,
+        name: "fillMark",
+        groupId: "fills",
+        lock: true,
+        points: [{ timestamp: g.bar.timestamp, value: buy ? g.bar.low : g.bar.high }],
+        extendData: { side: g.side, hollow: g.hollow, text: buy ? "B" : "S" },
+        onClick: () => this.emit("fillMark", g.ids),
+        onRightClick: (e) => e.preventDefault?.(),
+      });
+    }
+  }
+
   // -------------------------------------------------------------------------------------------
   // Navigation
 
@@ -947,6 +1020,38 @@ export class ChartController {
     const point = Array.isArray(p) ? p[0] : (p as { timestamp?: number; value?: number });
     return { price: point?.value ?? null, timestamp: point?.timestamp ?? null };
   }
+
+  // KLineChart scales the price axis the opposite way to TradingView (wheel up shrinks the range).
+  // With this on, a wheel over the price axis is re-sent with its direction flipped.
+  private flipAxisWheel = true;
+
+  setAxisWheel(tradingViewLike: boolean) {
+    this.flipAxisWheel = tradingViewLike;
+  }
+
+  private onWheel = (event: WheelEvent) => {
+    if (!this.flipAxisWheel || (event as WheelEvent & { flipped?: boolean }).flipped || event.deltaY === 0)
+      return;
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+    const axis = this.chart.getSize(CANDLE_PANE, "yAxis");
+    const root = this.el.getBoundingClientRect();
+    if (!axis) return;
+    const x = event.clientX - root.left;
+    if (x < axis.left || x > axis.left + axis.width) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const flipped = new WheelEvent("wheel", {
+      deltaX: event.deltaX,
+      deltaY: -event.deltaY,
+      deltaMode: event.deltaMode,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      bubbles: true,
+      cancelable: true,
+    });
+    (flipped as WheelEvent & { flipped?: boolean }).flipped = true;
+    event.target?.dispatchEvent(flipped);
+  };
 
   private onContextMenu = (event: MouseEvent) => {
     event.preventDefault();

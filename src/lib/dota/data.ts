@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { recordCall, sourceOf } from "./health";
+import { callLabel, recordCall, sourceOf } from "./health";
 import { opendotaFetch } from "./opendota-key";
 import { getStratzPeers } from "./stratz";
 
@@ -30,7 +30,7 @@ export async function getJson<T>(url: string, options: { notFound?: "null" } = {
         : await fetch(url, { signal: AbortSignal.timeout(12_000) });
   } catch (error) {
     const reason = error instanceof Error ? error.name : "fetch failed";
-    recordCall(source, started, { ok: false, error: reason });
+    recordCall(source, started, { ok: false, error: reason, label: callLabel(url) });
     throw new DotaUnavailable(`${reason} ${host}`);
   }
   // A 404 is an answer (no such match), not the source failing.
@@ -39,6 +39,7 @@ export async function getJson<T>(url: string, options: { notFound?: "null" } = {
     ok: answered,
     error: answered ? null : `HTTP ${response.status}`,
     headers: response.headers,
+    label: callLabel(url),
   });
   if (response.status === 404 && options.notFound === "null") return null as T;
   if (!response.ok) throw new DotaUnavailable(`${response.status} ${host}`);
@@ -236,22 +237,56 @@ export async function getRecentMatches(accountId: number) {
 
 export const MATCHES_PER_PAGE = 50;
 
-export async function getPlayerMatches(accountId: number, page: number) {
+// The match list's filters, applied by OpenDota: a hero, and won or lost (null: both).
+export type MatchFilter = { hero?: number; win?: boolean | null };
+
+export async function getPlayerMatches(accountId: number, page: number, filter: MatchFilter = {}) {
   "use cache";
   cacheLife(QUICK);
-  return getJson<PlayerMatch[]>(
-    `${OPENDOTA}/players/${accountId}/matches?limit=${MATCHES_PER_PAGE}&offset=${page * MATCHES_PER_PAGE}`,
+  const params = new URLSearchParams({
+    limit: String(MATCHES_PER_PAGE),
+    offset: String(page * MATCHES_PER_PAGE),
+  });
+  if (filter.hero) params.set("hero_id", String(filter.hero));
+  if (filter.win != null) params.set("win", filter.win ? "1" : "0");
+  return getJson<PlayerMatch[]>(`${OPENDOTA}/players/${accountId}/matches?${params}`);
+}
+
+// Every ranked match of a player in one call: the side (true is Radiant), the result, when it
+// started and the match's average rank tier (medal × 10 + stars, OpenDota's average_rank; null when
+// it has none). The last stands in for MMR, which isn't public: a player's matches are made at
+// their own rating. Sides, the win-rate trend and the IMP × rank chart all read this.
+export type RankedEntry = { rad: boolean; won: boolean; start: number; rank: number | null };
+
+export async function getRankedIndex(accountId: number): Promise<Record<number, RankedEntry>> {
+  "use cache";
+  cacheLife(SLOW);
+  const rows = await getJson<
+    {
+      match_id: number;
+      player_slot: number;
+      radiant_win: boolean | null;
+      start_time: number;
+      average_rank: number | null;
+    }[]
+  >(
+    `${OPENDOTA}/players/${accountId}/matches?lobby_type=7&project=player_slot&project=radiant_win&project=start_time&project=average_rank`,
+  );
+  return Object.fromEntries(
+    rows.map((row) => {
+      const rad = isRadiant(row.player_slot);
+      return [
+        row.match_id,
+        { rad, won: rad === Boolean(row.radiant_win), start: row.start_time, rank: row.average_rank ?? null },
+      ];
+    }),
   );
 }
 
-// Which side the player was on in each ranked match (true is Radiant), all of them in one call.
+// Which side the player was on in each ranked match (true is Radiant).
 export async function getRankedSides(accountId: number): Promise<Record<number, boolean>> {
-  "use cache";
-  cacheLife(SLOW);
-  const rows = await getJson<{ match_id: number; player_slot: number }[]>(
-    `${OPENDOTA}/players/${accountId}/matches?lobby_type=7&project=player_slot`,
-  );
-  return Object.fromEntries(rows.map((row) => [row.match_id, isRadiant(row.player_slot)]));
+  const index = await getRankedIndex(accountId);
+  return Object.fromEntries(Object.entries(index).map(([id, entry]) => [id, entry.rad]));
 }
 
 export async function getPlayerHeroes(accountId: number) {

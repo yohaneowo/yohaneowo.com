@@ -21,6 +21,10 @@ export type SourceHealth = {
 };
 
 type Sample = { at: number; ok: boolean; ms: number; error: string | null };
+// How many calls went to each kind of request since this process started (and how many failed):
+// OpenDota by its path with the ids blanked, STRATZ by the function that asked. What eats the
+// quotas shows up here, by name.
+export type CallCounts = Record<string, { n: number; failed: number }>;
 
 const WINDOW_MS = 5 * 60 * 1000;
 const PROBE_AFTER_MS = 3 * 60 * 1000;
@@ -32,11 +36,15 @@ const store = ((
     __dotaHealth?: {
       samples: Record<DotaSource, Sample[]>;
       quota: Record<DotaSource, Record<string, number>>;
+      calls: Record<DotaSource, CallCounts>;
+      since: number;
     };
   }
 ).__dotaHealth ??= {
   samples: { opendota: [], stratz: [], steam: [] },
   quota: { opendota: {}, stratz: {}, steam: {} },
+  calls: { opendota: {}, stratz: {}, steam: {} },
+  since: Date.now(),
 });
 
 // Quota headers per source: header name → the key shown.
@@ -61,15 +69,23 @@ export function sourceOf(url: string): DotaSource | null {
   return null;
 }
 
+// OpenDota's path with the numbers blanked (/players/{id}/matches), without the query.
+export function callLabel(url: string) {
+  return new URL(url).pathname.replace(/^\/api/, "").replace(/\d{3,}/g, "{id}");
+}
+
 export function recordCall(
   source: DotaSource | null,
   started: number,
-  outcome: { ok: boolean; error?: string | null; headers?: Headers },
+  outcome: { ok: boolean; error?: string | null; headers?: Headers; label?: string },
 ) {
   if (!source) return;
   const list = store.samples[source];
   list.push({ at: Date.now(), ok: outcome.ok, ms: Date.now() - started, error: outcome.error ?? null });
   if (list.length > KEEP) list.splice(0, list.length - KEEP);
+  const count = (store.calls[source][outcome.label ?? "?"] ??= { n: 0, failed: 0 });
+  count.n++;
+  if (!outcome.ok) count.failed++;
   for (const [header, key] of QUOTA_HEADERS[source]) {
     const value = Number(outcome.headers?.get(header));
     if (outcome.headers?.has(header) && Number.isFinite(value)) store.quota[source][key] = value;
@@ -91,7 +107,7 @@ async function probe(source: DotaSource) {
       });
       if (response.status === 429 && process.env.OPENDOTA_API_KEY?.trim()) {
         freeQuotaSpent(response.headers);
-        recordCall(source, started, { ok: true, headers: response.headers });
+        recordCall(source, started, { ok: true, headers: response.headers, label: "probe" });
         return;
       }
     } else if (source === "stratz") {
@@ -119,9 +135,14 @@ async function probe(source: DotaSource) {
       ok: response.ok,
       error: response.ok ? null : `HTTP ${response.status}`,
       headers: response.headers,
+      label: "probe",
     });
   } catch (error) {
-    recordCall(source, started, { ok: false, error: error instanceof Error ? error.name : "failed" });
+    recordCall(source, started, {
+      ok: false,
+      error: error instanceof Error ? error.name : "failed",
+      label: "probe",
+    });
   }
 }
 
@@ -145,6 +166,17 @@ function summarize(source: DotaSource, now: number): SourceHealth {
 }
 
 let probing: Promise<unknown> | null = null;
+
+// The counts since this process started, by source and kind of request, busiest first.
+export function dotaCalls() {
+  const sorted = (counts: CallCounts) =>
+    Object.fromEntries(Object.entries(counts).sort((a, b) => b[1].n - a[1].n));
+  return {
+    since: store.since,
+    opendota: sorted(store.calls.opendota),
+    stratz: sorted(store.calls.stratz),
+  };
+}
 
 export async function dotaHealth(): Promise<Record<DotaSource, SourceHealth>> {
   const now = Date.now();

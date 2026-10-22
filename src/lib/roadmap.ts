@@ -201,6 +201,41 @@ export const ROADMAP: RoadmapItem[] = [
 
   // ── 开发中 / 测试中 ──────────────────────────────────────────────────────────────────────────
   {
+    id: "tradehub-accounts",
+    status: "shipped",
+    area: "coinhub",
+    title: { zh: "TradeHub：交易所帐户与复盘", en: "TradeHub: exchange accounts and the journal" },
+    summary: {
+      zh: "绑自己的只读 API（先 Binance 现货与币本位合约），把真实成交画在 K 线上，看余额、持仓、成本与同步状态，再对每笔成交写几句计划与复盘。",
+      en: "Connect your own read-only API key (Binance spot and COIN-M futures first), see your real fills on the chart with balances, positions, cost and sync status, and write a few lines of plan and review per trade.",
+    },
+    why: {
+      zh: "看盘时想直接看到自己在哪里买卖、仓位和成本怎么变，不用切回交易所；记下理由才有东西可以复盘。",
+      en: "To see where you bought and sold and how the position and cost moved while looking at the chart, without switching to the exchange; writing the reasons down is what makes a review possible.",
+    },
+    steps: [
+      step(
+        "admin：只读 API 绑定（加密保存，开了提现的 key 拒绝）、背景同步成交、余额、币本位持仓与收支、对账",
+        "admin: read-only key binding (stored encrypted, keys that can withdraw refused), background sync of fills, balances, COIN-M positions and income, reconciliation",
+        true,
+      ),
+      step(
+        "网站：帐户分页（余额、持仓、同步状态、绑定管理）、图表上的成交标记、成交列表",
+        "Site: an account tab (balances, positions, sync status, key management), fill markers on the chart, a fills list",
+        true,
+      ),
+      step(
+        "现货成本（移动加权平均）与持仓变化；笔记挂在标的或成交上",
+        "Spot cost (moving weighted average) and position changes; notes on a symbol or a fill",
+      ),
+      step("Bybit、OKX、Pionex 与 U 本位合约", "Bybit, OKX, Pionex and USDⓈ-M futures"),
+    ],
+    links: [{ label: { zh: "TradeHub", en: "TradeHub" }, href: "/tradehub" }],
+    added: "2026-10-22",
+    started: "2026-10-22",
+    shipped: "2026-10-23",
+  },
+  {
     id: "dotahub",
     status: "shipped",
     area: "dotahub",
@@ -654,6 +689,54 @@ export const ROADMAP: RoadmapItem[] = [
     added: "2026-10-21",
     started: "2026-10-21",
     shipped: "2026-10-22",
+  },
+  {
+    id: "dotahub-trends",
+    status: "shipped",
+    area: "dotahub",
+    title: {
+      zh: "DotaHub：胜率变化、比赛筛选、IMP 与段位交叉",
+      en: "DotaHub: win-rate trend, match filters, IMP against rank",
+    },
+    summary: {
+      zh: "总览的胜率旁多了最近的胜率走势；比赛列表能按英雄与胜负筛；IMP 走势滑过就看数字，并能切成「与段位交叉」看段位变高时 IMP 是涨是跌。",
+      en: "A win-rate trend beside the overview's win rate; the match list filters by hero and result; the IMP trend shows its numbers on hover and can be turned against rank to see whether IMP rises or falls as the rank climbs.",
+    },
+    why: {
+      zh: "一个总胜率看不出最近是在变好还是变差；比赛列表只能一页页翻；IMP 走势要点到点上才看得到数字。",
+      en: "One overall win rate doesn't say whether things are improving; the match list could only be paged; the IMP trend only showed numbers on the dots.",
+    },
+    steps: [
+      step(
+        "总览：胜率变化（天梯，每 20 场一算，附跟前 20 场的差）",
+        "Overview: the win-rate trend (ranked, 20 at a time, with the change against the 20 before)",
+        true,
+      ),
+      step(
+        "比赛：按英雄、胜负筛选（OpenDota 端筛，翻页保留）",
+        "Matches: filter by hero and result (OpenDota filters, paging keeps them)",
+        true,
+      ),
+      step("IMP 走势：滑过显示那场与平均", "IMP trend: hover shows the match and the average", true),
+      step(
+        "IMP 与段位交叉：用每场的平均段位代替 MMR，各段位平均与趋势线",
+        "IMP against rank: the match's average rank stands in for MMR, with per-medal averages and a fitted trend",
+        true,
+      ),
+      step(
+        "来源保护：STRATZ 失败 5 分钟内不重送、只对登录用户预热、robots.txt 禁爬玩家与比赛页、页面请求记在日志",
+        "Protecting the sources: a failed STRATZ query isn't resent for 5 minutes, only signed-in visitors get prewarm, robots.txt keeps crawlers off player and match pages, page requests are logged",
+        true,
+      ),
+    ],
+    links: [
+      { label: { zh: "总览", en: "Overview" }, href: "/dotahub" },
+      { label: { zh: "比赛", en: "Matches" }, href: "/dotahub/matches" },
+      { label: { zh: "IMP", en: "IMP" }, href: "/dotahub/imp" },
+    ],
+    added: "2026-10-23",
+    started: "2026-10-23",
+    shipped: "2026-10-23",
   },
   {
     id: "dotahub-next",

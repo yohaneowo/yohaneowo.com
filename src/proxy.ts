@@ -14,8 +14,24 @@ function preferred(request: NextRequest): Locale {
   return DEFAULT_LOCALE;
 }
 
+const DOTAHUB = /^(?:\/(?:zh|en))?\/dotahub(?:\/|$)/;
+
+// One log line per DotaHub page request (navigations and their RSC payloads, not prefetches): the
+// path, whether a signed-in session cookie came with it, the country Cloudflare saw and the user
+// agent — enough to tell, from the container's logs, who is spending the OpenDota / STRATZ quotas.
+function logDotaHub(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  if (!DOTAHUB.test(pathname) || request.headers.has("next-router-prefetch")) return;
+  const signedIn = request.cookies.getAll().some((c) => c.name.includes("session_token"));
+  const agent = (request.headers.get("user-agent") ?? "").slice(0, 90);
+  console.log(
+    `[dotahub] ${pathname} ${signedIn ? "user" : "anon"} ${request.headers.get("cf-ipcountry") ?? "-"} ${request.headers.has("rsc") ? "rsc" : "page"} ua="${agent}"`,
+  );
+}
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  logDotaHub(request);
   const prefix = pathname.split("/")[1];
   // /zh/... is the default language: show it without the prefix.
   if (prefix === DEFAULT_LOCALE) {

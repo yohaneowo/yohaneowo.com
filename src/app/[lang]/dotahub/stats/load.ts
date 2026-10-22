@@ -7,7 +7,7 @@ import {
   getGuestDetails,
   getStoredDetails,
 } from "@/lib/dota/admin";
-import { getHeroes, getRankedSides } from "@/lib/dota/data";
+import { getHeroes, getRankedIndex, type RankedEntry } from "@/lib/dota/data";
 import { getHeroCvSample, getStratzRanked } from "@/lib/dota/stratz";
 import type { DeathsSource } from "../deaths/deaths-view";
 
@@ -15,7 +15,7 @@ import type { DeathsSource } from "../deaths/deaths-view";
 // stored history for a player linked here (all of it), STRATZ asked directly for anyone else (the
 // newest 100). complete: false while admin is still reading the history.
 export async function loadDetailMatches(source: DeathsSource, accountId: number) {
-  const [data, heroes, sides] = await Promise.all([
+  const [data, heroes, index] = await Promise.all([
     source.kind === "stored" || source.kind === "guest"
       ? (source.kind === "stored" ? getStoredDetails(source.userId, 0) : getGuestDetails(accountId, 0)).then(
           (d) => (d ? { matches: d.matches, complete: d.historyDone } : null),
@@ -38,16 +38,18 @@ export async function loadDetailMatches(source: DeathsSource, accountId: number)
           complete: true,
         })),
     getHeroes(),
-    // Without OpenDota the side filter simply has nothing to go on.
-    getRankedSides(accountId).catch(() => ({}) as Record<number, boolean>),
+    // Without OpenDota the side filter (and the IMP × rank chart) simply has nothing to go on.
+    getRankedIndex(accountId).catch(() => ({}) as Record<number, RankedEntry>),
   ]);
   if (!data) return null;
+  const known = data.matches.filter((m) => m.matchId in index);
   return {
     ...data,
     heroes,
-    // Only these matches' sides go to the client.
-    sides: Object.fromEntries(
-      data.matches.filter((m) => m.matchId in sides).map((m) => [m.matchId, sides[m.matchId]]),
+    // Only these matches' sides and average rank tiers go to the client.
+    sides: Object.fromEntries(known.map((m) => [m.matchId, index[m.matchId].rad])),
+    ranks: Object.fromEntries(
+      known.filter((m) => index[m.matchId].rank).map((m) => [m.matchId, index[m.matchId].rank!]),
     ),
   };
 }

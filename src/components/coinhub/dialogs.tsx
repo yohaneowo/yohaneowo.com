@@ -38,7 +38,7 @@ import {
 } from "@/lib/coinhub/store";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 import { TIMEZONES } from "./bottom-bar";
-import { ColorGrid } from "./selection-toolbar";
+import { ColorGrid, LinePicker } from "./selection-toolbar";
 import { LEVEL_TOOLS, TEXT_TOOLS, TOOL_OPTIONS } from "./tool-catalog";
 import { closeDialog, registry, useUi, type Dialog as DialogState } from "./ui-store";
 
@@ -65,7 +65,7 @@ function ColorButton({
         <span className="size-4 rounded-sm border" style={{ background: value }} />
         {label}
       </PopoverTrigger>
-      <PopoverContent className="w-56">
+      <PopoverContent className="w-auto">
         <ColorGrid value={value} onChange={onChange} />
       </PopoverContent>
     </Popover>
@@ -442,6 +442,17 @@ function SettingsBody() {
           {toggle("showLastPrice", s.lastPrice)}
           {toggle("showHighLow", s.highLow)}
           {toggle("countdown", s.countdown)}
+          {toggle("axisWheelTradingView", s.axisWheel)}
+          {toggle("showHoldingLines", s.holdingLines)}
+          {settings.showHoldingLines &&
+            (["cost", "breakEven", "liquidation"] as const).map((key) => (
+              <Row key={key} label={t.coinhub.account.lines[key]}>
+                <LinePicker
+                  value={settings.holdingStyles[key]}
+                  onChange={(style) => set({ holdingStyles: { ...settings.holdingStyles, [key]: style } })}
+                />
+              </Row>
+            ))}
           <Row label={s.timezone}>
             <select
               className="h-8 rounded-md border bg-background px-2 text-sm"
@@ -770,35 +781,26 @@ function DrawingSettingsBody({ chart, id }: { chart: number; id: string }) {
           <TabsTrigger value="coordinates">{d.coordinates}</TabsTrigger>
         </TabsList>
         <TabsContent value="style" className="max-h-[50vh] space-y-1 overflow-y-auto pt-2">
-          <Row label={d.color}>
-            <ColorButton value={l.color} onChange={(color) => update({ styles: { line: { color } } })} />
-          </Row>
-          <Row label={d.lineWidth}>
-            {[1, 2, 3, 4].map((w) => (
-              <button
-                key={w}
-                type="button"
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted",
-                  l.width === w && "bg-muted",
-                )}
-                onClick={() => update({ styles: { line: { size: w } } })}
-              >
-                <span className="w-4 rounded-full bg-current" style={{ height: w }} />
-              </button>
-            ))}
-          </Row>
-          <Row label={d.lineStyle}>
-            {(["solid", "dashed"] as const).map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={l.lineStyle === s ? "secondary" : "ghost"}
-                onClick={() => update({ styles: { line: { style: s, dashedValue: [6, 4] } } })}
-              >
-                {d[s]}
-              </Button>
-            ))}
+          <Row label={d.line}>
+            <LinePicker
+              value={{
+                color: l.color,
+                width: l.width,
+                style: l.lineStyle === "solid" ? "solid" : l.dash[0] <= 2 ? "dotted" : "dashed",
+              }}
+              onChange={(next) =>
+                update({
+                  styles: {
+                    line: {
+                      color: next.color,
+                      size: next.width,
+                      style: next.style === "solid" ? "solid" : "dashed",
+                      dashedValue: next.style === "dotted" ? [2, 3] : [6, 4],
+                    },
+                  },
+                })
+              }
+            />
           </Row>
           {TEXT_TOOLS.has(overlay.name) && (
             <Row label={d.textColor}>

@@ -237,6 +237,7 @@ export async function StatsBody({
           <ImpExplorer
             matches={data.matches}
             sides={data.sides}
+            ranks={data.ranks}
             heroes={data.heroes}
             ranges={ranges}
             matchHref={matchHref}

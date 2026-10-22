@@ -10,6 +10,7 @@ import {
   getLaneRoles,
   getPlayer,
   getPlayerHeroes,
+  getRankedIndex,
   getRecentMatches,
   getWinLoss,
   QUICK,
@@ -21,6 +22,7 @@ import { Freshness } from "./freshness";
 import { ImpChart, type ImpMatch } from "./imp-chart";
 import { LatestMatch } from "./latest-match";
 import { HeroImage, Medal, medalName, Notice } from "./parts";
+import { WinRateTrend } from "./win-rate-trend";
 
 type T = Dictionary["dotahub"];
 type Props = { t: T; lang: Locale; accountId: number };
@@ -33,19 +35,39 @@ function SectionError({ t }: { t: T }) {
   return <p className="text-sm text-muted-foreground">{t.overview.sectionUnavailable}</p>;
 }
 
+// How far back the win-rate trend looks (ranked matches), and how many each point averages. The
+// window lives here, not in the client file: a value imported from a "use client" module into a
+// server component is only a reference, not the number.
+const TREND_MATCHES = 120;
+const TREND_WINDOW = 20;
+
+// The win rate over everything (OpenDota's count), with how the ranked one has moved lately.
 async function WinRate({ t, accountId }: Omit<Props, "lang">) {
-  const wl = await getWinLoss(accountId).catch(() => null);
+  const [wl, index] = await Promise.all([
+    getWinLoss(accountId).catch(() => null),
+    getRankedIndex(accountId).catch(() => null),
+  ]);
   if (!wl) return <SectionError t={t} />;
   const games = wl.data.win + wl.data.lose;
   if (!games) return null;
+  // The newest ranked results, oldest first.
+  const ranked = index
+    ? Object.values(index)
+        .sort((a, b) => a.start - b.start)
+        .slice(-TREND_MATCHES)
+        .map((e): [number, 0 | 1] => [e.start, e.won ? 1 : 0])
+    : [];
   return (
-    <div>
-      <div className="text-xs text-muted-foreground">{t.overview.winRate}</div>
-      <div className="text-2xl font-semibold tabular-nums">{((wl.data.win / games) * 100).toFixed(1)}%</div>
-      <div className="text-xs text-muted-foreground tabular-nums">
-        {t.overview.record(wl.data.win, wl.data.lose)}
+    <div className="flex flex-wrap items-start gap-5">
+      <div>
+        <div className="text-xs text-muted-foreground">{t.overview.winRate}</div>
+        <div className="text-2xl font-semibold tabular-nums">{((wl.data.win / games) * 100).toFixed(1)}%</div>
+        <div className="text-xs text-muted-foreground tabular-nums">
+          {t.overview.record(wl.data.win, wl.data.lose)}
+        </div>
+        <Freshness id="wl" at={wl.at} staleAfter={QUICK.revalidate} />
       </div>
-      <Freshness id="wl" at={wl.at} staleAfter={QUICK.revalidate} />
+      {ranked.length >= TREND_WINDOW * 2 && <WinRateTrend matches={ranked} window={TREND_WINDOW} />}
     </div>
   );
 }

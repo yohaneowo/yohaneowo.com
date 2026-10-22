@@ -1,2 +1,8 @@
 User-agent: *
 Allow: /
+# DotaHub's pages for any player and any match: thousands of them (GOAT links every pro), and each
+# costs OpenDota and STRATZ calls out of a shared quota, so crawlers are asked to leave them alone.
+Disallow: /dotahub/players/
+Disallow: /en/dotahub/players/
+Disallow: /dotahub/matches/
+Disallow: /en/dotahub/matches/

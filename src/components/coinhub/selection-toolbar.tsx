@@ -9,6 +9,7 @@ import {
   Trash2Icon,
   TypeIcon,
 } from "lucide-react";
+import { useState } from "react";
 import type { Overlay } from "klinecharts";
 import { cn } from "cn";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,51 +21,234 @@ import { TEXT_TOOLS, TOOL_OPTIONS } from "./tool-catalog";
 import { ToolIcon } from "./tool-icons";
 import { openDialog } from "./ui-store";
 
-export const SWATCHES = [
-  "#f23645",
-  "#ff9800",
-  "#ffeb3b",
-  "#4caf50",
-  "#089981",
-  "#00bcd4",
-  "#2962ff",
-  "#673ab7",
-  "#9c27b0",
-  "#e91e63",
+// The palette, like TradingView's: a row of greys, then ten hues from light to dark.
+const GREYS = [
   "#ffffff",
   "#d1d4dc",
+  "#b2b5be",
   "#9598a1",
   "#787b86",
+  "#5d606b",
   "#434651",
+  "#2a2e39",
   "#131722",
+  "#000000",
+];
+const HUES = [0, 24, 48, 125, 165, 195, 220, 260, 290, 335];
+const SHADES: Array<[number, number]> = [
+  [100, 60],
+  [90, 82],
+  [90, 72],
+  [85, 60],
+  [80, 50],
+  [80, 40],
+  [80, 30],
 ];
 
+function hsl(h: number, sat: number, light: number) {
+  const a = (sat / 100) * Math.min(light / 100, 1 - light / 100);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const v = light / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(v * 255)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+export const SWATCHES = [...GREYS, ...SHADES.flatMap(([sat, light]) => HUES.map((h) => hsl(h, sat, light)))];
+
+// A colour as "#rrggbb" plus its opacity (0–1); rgba() strings are read, anything else is left as is.
+function parseColor(value: string | undefined): { hex: string; opacity: number } {
+  if (!value) return { hex: "#2962ff", opacity: 1 };
+  const m = /rgba?\(([^)]+)\)/.exec(value);
+  if (m) {
+    const [r, g, b, a = "1"] = m[1].split(",").map((x) => x.trim());
+    const hex = `#${[r, g, b].map((x) => Number(x).toString(16).padStart(2, "0")).join("")}`;
+    return { hex, opacity: Math.max(0, Math.min(1, Number(a))) };
+  }
+  if (value.startsWith("#") && value.length === 9)
+    return { hex: value.slice(0, 7), opacity: parseInt(value.slice(7), 16) / 255 };
+  return {
+    hex: value.length === 4 ? `#${[...value.slice(1)].map((c) => c + c).join("")}` : value,
+    opacity: 1,
+  };
+}
+
+const withOpacity = (hex: string, opacity: number) =>
+  opacity >= 1 ? hex : alpha(hex, Math.round(opacity * 100) / 100);
+
+const RECENT_KEY = "coinhub:v1:colors";
+
+function readRecent(): string[] {
+  try {
+    const raw = window.localStorage.getItem(RECENT_KEY);
+    return raw ? (JSON.parse(raw) as string[]).slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+
+// The colour picker: the palette, the custom colours picked lately with a "+" for a new one, and
+// an opacity slider; the chosen colour comes back as hex, or rgba() when not fully opaque.
 export function ColorGrid({ value, onChange }: { value?: string; onChange: (color: string) => void }) {
+  const { t } = useLocale();
+  const d = t.coinhub.drawing;
+  const { hex, opacity } = parseColor(value);
+  const [recent, setRecent] = useState<string[]>(readRecent);
+  const pick = (next: string) => onChange(withOpacity(next.toLowerCase(), opacity));
+  const custom = (next: string) => {
+    const list = [next.toLowerCase(), ...recent.filter((c) => c !== next.toLowerCase())].slice(0, 8);
+    setRecent(list);
+    try {
+      window.localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+    } catch {
+      // Nothing to do without storage.
+    }
+    pick(next);
+  };
+  const swatch = (c: string) => (
+    <button
+      key={c}
+      type="button"
+      className={cn(
+        "size-5 rounded-sm border border-black/10 hover:scale-110",
+        hex.toLowerCase() === c && "ring-2 ring-foreground ring-offset-1 ring-offset-background",
+      )}
+      style={{ background: c }}
+      onClick={() => pick(c)}
+      aria-label={c}
+    />
+  );
   return (
-    <div className="grid grid-cols-8 gap-1">
-      {SWATCHES.map((c) => (
-        <button
-          key={c}
-          type="button"
-          className={cn(
-            "size-5 rounded border border-border",
-            value?.toLowerCase() === c && "ring-2 ring-ring",
-          )}
-          style={{ background: c }}
-          onClick={() => onChange(c)}
-          aria-label={c}
-        />
-      ))}
-      <label className="relative col-span-8 mt-1 flex h-6 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-        <input
-          type="color"
-          value={value?.startsWith("#") && value.length === 7 ? value : "#2962ff"}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-5 w-8 cursor-pointer rounded border-0 bg-transparent p-0"
-        />
-        {value}
-      </label>
+    <div className="flex w-[232px] flex-col gap-2">
+      <div className="grid grid-cols-10 gap-1">{SWATCHES.map(swatch)}</div>
+      <div className="flex items-center gap-1">
+        {recent.map(swatch)}
+        <label
+          className="relative flex size-5 cursor-pointer items-center justify-center rounded-sm border border-dashed text-muted-foreground hover:text-foreground"
+          title={d.customColor}
+        >
+          +
+          <input
+            type="color"
+            value={hex.startsWith("#") && hex.length === 7 ? hex : "#2962ff"}
+            onChange={(e) => custom(e.target.value)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+            aria-label={d.customColor}
+          />
+        </label>
+      </div>
+      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+        <span>{d.opacity}</span>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(opacity * 100)}
+            onChange={(e) => onChange(withOpacity(hex, Number(e.target.value) / 100))}
+            className="h-1.5 flex-1 cursor-pointer accent-primary"
+            style={{ background: `linear-gradient(to right, transparent, ${hex})` }}
+            aria-label={d.opacity}
+          />
+          <span className="w-10 rounded border px-1 py-0.5 text-right text-foreground tabular-nums">
+            {Math.round(opacity * 100)}%
+          </span>
+        </div>
+      </div>
     </div>
+  );
+}
+
+export type LineStyleValue = { color: string; width: number; style: "solid" | "dashed" | "dotted" };
+
+const DASH_PREVIEW: Record<LineStyleValue["style"], string | undefined> = {
+  solid: undefined,
+  dashed: "4 3",
+  dotted: "1.5 2.5",
+};
+
+// A line's look in one button — a swatch and a preview of its width and style — that opens the
+// palette, opacity, thickness and line style together, like TradingView's line setting.
+export function LinePicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: LineStyleValue;
+  onChange: (next: LineStyleValue) => void;
+  label?: string;
+}) {
+  const { t } = useLocale();
+  const d = t.coinhub.drawing;
+  const preview = (width: number, style: LineStyleValue["style"], stroke = "currentColor") => (
+    <svg width="22" height="8" viewBox="0 0 22 8" aria-hidden>
+      <line
+        x1="1"
+        y1="4"
+        x2="21"
+        y2="4"
+        stroke={stroke}
+        strokeWidth={width}
+        strokeDasharray={DASH_PREVIEW[style]}
+        strokeLinecap={style === "dotted" ? "round" : undefined}
+      />
+    </svg>
+  );
+  return (
+    <Popover>
+      <PopoverTrigger
+        className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs hover:bg-muted"
+        aria-label={label}
+      >
+        <span className="size-4 rounded-sm border" style={{ background: value.color }} />
+        {preview(value.width, value.style, value.color)}
+      </PopoverTrigger>
+      <PopoverContent className="w-auto">
+        <div className="flex flex-col gap-3">
+          <ColorGrid value={value.color} onChange={(color) => onChange({ ...value, color })} />
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <span>{d.lineWidth}</span>
+            <div className="grid grid-cols-4 gap-1">
+              {[1, 2, 3, 4].map((width) => (
+                <button
+                  key={width}
+                  type="button"
+                  className={cn(
+                    "flex h-8 items-center justify-center rounded-md border text-foreground hover:bg-muted",
+                    value.width === width && "bg-foreground text-background hover:bg-foreground",
+                  )}
+                  onClick={() => onChange({ ...value, width })}
+                >
+                  {preview(width, "solid")}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <span>{d.lineStyle}</span>
+            <div className="grid grid-cols-3 gap-1">
+              {(["solid", "dashed", "dotted"] as const).map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  className={cn(
+                    "flex h-8 items-center justify-center rounded-md border text-foreground hover:bg-muted",
+                    value.style === style && "bg-foreground text-background hover:bg-foreground",
+                  )}
+                  title={d[style]}
+                  onClick={() => onChange({ ...value, style })}
+                >
+                  {preview(2, style)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

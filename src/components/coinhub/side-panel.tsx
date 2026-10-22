@@ -6,6 +6,7 @@ import {
   DatabaseIcon,
   FlameIcon,
   InfoIcon,
+  LandmarkIcon,
   ListIcon,
   ListTreeIcon,
   PanelRightCloseIcon,
@@ -26,6 +27,7 @@ import { AlertsPanel } from "./alerts-panel";
 import { HotlistsPanel } from "./hotlists-panel";
 import { DataWindow, ObjectTree } from "./objects-panel";
 import { useActiveSymbol, useResolved } from "./hooks";
+import { AccountPanel } from "./account-panel";
 import { TradingPanel } from "./trading-panel";
 import { openDialog } from "./ui-store";
 
@@ -231,6 +233,7 @@ const PANELS: Array<{ key: Exclude<Panel, null>; icon: typeof ListIcon }> = [
   { key: "objects", icon: ListTreeIcon },
   { key: "data", icon: DatabaseIcon },
   { key: "trading", icon: WalletIcon },
+  { key: "account", icon: LandmarkIcon },
   { key: "info", icon: InfoIcon },
 ];
 
@@ -251,6 +254,7 @@ export function SidePanelContent() {
       {panel === "objects" && <ObjectTree />}
       {panel === "data" && <DataWindow />}
       {panel === "trading" && <TradingPanel />}
+      {panel === "account" && <AccountPanel />}
       {panel === "info" && (
         <>
           <div className="flex h-10 shrink-0 items-center border-b px-3 text-sm font-medium">

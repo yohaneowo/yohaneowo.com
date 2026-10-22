@@ -41,6 +41,8 @@ export interface ChartConfig {
   scale: ScaleMode;
   invert: boolean;
   compare: string[];
+  // Compared symbols hidden from the chart but kept in the legend (eye off).
+  compareHidden?: string[];
 }
 
 export type LayoutKey = "1" | "2h" | "2v" | "3" | "4";
@@ -49,7 +51,16 @@ export const LAYOUT_COUNT: Record<LayoutKey, number> = { "1": 1, "2h": 2, "2v": 
 
 export type MagnetMode = "normal" | "weak_magnet" | "strong_magnet";
 export type CursorMode = "cross" | "dot" | "arrow" | "eraser";
-export type SidePanel = "watchlist" | "hotlists" | "alerts" | "objects" | "data" | "trading" | "info" | null;
+export type SidePanel =
+  "watchlist" | "hotlists" | "alerts" | "objects" | "data" | "trading" | "account" | "info" | null;
+
+// How one holding line is drawn (the chart settings).
+export interface HoldingLineStyle {
+  color: string;
+  width: number;
+  style: "solid" | "dashed" | "dotted";
+}
+export type HoldingLineKey = "cost" | "breakEven" | "liquidation";
 
 export interface ChartSettings {
   upColor: string;
@@ -60,6 +71,12 @@ export interface ChartSettings {
   wicks: boolean;
   grid: "both" | "vertical" | "horizontal" | "none";
   showHighLow: boolean;
+  // Wheel over the price axis scales it like TradingView (up = zoom in); off: KLineChart's default.
+  axisWheelTradingView: boolean;
+  // Lines at what the account holds on this symbol: the cost of a spot / stock holding, a futures
+  // position's break-even and liquidation prices.
+  showHoldingLines: boolean;
+  holdingStyles: Record<HoldingLineKey, HoldingLineStyle>;
   showLastPrice: boolean;
   countdown: boolean;
   showLegendValues: boolean;
@@ -159,11 +176,17 @@ export interface TerminalState {
   alertLog: AlertLog[];
   indicatorTemplates: Array<{ name: string; indicators: IndicatorConfig[] }>;
   paper: PaperAccount;
+  // The user's exchange accounts (lib/coinhub/trade.ts): whether the charts mark their fills, which
+  // connection the marks and the account panel use (null: the first), and the currency the
+  // holdings are valued in.
+  trade: { show: boolean; connection: number | null; currency: string };
   // The floating market-indicators panel over the chart. x/y are its left/top in px inside the
   // chart area; null means the default spot (top right). `collapsed` lists folded group keys.
   marketPanel: { open: boolean; x: number | null; y: number | null; collapsed: string[] };
-  // Whether the floating favourite-tools bar is shown over the chart.
+  // Whether the floating favourite-tools bar is shown over the chart, and where it was dragged to
+  // (px inside the chart area; null: the default spot, top centre).
   favoritesBar: boolean;
+  favoritesBarPos: { x: number; y: number } | null;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -201,6 +224,13 @@ export const DEFAULT_SETTINGS: ChartSettings = {
   wicks: true,
   grid: "both",
   showHighLow: true,
+  axisWheelTradingView: true,
+  showHoldingLines: true,
+  holdingStyles: {
+    cost: { color: "#0ecb81", width: 1, style: "dashed" },
+    breakEven: { color: "#2962ff", width: 1, style: "dashed" },
+    liquidation: { color: "#f6465d", width: 1, style: "dashed" },
+  },
   showLastPrice: true,
   countdown: true,
   showLegendValues: true,
@@ -262,8 +292,10 @@ function initialState(): TerminalState {
     alertLog: [],
     indicatorTemplates: [],
     paper: { balance: 10_000, initial: 10_000, positions: [], orders: [], fills: [] },
+    trade: { show: true, connection: null, currency: "USD" },
     marketPanel: { open: false, x: null, y: null, collapsed: [] },
     favoritesBar: true,
+    favoritesBarPos: null,
   };
 }
 
@@ -281,10 +313,15 @@ function load(): TerminalState {
     const merged: TerminalState = {
       ...base,
       ...saved,
-      settings: { ...base.settings, ...saved.settings },
+      settings: {
+        ...base.settings,
+        ...saved.settings,
+        holdingStyles: { ...base.settings.holdingStyles, ...saved.settings?.holdingStyles },
+      },
       sync: { ...base.sync, ...saved.sync },
       favorites: { ...base.favorites, ...saved.favorites },
       paper: { ...base.paper, ...saved.paper },
+      trade: { ...base.trade, ...saved.trade },
       marketPanel: { ...base.marketPanel, ...saved.marketPanel },
       tool: null,
     };

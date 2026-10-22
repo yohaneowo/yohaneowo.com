@@ -15,6 +15,14 @@ OpenDota 的付费金钥只当备用（`lib/dota/opendota-key.ts`）：每次先
 
 STRATZ 要设 `User-Agent: STRATZ_API`。OpenDota 的统计接口（`/wl`、`/heroes`、`/counts`、`/matches`）偶尔要半分钟以上，玩家资料 `/players/{id}` 通常一秒内。
 
+**额度保护**（2026-10-23，起因见「已知的坑」的额度事件）：
+
+- `"use cache"` 不会快取丢出的错误，所以 STRATZ 一失败，每次页面浏览（与背后的 `prewarm`）都会再送一次。`stratz.ts` 的 `guarded(key, run)` 给玩家层级的查询（最近 100 场、历史、训练赛、英雄等级、个人资料、队友、单场）加了 5 分钟冷却：同一个键失败后 5 分钟内直接丢 `StratzCoolingDown`，不打 STRATZ。
+- `prewarm.ts` 只对登录用户预热（`getSession()`），爬虫（`User-Agent` 含 bot / crawl / spider…）一律不预热：公开页不用登录就能开，GOAT 又连到几百个职业选手，陌生人或爬虫逛一圈就是几千次呼叫；没登录的人页面照样能看，只是下一页第一次要等几秒。
+- `public/robots.txt` 禁止爬 `/dotahub/players/` 与 `/dotahub/matches/`（含 `/en/`）：任何玩家、任何比赛的页面有几千个。只挡守规矩的爬虫。
+- **还没做、以后可能用的**：(a) 公开页按 IP 限速，例如 `proxy.ts` 里记每个 IP 5 分钟内开了几个不同玩家页，超过 30 个就回「稍后再试」（挡不守规矩的爬虫；要注意 Cloudflare 后面要用 `cf-connecting-ip`）；(b) 别人的页面也要登录（最彻底，但公开页就不公开了）；(c) 把 OpenDota 的回应像 GOAT 快照一样存进 Postgres `dota_snapshot`，部署清掉记忆体快取后不必重抓（昨天正式站部署三次，每次 GOAT 与玩家页全部重抓）。
+- `src/proxy.ts` 把每个 DotaHub 页面请求（不含预取）记一行 `[dotahub] <路径> user|anon <国家> page|rsc ua="…"`，正式站用 `docker logs <site 容器> | grep "\[dotahub\]"` 就能看出是谁在逛哪些页面。Cloudflare 的 API token 没有 Analytics 权限，拿不到访问统计；要的话在 Cloudflare 给 token 加 `Zone / Analytics / Read`，scratchpad 的 `cf_analytics.py` 就能列出路径、UA、国家与每小时请求数。
+
 ## 分工
 
 - **网站**（`src/app/[lang]/dotahub/`、`src/lib/dota/`）：页面与图表。OpenDota、Valve、STRATZ 的单场查询都在网站，`"use cache"` 快取。
@@ -51,6 +59,10 @@ STRATZ 要设 `User-Agent: STRATZ_API`。OpenDota 的统计接口（`/wl`、`/he
 | 队友       | 常一起玩的人（同队 ≥ 3 场）                                                  | OpenDota                                                     |
 
 别人的页面（`/dotahub/players/<ID>/…`）子导航整排换成那位玩家的；打开自己的 ID 会转回自己的页面。宽萤幕（≥1280px）时 DotaHub 页面加宽（`components/page-width.tsx`）。
+
+- **天梯索引** `getRankedIndex(accountId)`（`lib/dota/data.ts`）：一次 OpenDota 请求拿全部天梯的阵营、胜负、开始时间与 `average_rank`（这场的平均段位，medal × 10 + stars），快取 6 小时；`getRankedSides` 现在只是从它取阵营。用在：死亡热力图与经济 / IMP 的阵营筛选、总览的**胜率变化**（`win-rate-trend.tsx`：每 20 场一算的天梯胜率折线，最近 120 场，大数字是最近 20 场、旁边是跟再前 20 场的差）、IMP 页的**与段位交叉**（`imp/by-rank.tsx`：MMR 不公开，用每场的平均段位代替——分数涨，排到的局平均段位也涨；x 轴是奖章（星数散在整数两侧，冠绝没有星），每点一场，紫点是各奖章的平均 IMP（≥ 3 场），灰点线是最小平方直线，斜率每奖章 ≥ ±3 才算「越高越高 / 越低」，范围不到 0.6 个奖章说看不出）。
+- **比赛列表筛选**（`match-filters.tsx`）：英雄与胜负放在网址 `?hero=&win=win|loss`，由 OpenDota 的 `hero_id` / `win` 参数筛，所以每页仍是满的 50 场；换筛选回到第 1 页，翻页保留筛选。英雄选单的场数来自 `getPlayerHeroes`。
+- **走势图的提示**（`stats/charts.tsx` 的 `TrendChart`、总览的 `imp-chart.tsx`）：`trigger: "axis"`，滑到哪一场就显示那场与当时的 10 场平均，不必点到点上。
 
 ### 总览的快取与「几分钟前更新」
 
@@ -227,5 +239,6 @@ bot 每 60 秒 `GET /internal/dota/notifications`，私讯 embed：英雄、胜�
 - **Node 连线等待**：从家里网路连 OpenDota（Cloudflare 后面）建立连线要约 280 毫秒，超过 Node `fetch` 对每个位址只等 250 毫秒的预设，会一直 `ETIMEDOUT`（curl 正常）。网站 `src/instrumentation-node.ts`、bot `index.js` 都把它设成 2 秒。
 - **OpenDota 整站挂掉**（2026-10-21 上午，`/proPlayers`、`/teams`、`/heroStats`、explorer 都回 500）：当时 dev 刚部署、快取是空的，GOAT 整页「暂时拿不到职业资料」，传奇判断不出现役。因此加了上面的 `dota_snapshot` 快照与代用资料。STRATZ 也找不到能替代的「战队排行」：没有列出战队的查询，联赛的分级（`tier`）只维护到 2018 年左右，奖金池资料也不可信。
 - **STRATZ 重新解析**不保证有用：有些比赛请了几小时还是没解析。
+- **额度一天用光**（2026-10-22）：OpenDota 免费额度在 UTC 21:40 已是 −68（整天用付费金钥），STRATZ 一天 15000 只剩 1600。admin 三个追踪帐号加样本一天只占约一千；正式站容器 4 小时里有 1406 次「STRATZ query failed」（STRATZ 当天自己在回 `Error trying to resolve field 'matches'` / 503），每 10–30 秒一组三次（`prewarm` 的历史、英雄等级、训练赛），是别人的公开页被持续浏览（`/players/[id]/matches`、`/peers` 的预渲染错误各 40 多次），失败没快取就一直重送。没有访问日志所以查不出是谁；之后有 `[dotahub]` 日志行与 STRATZ 冷却（见「额度保护」）。
 - **本机 admin 重启**：要连 uvicorn 的 `spawn_main` 子程序一起停掉，否则旧程式会继续占用 8001；迁移要 `main.py upgrade --env=dev`。
 - 迁移 ID 不要用规律的字串（例如 `e1f2a3b4c5d6`），admin 里已经有用过的，会造成 alembic 循环；用随机的。
