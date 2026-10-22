@@ -62,8 +62,12 @@ export function GoatTab({
     (p) =>
       p.id !== ownerId && (!q || p.name.toLowerCase().includes(q) || p.team.name.toLowerCase().includes(q)),
   );
-  // Without a search, the top teams only (the list is long); a search looks through all of them.
-  const teams = [...new Map(shown.map((p) => [p.team.id, p.team])).values()].slice(0, q ? undefined : 12);
+  // Without a search, the top teams only (the list is long), then the legends; a search looks
+  // through all of them.
+  const groups = [...new Map(shown.map((p) => [p.team.id, p.team])).values()];
+  const teams = q
+    ? groups
+    : [...groups.filter((g) => g.id >= 0).slice(0, 12), ...groups.filter((g) => g.id < 0)];
 
   return (
     <div className="flex flex-col gap-2">
@@ -80,7 +84,7 @@ export function GoatTab({
           {teams.map((team) => (
             <div key={team.id} className="flex flex-col py-2 first:pt-0 last:pb-0">
               <span className="mb-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="w-5 text-right tabular-nums">{team.rank > 0 ? `#${team.rank}` : ""}</span>
+                <span className="w-5 text-right tabular-nums">{team.id >= 0 ? `#${team.rank}` : ""}</span>
                 {team.logo ? (
                   <Image
                     src={team.logo}

@@ -17,9 +17,9 @@ const LEGENDS_GROUP = -1;
 export async function goatPicks(): Promise<GoatPick[] | null> {
   const scene = await getGoatScene().catch(() => null);
   const legends = await getLegendsLite(scene);
-  // The legends not on a team now, as a group of their own ahead of the teams (place 0). Unnamed:
+  // The legends not on a team now, as a group of their own after the teams (the last place). Unnamed:
   // a Server Action can't read the route's language (next/root-params), so the tab names it.
-  const group = { id: LEGENDS_GROUP, name: "", logo: null, rank: 0 };
+  const group = { id: LEGENDS_GROUP, name: "", logo: null, rank: Number.MAX_SAFE_INTEGER };
   const legendPicks: GoatPick[] = legends
     .filter((l) => !l.onTeam)
     .map((l) => ({ id: l.legend.accounts[0], name: l.legend.name, avatar: l.photo, team: group }));

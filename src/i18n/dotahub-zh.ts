@@ -617,7 +617,7 @@ const dotahubZh = {
     goatLoading: "读取职业选手名单…",
     goatFailed: "暂时拿不到职业选手名单。",
     goatNone: "没有符合的职业选手。",
-    goatHint: "GOAT 里排名前面战队的现役选手（主帐号）；搜寻会找全部战队。",
+    goatHint: "GOAT 里排名前面战队的现役选手（主帐号），最后是传奇；搜寻会找全部战队。",
     friends: "好友",
     ranks: "段位",
     gamesTogether: (n: number) => `一起 ${n} 场`,

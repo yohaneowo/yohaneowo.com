@@ -651,7 +651,8 @@ const dotahubEn: typeof dotahubZh = {
     goatLoading: "Loading the pros…",
     goatFailed: "The pro list isn't available right now.",
     goatNone: "No pro matches.",
-    goatHint: "Current players (main accounts) of GOAT's top teams; a search looks through every team.",
+    goatHint:
+      "Current players (main accounts) of GOAT's top teams, then the legends; a search looks through every team.",
     friends: "Friends",
     ranks: "Ranks",
     gamesTogether: (n: number) => `${n} together`,
