@@ -555,7 +555,7 @@ export class ChartController {
             id: symbol.id,
             display: symbol.display,
             color,
-            closes: new Map(bars.map((b) => [bucketStart(interval, b.timestamp), b.close])),
+            closes: Object.fromEntries(bars.map((b) => [bucketStart(interval, b.timestamp), b.close])),
           });
         } catch {
           // Skip symbols that fail to load.
@@ -578,12 +578,17 @@ export class ChartController {
     }
     const interval = this.interval;
     const extendData = { series: this.compareSeries, bucket: (t: number) => bucketStart(interval, t) };
-    if (exists) this.chart.overrideIndicator({ name: "CH_COMPARE", extendData });
-    else
-      this.chart.createIndicator(
-        { name: "CH_COMPARE", id: "CH_COMPARE", paneId: CANDLE_PANE, extendData },
-        true,
-      );
+    // The override needs the id (the name alone matches nothing in KLineChart 10).
+    if (
+      exists &&
+      this.chart.overrideIndicator({ name: "CH_COMPARE", id: "CH_COMPARE", paneId: CANDLE_PANE, extendData })
+    )
+      return;
+    if (exists) this.chart.removeIndicator({ name: "CH_COMPARE" });
+    this.chart.createIndicator(
+      { name: "CH_COMPARE", id: "CH_COMPARE", paneId: CANDLE_PANE, extendData },
+      true,
+    );
   }
 
   getCompareSeries() {

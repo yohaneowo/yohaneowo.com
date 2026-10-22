@@ -122,8 +122,9 @@ export interface CompareSeries {
   id: string;
   display: string;
   color: string;
-  // close by bucketed timestamp
-  closes: Map<number, number>;
+  // close by bucketed timestamp (a plain object: the chart deep-copies extendData, which would turn
+  // a Map into {})
+  closes: Record<number, number>;
 }
 
 export interface CompareExtend {
@@ -151,7 +152,7 @@ const compareIndicator: IndicatorTemplate<Record<string, number | undefined>, nu
     }));
     const bases = series.map((s) => {
       for (const k of list) {
-        const other = s.closes.get(bucket(k.timestamp));
+        const other = s.closes[bucket(k.timestamp)];
         if (other) return { main: k.close, other };
       }
       return null;
@@ -160,7 +161,7 @@ const compareIndicator: IndicatorTemplate<Record<string, number | undefined>, nu
       const row: Record<string, number | undefined> = {};
       series.forEach((s, i) => {
         const base = bases[i];
-        const other = s.closes.get(bucket(k.timestamp));
+        const other = s.closes[bucket(k.timestamp)];
         if (base && other) row[`c${i}`] = (base.main * other) / base.other;
       });
       return row;
