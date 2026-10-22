@@ -393,7 +393,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: "dotahub-match",
-    status: "testing",
+    status: "shipped",
     area: "dotahub",
     title: {
       zh: "DotaHub：比赛页的选角与每分钟 IMP、IMP 对比",
@@ -438,10 +438,11 @@ export const ROADMAP: RoadmapItem[] = [
     ],
     added: "2026-10-21",
     started: "2026-10-21",
+    shipped: "2026-10-22",
   },
   {
     id: "dotahub-signature",
-    status: "testing",
+    status: "shipped",
     area: "dotahub",
     title: { zh: "DotaHub：绝活", en: "DotaHub: signature heroes" },
     summary: {
@@ -488,10 +489,11 @@ export const ROADMAP: RoadmapItem[] = [
     links: [{ label: { zh: "绝活", en: "Signature heroes" }, href: "/dotahub/signature" }],
     added: "2026-10-21",
     started: "2026-10-21",
+    shipped: "2026-10-22",
   },
   {
     id: "dotahub-goat",
-    status: "building",
+    status: "shipped",
     area: "dotahub",
     title: { zh: "DotaHub：GOAT（职业战队与选手）", en: "DotaHub: GOAT (pro teams and players)" },
     summary: {
@@ -540,10 +542,11 @@ export const ROADMAP: RoadmapItem[] = [
     links: [{ label: { zh: "GOAT", en: "GOAT" }, href: "/dotahub/goat" }],
     added: "2026-10-21",
     started: "2026-10-21",
+    shipped: "2026-10-22",
   },
   {
     id: "dotahub-full-history",
-    status: "building",
+    status: "shipped",
     area: "dotahub",
     title: { zh: "DotaHub：读取任何玩家的全部天梯", en: "DotaHub: read anyone's whole ranked history" },
     summary: {
@@ -573,10 +576,11 @@ export const ROADMAP: RoadmapItem[] = [
     links: [],
     added: "2026-10-21",
     started: "2026-10-21",
+    shipped: "2026-10-22",
   },
   {
     id: "dotahub-research",
-    status: "building",
+    status: "shipped",
     area: "dotahub",
     title: { zh: "DotaHub：局内科研", en: "DotaHub: the in-game lab" },
     summary: {
@@ -639,11 +643,17 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step("该改什么：换算成金钱的清单", "What to fix: a list valued in gold", true),
+      step(
+        "解析完的结果存进资料库，部署后不必重抓",
+        "Finished results kept in the database, so a deploy doesn't fetch them again",
+        true,
+      ),
       step("用户审视后删减与调整", "Trim and adjust after review"),
     ],
     links: [{ label: { zh: "局内科研", en: "In-game lab" }, href: "/dotahub/research" }],
     added: "2026-10-21",
     started: "2026-10-21",
+    shipped: "2026-10-22",
   },
   {
     id: "dotahub-next",

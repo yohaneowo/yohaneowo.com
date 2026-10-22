@@ -180,6 +180,7 @@ export const coinhubWorkspace = pgTable("coinhub_workspace", {
 
 // DotaHub: the last good answer from a source that can go down (OpenDota's pro scene, a team's
 // page), by key (lib/dota/kept.ts). Survives the source failing and a deploy emptying the cache.
+// Also the finished 局内科研 sides (`lab:<version>:…`), so a deploy doesn't fetch them again.
 export const dotaSnapshot = pgTable("dota_snapshot", {
   key: text().primaryKey(),
   data: jsonb().notNull(),

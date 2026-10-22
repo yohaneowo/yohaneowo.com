@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import { getHeroes, getJson, getMatch } from "./data";
+import { dropKept, keep, kept } from "./kept";
 import { type AbilityMeta, getLabConsts, type ItemMeta } from "./lab-consts";
 import {
   buildExtra,
@@ -809,6 +810,11 @@ const OD_RUNES: Record<string, string> = {
 };
 
 // position: an override of STRATZ's position (1–5), which sets the rank average compared against.
+// Bump when what getLabSide returns changes: the kept results of other versions are dropped. After a
+// month the references (personal games, pro matches, the average) are fetched again.
+const LAB_VERSION = "1";
+const LAB_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+
 export async function getLabSide(
   matchId: number,
   slot: number,
@@ -816,6 +822,14 @@ export async function getLabSide(
 ): Promise<LabResult> {
   "use cache";
   const id = Math.trunc(matchId);
+  // A finished side (STRATZ parsed it too) is also kept in Postgres, so a deploy, which empties this
+  // cache, doesn't fetch it all again.
+  const key = `lab:${LAB_VERSION}:${id}:${slot}:${Math.trunc(position ?? 0)}`;
+  const saved = await kept<LabResult>(key).catch(() => null);
+  if (saved && Date.now() - saved.at < LAB_KEEP_MS) {
+    cacheLife("days");
+    return saved.data;
+  }
   const raw = (await getMatch(id)) as unknown as OdMatch | null;
   if (!raw) {
     cacheLife("minutes");
@@ -1838,7 +1852,12 @@ export async function getLabSide(
     talentTier: Object.fromEntries((heroAbilities?.talents ?? []).map((x) => [x.key, x.tier])),
     heroAbilities: { [String(p.hero_id)]: heroAbilities?.abilities ?? [] },
   };
-  return { state: "ok", side, assets };
+  const result: LabResult = { state: "ok", side, assets };
+  if (stratzParsed) {
+    await keep(key, result).catch(() => {});
+    await dropKept("lab", LAB_VERSION, LAB_KEEP_MS).catch(() => {});
+  }
+  return result;
 }
 
 // "9040578015-0" (match id and player slot) → the pair, or null.
