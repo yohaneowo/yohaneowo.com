@@ -337,7 +337,12 @@ export function HeroMatchups({
             </button>
           ))}
         </div>
-        <div role="tablist" aria-label={t.range} className="flex gap-1 rounded-lg bg-muted p-1 text-xs">
+        <div
+          role="tablist"
+          aria-label={t.range}
+          title={t.rangeHint}
+          className="flex gap-1 rounded-lg bg-muted p-1 text-xs"
+        >
           {MATCHUP_WEEKS.map((w) => (
             <button
               key={w}
@@ -384,7 +389,10 @@ export function HeroMatchups({
         <>
           <p className="text-sm">
             {t.intro(name(hero), bracketName(bracket))}{" "}
-            <span className="text-muted-foreground">{t.introHint(t.ranges[weeks])}</span>
+            <span className="text-muted-foreground">
+              {t.introHint(t.ranges[weeks])}
+              {weeks <= 1 && ` ${t.rangeHint}`}
+            </span>
             {loading && <span className="ml-2 text-xs text-muted-foreground">{t.loading}</span>}
           </p>
           <div className={cn("grid gap-4 lg:grid-cols-3", pending && "opacity-60 transition-opacity")}>

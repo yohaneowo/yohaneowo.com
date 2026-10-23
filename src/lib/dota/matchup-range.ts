@@ -2,7 +2,8 @@
 // one (STRATZ counts matchups per week), and the bracket (STRATZ's pairs of medals, or every
 // bracket together). Shared by the client (the buttons) and the server (the query), so it holds no
 // server code.
-export const MATCHUP_WEEKS = [1, 4, 12] as const;
+// 0 is the current week alone (what stratz.com's hero page shows).
+export const MATCHUP_WEEKS = [0, 1, 4, 12] as const;
 export type MatchupWeeks = (typeof MATCHUP_WEEKS)[number];
 export const DEFAULT_MATCHUP_WEEKS: MatchupWeeks = 4;
 

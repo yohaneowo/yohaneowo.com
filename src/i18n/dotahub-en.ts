@@ -307,7 +307,9 @@ const dotahubEn: typeof dotahubZh = {
     introHint: (range: string) =>
       `Advantage is STRATZ's figure: how many points more (or fewer) this hero wins against that one than usual, then the actual win rate, over ranked matches of the ${range}; under each row is your own record on it against that hero.`,
     range: "Time range",
-    ranges: { 1: "last week", 4: "last month", 12: "last 3 months" },
+    ranges: { 0: "this week", 1: "last week", 4: "last month", 12: "last 3 months" },
+    rangeHint:
+      '"This week" is STRATZ\'s current week so far, the same as stratz.com\'s hero page shows, with few matches early in the week; "last week" adds the previous full week.',
     bracketChoice: "Bracket",
     yourBracket: "Your bracket",
     allBrackets: "all brackets",

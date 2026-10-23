@@ -294,7 +294,9 @@ const dotahubZh = {
     introHint: (range: string) =>
       `优势是 STRATZ 算的「对上这个英雄比平常多赢（或少赢）几个百分点」，后面是实际胜率，取${range}的天梯对局；每一行下面是你自己用它对上这个英雄的纪录。`,
     range: "时间范围",
-    ranges: { 1: "最近 1 周", 4: "最近 1 个月", 12: "最近 3 个月" },
+    ranges: { 0: "本周", 1: "最近 1 周", 4: "最近 1 个月", 12: "最近 3 个月" },
+    rangeHint:
+      "「本周」是 STRATZ 当周到目前为止的数据，跟 stratz.com 英雄页显示的一样，周初样本很少；「最近 1 周」是本周加上一个完整周。",
     bracketChoice: "段位",
     yourBracket: "你的段位",
     allBrackets: "全部段位",
