@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { getDictionary } from "@/i18n/server";
@@ -28,7 +29,10 @@ export default async function LinkHubPage() {
   );
 }
 
+// The LinkHub environment variables are runtime settings (Doppler at start, not at build): read them
+// at request time, or the build bakes in "not configured".
 async function ParserGate() {
+  await connection();
   const t = (await getDictionary()).linkhub;
   if (!linkhubConfigured()) return <p className="text-muted-foreground">{t.notConfigured}</p>;
   const session = await getSession();
@@ -37,6 +41,7 @@ async function ParserGate() {
 
 // The platforms the gateway knows, with how many of their parsers are healthy right now.
 async function Platforms() {
+  await connection();
   const t = (await getDictionary()).linkhub;
   if (!linkhubConfigured()) return null;
   let rows;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { getDictionary, getLocale } from "@/i18n/server";
@@ -25,6 +26,8 @@ export default async function LinkHubStatusPage() {
 }
 
 async function StatusBody() {
+  // Runtime settings and live data: never prerendered at build.
+  await connection();
   const t = (await getDictionary()).linkhub;
   const lang = await getLocale();
   const s = t.status;
