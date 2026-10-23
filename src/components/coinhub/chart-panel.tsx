@@ -44,7 +44,15 @@ import {
   type ChartConfig,
   type HoldingLineStyle,
 } from "@/lib/coinhub/store";
-import { costBasis, fillSources, loadWallets, trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
+import {
+  costBasis,
+  fillSources,
+  isContract,
+  loadWallets,
+  trade,
+  useChartFills,
+  useTrade,
+} from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 import { COMPARE_COLORS, Legend } from "./legend";
 import { SelectionToolbar } from "./selection-toolbar";
@@ -334,6 +342,7 @@ export function ChartPanel({
   const tradeConnection = useTerminal((s) => s.trade.connection);
   const connections = useTrade((s) => s.connections);
   const accountId = tradeConnection ?? connections?.[0]?.id ?? null;
+  const exchange = connections?.find((c) => c.id === accountId)?.exchange ?? "binance";
   const fillConnection = tradeShow || settings.showHoldingLines ? accountId : null;
   const fills = useChartFills(symbol, fillConnection);
   useEffect(() => {
@@ -355,9 +364,10 @@ export function ChartPanel({
     const out: Array<{ id: string; price: number; title: string } & HoldingLineStyle> = [];
     const cost = costBasis(fills);
     if (cost) out.push({ id: "cost", price: cost.avg, title: l.cost, ...st.cost });
-    const futures = fillSources(symbol).find((s) => s.product === "coinm");
-    const position =
-      futures && wallets?.positions.find((p) => p.symbol === futures.symbol && Number(p.qty) !== 0);
+    const contracts = fillSources(symbol, exchange).filter((s) => isContract(s.product));
+    const position = wallets?.positions.find(
+      (p) => contracts.some((s) => s.product === p.product && s.symbol === p.symbol) && Number(p.qty) !== 0,
+    );
     if (position) {
       const breakEven = Number(position.breakEvenPrice ?? position.entryPrice);
       if (breakEven > 0) out.push({ id: "breakEven", price: breakEven, title: l.breakEven, ...st.breakEven });
@@ -366,7 +376,7 @@ export function ChartPanel({
         out.push({ id: "liquidation", price: liquidation, title: l.liquidation, ...st.liquidation });
     }
     return out;
-  }, [symbol, settings.showHoldingLines, settings.holdingStyles, fills, wallets, c]);
+  }, [symbol, exchange, settings.showHoldingLines, settings.holdingStyles, fills, wallets, c]);
 
   useEffect(() => {
     if (!controller || status.loading) return;

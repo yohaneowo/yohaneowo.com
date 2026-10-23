@@ -987,8 +987,8 @@ export class ChartController {
     for (const f of this.fillMarks) {
       const i = indexAt(this.raw, f.time);
       if (i < 0) continue;
-      // Futures fills are hollow marks (contracts, not coins).
-      const hollow = f.product === "coinm";
+      // Contract fills are hollow marks (positions, not coins held).
+      const hollow = f.product === "coinm" || f.product === "usdm";
       const key = `${this.raw[i].timestamp}_${f.side}_${hollow ? "f" : "s"}`;
       const g = groups.get(key) ?? { bar: this.raw[i], side: f.side, hollow, ids: [] };
       g.ids.push(f.id);

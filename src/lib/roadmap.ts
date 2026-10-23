@@ -228,12 +228,48 @@ export const ROADMAP: RoadmapItem[] = [
         "现货成本（移动加权平均）与持仓变化；笔记挂在标的或成交上",
         "Spot cost (moving weighted average) and position changes; notes on a symbol or a fill",
       ),
-      step("Bybit、OKX、Pionex 与 U 本位合约", "Bybit, OKX, Pionex and USDⓈ-M futures"),
+      step(
+        "Bybit 与 Pionex（见「更多交易所」）、OKX、Binance U 本位合约",
+        "Bybit and Pionex (see “More exchanges”), OKX, Binance USDⓈ-M futures",
+      ),
     ],
     links: [{ label: { zh: "TradeHub", en: "TradeHub" }, href: "/tradehub" }],
     added: "2026-10-22",
     started: "2026-10-22",
     shipped: "2026-10-23",
+  },
+  {
+    id: "tradehub-exchanges",
+    status: "building",
+    area: "coinhub",
+    title: { zh: "TradeHub：更多交易所（Bybit、Pionex）", en: "TradeHub: more exchanges (Bybit, Pionex)" },
+    summary: {
+      zh: "交易所帐户除了 Binance 也能绑 Bybit（统一帐户、资金、理财、合约持仓、两年成交）和 Pionex（交易帐户、合约帐户、机器人帐户，网格机器人的持仓与盈亏）。",
+      en: "Besides Binance, connect Bybit (unified and funding accounts, Earn, open positions, two years of fills) and Pionex (trading, futures and bot accounts, with each grid bot's position and profit).",
+    },
+    why: {
+      zh: "山寨币放在 Bybit、网格合约开在 Pionex，想在同一个面板看全部。",
+      en: "Altcoins sit on Bybit and grid futures run on Pionex; one panel should show all of it.",
+    },
+    steps: [
+      step(
+        "admin：Bybit（ccxt）与 Pionex（原生接口）适配、机器人表、按交易所分流的同步",
+        "admin: Bybit (ccxt) and Pionex (native API) adapters, a bots table, per-exchange sync flows",
+        true,
+      ),
+      step(
+        "网站：绑定时选交易所、钱包分类、机器人卡片、别家成交对到 Binance 的图",
+        "Site: pick the exchange when connecting, wallet groups, bot cards, other exchanges' fills on the Binance chart",
+        true,
+      ),
+      step(
+        "Bybit 合约收支（资金费、已实现）与 Pionex 合约帐户的资金费",
+        "Bybit contract income (funding, realized) and Pionex futures funding",
+      ),
+    ],
+    links: [{ label: { zh: "TradeHub", en: "TradeHub" }, href: "/tradehub" }],
+    added: "2026-10-23",
+    started: "2026-10-23",
   },
   {
     id: "dotahub",

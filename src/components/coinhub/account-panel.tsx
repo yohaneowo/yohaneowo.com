@@ -16,10 +16,13 @@ import { getState, setChartSymbol, setState, useTerminal } from "@/lib/coinhub/s
 import {
   connectExchange,
   disconnectExchange,
+  EXCHANGE_NAMES,
+  EXCHANGES,
   fillSources,
   fillsKey,
   fmtDec,
   holdingAsset,
+  isContract,
   loadConnections,
   loadFills,
   loadIp,
@@ -27,12 +30,16 @@ import {
   loadWallets,
   refreshConnection,
   setTracked,
+  symbolBase,
   trade,
   TradeApiError,
   type TradeBalance,
+  type TradeBot,
   type TradeConnection,
+  type TradeExchange,
   type TradeFill,
   type TradeProduct,
+  type TradeWallet,
   useChartFills,
   useTrade,
 } from "@/lib/coinhub/trade";
@@ -62,9 +69,10 @@ function openAssetChart(asset: string, noChart: string) {
   return openChart([`BINANCE:${asset}USDT`, `BINANCE:${asset}USDC`, `BINANCE:${asset}BTC`], noChart);
 }
 
-// A COIN-M position's chart: the USDT perpetual of its base, else the spot pair.
+// A contract position's chart (any exchange's symbol format): the USDT perpetual of its base, else
+// the spot pair.
 function openPositionChart(symbol: string, noChart: string) {
-  const base = symbol.replace(/USD_.*$/, "");
+  const base = symbolBase(symbol);
   return openChart([`BINANCE:${base}USDT.P`, `BINANCE:${base}USDT`], noChart);
 }
 
@@ -148,6 +156,7 @@ function ConnectForm({ cancel, done }: { cancel?: () => void; done: () => void }
   const { t } = useLocale();
   const tr = t.coinhub.account;
   const ip = useTrade((s) => s.ip);
+  const [exchange, setExchange] = useState<TradeExchange>("binance");
   const [label, setLabel] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
@@ -161,7 +170,7 @@ function ConnectForm({ cancel, done }: { cancel?: () => void; done: () => void }
     setBusy(true);
     setFailed(null);
     try {
-      await connectExchange({ label, apiKey: apiKey.trim(), apiSecret: apiSecret.trim() });
+      await connectExchange({ exchange, label, apiKey: apiKey.trim(), apiSecret: apiSecret.trim() });
       toast.success(tr.connected);
       done();
     } catch (e) {
@@ -181,8 +190,27 @@ function ConnectForm({ cancel, done }: { cancel?: () => void; done: () => void }
       }}
     >
       {!cancel && <p className="text-muted-foreground">{tr.none}</p>}
-      <p className="font-medium">{tr.connect}</p>
-      <p className="text-muted-foreground">{tr.connectHint}</p>
+      <p className="font-medium">{tr.connect(EXCHANGE_NAMES[exchange])}</p>
+      <div className="flex gap-1" role="radiogroup" aria-label={tr.exchange}>
+        {EXCHANGES.map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={exchange === key}
+            className={cn(
+              "rounded-md border px-2 py-0.5 hover:bg-muted",
+              exchange === key
+                ? "border-primary bg-primary/10 font-medium text-primary"
+                : "text-muted-foreground",
+            )}
+            onClick={() => setExchange(key)}
+          >
+            {EXCHANGE_NAMES[key]}
+          </button>
+        ))}
+      </div>
+      <p className="text-muted-foreground">{tr.connectHints[exchange]}</p>
       {ip && <p className="text-muted-foreground">{tr.ipHint(ip)}</p>}
       <div className="flex flex-col gap-1">
         <Label htmlFor="trade-label" className="text-xs">
@@ -229,7 +257,7 @@ function ConnectForm({ cancel, done }: { cancel?: () => void; done: () => void }
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={busy || !apiKey || !apiSecret}>
           {busy && <Loader2Icon className="animate-spin" />}
-          {busy ? tr.connecting : tr.submit}
+          {busy ? tr.connecting(EXCHANGE_NAMES[exchange]) : tr.submit}
         </Button>
         {cancel && (
           <Button type="button" size="sm" variant="ghost" onClick={cancel}>
@@ -272,7 +300,7 @@ function ConnectionView({
           >
             {all.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.label} · {c.keyTail}
+                {EXCHANGE_NAMES[c.exchange] ?? c.exchange} · {c.label} · {c.keyTail}
               </option>
             ))}
           </select>
@@ -283,11 +311,15 @@ function ConnectionView({
           </div>
         )}
         <div className="flex flex-wrap gap-x-2 text-muted-foreground">
+          <span>{EXCHANGE_NAMES[connection.exchange] ?? connection.exchange}</span>
           <span className={cn(connection.status === "error" && DOWN)}>{tr.status[connection.status]}</span>
           <span>{tr.lastSync(ago(connection.lastSyncAt))}</span>
         </div>
         {connection.lastError && <p className={DOWN}>{connection.lastError}</p>}
         {connection.permissions.trading && <p className="text-amber-600">{tr.permissions.trading}</p>}
+        {connection.exchange === "pionex" && connection.permissions.botReading === false && (
+          <p className="text-amber-600">{tr.permissions.noBotReading}</p>
+        )}
       </div>
       <Tabs value={tab} onValueChange={(v) => trade.set({ tab: v as typeof tab })} className="gap-0">
         <TabsList className="mx-3 mt-2 grid h-7 w-auto grid-cols-4">
@@ -325,18 +357,20 @@ function Overview({ connection }: { connection: TradeConnection }) {
   useEffect(() => {
     loadWallets(connection.id).catch(() => {});
   }, [connection.id]);
-  const sources = symbol ? fillSources(symbol) : [];
-  // The spot or stock holding behind the chart across the wallets (stocks are EQ_<ticker>).
+  const sources = symbol ? fillSources(symbol, connection.exchange) : [];
+  // The spot or stock holding behind the chart across the wallets (stocks are EQ_<ticker>); the
+  // contract wallets hold margin, not the coin.
   const asset = symbol ? holdingAsset(symbol) : null;
-  const held = wallets?.balances.filter((b) => b.asset === asset && b.wallet !== "coinm") ?? [];
+  const held =
+    wallets?.balances.filter((b) => b.asset === asset && b.wallet !== "coinm" && b.wallet !== "usdm") ?? [];
   const position = wallets?.positions.find((p) =>
-    sources.some((s) => s.product === "coinm" && s.symbol === p.symbol),
+    sources.some((s) => isContract(s.product) && s.product === p.product && s.symbol === p.symbol),
   );
   const totals = useMemo(() => {
     let bought = 0;
     let sold = 0;
     for (const f of fills) {
-      if (f.product === "coinm") continue;
+      if (isContract(f.product)) continue;
       if (f.side === "BUY") bought += Number(f.qty);
       else sold += Number(f.qty);
     }
@@ -371,7 +405,7 @@ function Overview({ connection }: { connection: TradeConnection }) {
           {position && (
             <Row
               label={`${tr.positions} ${position.symbol}`}
-              value={`${fmtDec(position.qty)} ${tr.contracts}`}
+              value={`${fmtDec(position.qty)}${position.product === "coinm" ? ` ${tr.contracts}` : ""}`}
               tone={Number(position.qty) >= 0 ? UP : DOWN}
             />
           )}
@@ -446,8 +480,11 @@ function fmtDate(ms: number) {
 
 // The currencies the holdings can be valued in (USD exchange rates from the valuation API).
 const CURRENCIES = ["USD", "TWD", "CNY", "HKD", "JPY", "KRW", "EUR", "GBP", "SGD", "AUD", "CAD", "MYR"];
-const WALLETS = ["coinm", "funding", "earn", "spot"] as const;
-type Wallet = (typeof WALLETS)[number];
+// Every wallet any exchange has; a connection shows the ones it filled.
+const WALLETS: TradeWallet[] = ["unified", "coinm", "usdm", "bot", "funding", "earn", "spot"];
+type Wallet = TradeWallet;
+// The wallets that hold contract margin: the positions are listed under them.
+const CONTRACT_WALLETS: Wallet[] = ["unified", "coinm", "usdm"];
 // A wallet header cycles its rows: all → none → the top three → all.
 type Fold = "all" | "none" | "top";
 const NEXT_FOLD: Record<Fold, Fold> = { all: "none", none: "top", top: "all" };
@@ -502,10 +539,14 @@ function Wallets({ connection }: { connection: TradeConnection }) {
   const shown = view === "all" ? groups : groups.filter((g) => g.wallet === view);
   const total = shown.reduce((sum, g) => sum + g.subtotal, 0);
   const unknown = shown.some((g) => g.unknown);
+  const present = new Set(groups.map((g) => g.wallet));
+  const tabs: Array<"all" | Wallet> = ["all", ...WALLETS.filter((w) => present.has(w))];
+  const showPositions = view === "all" || CONTRACT_WALLETS.includes(view);
+  const showBots = wallets.bots.length > 0 && (view === "all" || view === "bot");
   return (
     <div className="flex flex-col gap-3 px-3 py-2">
       <div className="flex flex-wrap gap-1">
-        {(["all", ...WALLETS] as const).map((key) => (
+        {tabs.map((key) => (
           <button
             key={key}
             type="button"
@@ -598,7 +639,7 @@ function Wallets({ connection }: { connection: TradeConnection }) {
           </div>
         );
       })}
-      {(view === "all" || view === "coinm") && (
+      {showPositions && (
         <div>
           <div className="mb-1 font-medium">{tr.positions}</div>
           {wallets.positions.length === 0 ? (
@@ -619,11 +660,14 @@ function Wallets({ connection }: { connection: TradeConnection }) {
                         className="inline-flex items-center gap-1.5 font-medium hover:text-primary hover:underline"
                         onClick={() => void openPositionChart(p.symbol, tr.noChart)}
                       >
-                        <CoinIcon asset={p.symbol.replace(/USD_.*$/, "")} />
+                        <CoinIcon asset={symbolBase(p.symbol)} />
                         {p.symbol}
+                        <span className="font-normal text-muted-foreground">{tr.product[p.product]}</span>
                       </button>
                       <span className={long ? UP : DOWN}>
-                        {fmtDec(p.qty)} {tr.contracts} · {p.leverage ?? "–"}x {p.marginType ?? ""}
+                        {fmtDec(p.qty)}
+                        {p.product === "coinm" ? ` ${tr.contracts}` : ""} · {p.leverage ?? "–"}x{" "}
+                        {p.marginType ?? ""}
                       </span>
                     </div>
                     <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-muted-foreground">
@@ -639,6 +683,130 @@ function Wallets({ connection }: { connection: TradeConnection }) {
           )}
         </div>
       )}
+      {showBots && <Bots bots={wallets.bots} prices={valuation?.prices} />}
+    </div>
+  );
+}
+
+// The exchange's trading bots (Pionex grids): the running ones as cards with what they were given,
+// hold and made so far; the finished ones folded into a list. The unrealized part of a futures
+// grid's position is estimated here from Binance's price (the exchange doesn't report it).
+function Bots({ bots, prices }: { bots: TradeBot[]; prices?: Record<string, number> }) {
+  const { t } = useLocale();
+  const tr = t.coinhub.account;
+  const [showFinished, setShowFinished] = useState(false);
+  const running = bots.filter((b) => b.status === "running");
+  const finished = bots.filter((b) => b.status !== "running");
+  const money = (v: string | null, max = 4) => fmtDec(v, max);
+  const signed = (v: string | null) => {
+    if (v === null || v === undefined) return "–";
+    return `${Number(v) > 0 ? "+" : ""}${fmtDec(v, 4)}`;
+  };
+  const tone = (v: string | null) => (v === null ? undefined : Number(v) >= 0 ? UP : DOWN);
+  const card = (b: TradeBot) => {
+    const qty = Number(b.qty ?? 0);
+    const entry = Number(b.entryPrice ?? 0);
+    const price = prices?.[b.base];
+    const futures = b.type.startsWith("future");
+    const unrealized =
+      futures && qty && entry && price ? (price - entry) * qty * (b.side === "short" ? -1 : 1) : null;
+    return (
+      <div key={b.id} className="rounded-md border px-2 py-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 font-medium hover:text-primary hover:underline"
+            onClick={() => void openPositionChart(b.symbol, tr.noChart)}
+          >
+            <CoinIcon asset={b.base} />
+            {b.base}/{b.quote}
+            <span className="font-normal text-muted-foreground">
+              {tr.botTypes[b.type] ?? b.type}
+              {b.side ? ` · ${tr.botSide[b.side] ?? b.side}` : ""}
+              {b.leverage ? ` · ${b.leverage}x` : ""}
+            </span>
+          </button>
+          <span className={cn("shrink-0", b.status === "running" ? UP : "text-muted-foreground")}>
+            {b.status === "running" ? tr.botRunning : tr.botFinished}
+          </span>
+        </div>
+        {b.name && <p className="text-muted-foreground">{b.name}</p>}
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-muted-foreground">
+          <Row label={tr.botInvestment} value={`${money(b.investment)} ${b.quote}`} />
+          {b.margin && <Row label={tr.botMargin} value={`${money(b.margin)} ${b.quote}`} />}
+          {qty !== 0 && (
+            <Row
+              label={tr.botPosition}
+              value={`${fmtDec(b.qty)} ${b.base}${entry ? ` @ ${fmtDec(b.entryPrice, 4)}` : ""}`}
+            />
+          )}
+          {unrealized !== null && (
+            <Row
+              label={tr.upnl}
+              value={`${unrealized > 0 ? "+" : ""}${fmtDec(unrealized.toFixed(4), 4)} ${b.quote}`}
+              tone={unrealized >= 0 ? UP : DOWN}
+            />
+          )}
+          {b.gridProfit !== null && (
+            <Row
+              label={tr.botGridProfit}
+              value={`${signed(b.gridProfit)} ${b.quote}`}
+              tone={tone(b.gridProfit)}
+            />
+          )}
+          {b.realizedPnl !== null && (
+            <Row
+              label={tr.botRealized}
+              value={`${signed(b.realizedPnl)} ${b.quote}`}
+              tone={tone(b.realizedPnl)}
+            />
+          )}
+          {b.fee !== null && Number(b.fee) !== 0 && (
+            <Row label={tr.botFee} value={`${money(b.fee)} ${b.quote}`} />
+          )}
+          {b.funding !== null && Number(b.funding) !== 0 && (
+            <Row label={tr.botFunding} value={`${signed(b.funding)} ${b.quote}`} tone={tone(b.funding)} />
+          )}
+          {b.top && b.bottom && (
+            <Row
+              label={tr.botRange}
+              value={`${fmtDec(b.bottom, 4)} – ${fmtDec(b.top, 4)}${b.rows ? ` · ${tr.botRows(b.rows)}` : ""}`}
+            />
+          )}
+          {b.liquidationPrice && <Row label={tr.liq} value={fmtDec(b.liquidationPrice, 4)} />}
+          {b.pairs !== null && <Row label={tr.botPairs(b.pairs)} value="" />}
+        </dl>
+        <p className="text-muted-foreground">
+          {b.createdAt ? tr.botSince(fmtDate(b.createdAt)) : ""}
+          {b.closedAt ? ` · ${tr.botClosed(fmtDate(b.closedAt))}` : ""}
+        </p>
+      </div>
+    );
+  };
+  return (
+    <div>
+      <div className="mb-1 font-medium">{tr.bots}</div>
+      <p className="mb-1 text-muted-foreground">{tr.botHint}</p>
+      {running.length === 0 && finished.length === 0 ? (
+        <p className="text-muted-foreground">{tr.noBots}</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {running.map(card)}
+          {finished.length > 0 && (
+            <button
+              type="button"
+              className="flex items-center gap-1 text-left text-muted-foreground hover:text-foreground"
+              onClick={() => setShowFinished((v) => !v)}
+            >
+              <ChevronRightIcon
+                className={cn("size-3.5 transition-transform", showFinished && "rotate-90")}
+              />
+              {tr.showFinishedBots(finished.length)}
+            </button>
+          )}
+          {showFinished && finished.map(card)}
+        </div>
+      )}
     </div>
   );
 }
@@ -652,11 +820,13 @@ function Fills({ connection }: { connection: TradeConnection }) {
   const highlight = useTrade((s) => s.highlight);
   const loaded = useTrade((s) =>
     symbol
-      ? fillSources(symbol).every((src) => s.fills[fillsKey(connection.id, src.product, src.symbol)])
+      ? fillSources(symbol, connection.exchange).every(
+          (src) => s.fills[fillsKey(connection.id, src.product, src.symbol)],
+        )
       : true,
   );
   const rows = useMemo(() => fills.slice().reverse(), [fills]);
-  if (!symbol || !fillSources(symbol).length)
+  if (!symbol || !fillSources(symbol, connection.exchange).length)
     return <p className="px-3 py-2 text-muted-foreground">{tr.noSource}</p>;
   if (!loaded) return <p className="px-3 py-2 text-muted-foreground">{tr.loadingFills}</p>;
   if (!rows.length) return <p className="px-3 py-2 text-muted-foreground">{tr.noFills}</p>;
@@ -681,6 +851,7 @@ function FillRow({ fill, highlighted }: { fill: TradeFill; highlighted: boolean 
           <span className="ml-1 text-muted-foreground">
             {tr.product[fill.product]}
             {fill.positionSide && fill.positionSide !== "BOTH" ? ` ${fill.positionSide}` : ""}
+            {fill.symbol ? ` · ${fill.symbol}` : ""}
           </span>
         </span>
         <span className="text-muted-foreground">{fmtDate(fill.time)}</span>
@@ -711,6 +882,13 @@ function Sync({ connection, onAdd }: { connection: TradeConnection; onAdd: () =>
   const [symbol, setSymbol] = useState("");
   const [busy, setBusy] = useState(false);
   const syncs = connection.syncs;
+  // The products read symbol by symbol at this exchange (none at Bybit: whole streams).
+  const trackable: TradeProduct[] =
+    connection.exchange === "binance"
+      ? ["spot", "coinm"]
+      : connection.exchange === "pionex"
+        ? ["spot", "usdm"]
+        : [];
   const done = syncs.filter((s) => s.backfilled).length;
   const total = syncs.reduce((n, s) => n + s.count, 0);
   const failed = syncs.filter((s) => s.lastError);
@@ -746,7 +924,7 @@ function Sync({ connection, onAdd }: { connection: TradeConnection; onAdd: () =>
       </div>
       <div>
         <div className="font-medium">{tr.tracked}</div>
-        <p className="text-muted-foreground">{tr.trackedHint}</p>
+        <p className="text-muted-foreground">{trackable.length ? tr.trackedHint : tr.trackedStream}</p>
         {connection.tracked.map((item) => (
           <div key={`${item.product}:${item.symbol}`} className="flex items-center justify-between py-0.5">
             <span>
@@ -765,31 +943,36 @@ function Sync({ connection, onAdd }: { connection: TradeConnection; onAdd: () =>
             </Button>
           </div>
         ))}
-        <form
-          className="mt-1 flex gap-1"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void add();
-          }}
-        >
-          <select
-            className="h-7 rounded-md border bg-background px-1 text-xs"
-            value={product}
-            onChange={(e) => setProduct(e.target.value as TradeProduct)}
+        {trackable.length > 0 && (
+          <form
+            className="mt-1 flex gap-1"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void add();
+            }}
           >
-            <option value="spot">{tr.product.spot}</option>
-            <option value="coinm">{tr.product.coinm}</option>
-          </select>
-          <Input
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-            placeholder={tr.symbolPlaceholder}
-            className="h-7 flex-1 font-mono text-xs uppercase"
-          />
-          <Button type="submit" size="sm" variant="outline" disabled={busy || !symbol.trim()}>
-            {tr.addSymbol}
-          </Button>
-        </form>
+            <select
+              className="h-7 rounded-md border bg-background px-1 text-xs"
+              value={trackable.includes(product) ? product : trackable[0]}
+              onChange={(e) => setProduct(e.target.value as TradeProduct)}
+            >
+              {trackable.map((p) => (
+                <option key={p} value={p}>
+                  {tr.product[p]}
+                </option>
+              ))}
+            </select>
+            <Input
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value)}
+              placeholder={tr.symbolPlaceholders[connection.exchange] ?? tr.symbolPlaceholder}
+              className="h-7 flex-1 font-mono text-xs uppercase"
+            />
+            <Button type="submit" size="sm" variant="outline" disabled={busy || !symbol.trim()}>
+              {tr.addSymbol}
+            </Button>
+          </form>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={onAdd}>
