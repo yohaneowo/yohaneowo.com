@@ -603,6 +603,7 @@ const coinhubZh = {
     liq: "强平价",
     noBalances: "还没读到余额，等一下再看。",
     total: "预估总资产",
+    allAccounts: "所有帐户合计",
     walletTabs: {
       all: "总览",
       coinm: "币本位",

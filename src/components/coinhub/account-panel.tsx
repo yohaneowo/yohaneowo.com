@@ -497,16 +497,22 @@ function Wallets({ connection }: { connection: TradeConnection }) {
   const { t, lang } = useLocale();
   const tr = t.coinhub.account;
   const wallets = useTrade((s) => s.wallets[connection.id]);
+  // Every account's wallets too: the panel shows what all of them add up to.
+  const connections = useTrade((s) => s.connections ?? []);
+  const allWallets = useTrade((s) => s.wallets);
   const valuation = useTrade((s) => s.valuation);
   const currency = useTerminal((s) => s.trade.currency);
   const [view, setView] = useState<"all" | Wallet>("all");
   const [folds, setFolds] = useState<Partial<Record<Wallet, Fold>>>({});
+  const connectionIds = connections.map((c) => c.id).join(",");
   useEffect(() => {
     loadWallets(connection.id).catch(() => {});
-  }, [connection.id]);
+    for (const id of connectionIds.split(",").filter(Boolean)) loadWallets(Number(id)).catch(() => {});
+  }, [connection.id, connectionIds]);
   const assetKey = useMemo(
-    () => [...new Set((wallets?.balances ?? []).map((b) => b.asset))].sort().join(","),
-    [wallets],
+    () =>
+      [...new Set(Object.values(allWallets).flatMap((w) => w.balances.map((b) => b.asset)))].sort().join(","),
+    [allWallets],
   );
   useEffect(() => {
     if (assetKey) loadValuation(assetKey.split(",")).catch(() => {});
@@ -545,8 +551,52 @@ function Wallets({ connection }: { connection: TradeConnection }) {
   const tabs: Array<"all" | Wallet> = ["all", ...WALLETS.filter((w) => present.has(w))];
   const showPositions = view === "all" || CONTRACT_WALLETS.includes(view);
   const showBots = wallets.bots.length > 0 && (view === "all" || view === "bot");
+  // Every connected account's worth, and all of them together (shown when there are several).
+  const accounts = connections.map((c) => {
+    const w = allWallets[c.id];
+    const values = (w?.balances ?? []).map(valueOf);
+    return {
+      connection: c,
+      loaded: Boolean(w),
+      value: values.reduce<number>((sum, v) => sum + (v ?? 0), 0),
+      unknown: values.some((v) => v === null),
+    };
+  });
+  const grand = accounts.reduce((sum, a) => sum + a.value, 0);
+  const grandUnknown = accounts.some((a) => a.unknown || !a.loaded);
   return (
     <div className="flex flex-col gap-3 px-3 py-2">
+      {connections.length > 1 && (
+        <div className="rounded-md border px-2 py-1.5">
+          <div className="text-muted-foreground">{tr.allAccounts}</div>
+          <div className="text-lg font-semibold tabular-nums">
+            {rate === null ? "–" : `${grandUnknown ? "≈ " : ""}${money(grand)}`}
+          </div>
+          <div className="mt-1 flex flex-col">
+            {accounts.map((a) => (
+              <button
+                key={a.connection.id}
+                type="button"
+                className={cn(
+                  "flex items-center justify-between rounded px-1 py-0.5 text-left hover:bg-muted/60",
+                  a.connection.id === connection.id ? "font-medium" : "text-muted-foreground",
+                )}
+                onClick={() => {
+                  trade.set({ selected: a.connection.id });
+                  setState((s) => ({ trade: { ...s.trade, connection: a.connection.id } }));
+                }}
+              >
+                <span>
+                  {EXCHANGE_NAMES[a.connection.exchange] ?? a.connection.exchange} · {a.connection.label}
+                </span>
+                <span className="tabular-nums">
+                  {!a.loaded || rate === null ? "–" : `${a.unknown ? "≈ " : ""}${money(a.value)}`}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap gap-1">
         {tabs.map((key) => (
           <button

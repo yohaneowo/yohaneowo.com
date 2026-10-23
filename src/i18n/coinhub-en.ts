@@ -606,6 +606,7 @@ const coinhubEn: typeof coinhubZh = {
     liq: "Liq.",
     noBalances: "Balances not read yet; check back in a moment.",
     total: "Estimated total",
+    allAccounts: "All accounts",
     walletTabs: {
       all: "Overview",
       coinm: "COIN-M",
