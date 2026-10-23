@@ -32,6 +32,7 @@ const roadmapZh = {
     admin: "管理后台",
     coinhub: "TradeHub",
     uidhub: "UidHub",
+    linkhub: "LinkHub",
     site: "全站",
   },
   now: "现在",

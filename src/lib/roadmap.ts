@@ -12,7 +12,8 @@
 //   declined     不做:   looked at and decided against (with the reason)
 
 export type RoadmapStatus = "considering" | "building" | "testing" | "shipped" | "paused" | "declined";
-export type RoadmapArea = "moviehub" | "dotahub" | "bot" | "admin" | "coinhub" | "uidhub" | "site";
+export type RoadmapArea =
+  "moviehub" | "dotahub" | "bot" | "admin" | "coinhub" | "uidhub" | "linkhub" | "site";
 type Text = { zh: string; en: string };
 
 export type RoadmapItem = {
@@ -53,6 +54,7 @@ export const ROADMAP_AREAS: RoadmapArea[] = [
   "admin",
   "coinhub",
   "uidhub",
+  "linkhub",
   "site",
 ];
 // Voting is for what may still be built.
@@ -237,6 +239,41 @@ export const ROADMAP: RoadmapItem[] = [
     added: "2026-10-22",
     started: "2026-10-22",
     shipped: "2026-10-23",
+  },
+  {
+    id: "linkhub",
+    status: "building",
+    area: "linkhub",
+    title: { zh: "LinkHub：链接解析", en: "LinkHub: link parsing" },
+    summary: {
+      zh: "贴一条社群或影片链接，拿到贴文正文、作者和媒体文件并下载。背后是自建的解析网关 LinkHub：十来个开源解析项目各包成一个容器，按分数与熔断自动选能用的那个，Discord bot 也改走它。",
+      en: "Paste a social or video link to get the post's text, author and media files, ready to download. Behind it is LinkHub, a self-hosted parsing gateway: a dozen open-source parsers each in a container, routed by score and circuit breaker; the Discord bot uses it too.",
+    },
+    why: {
+      zh: "bot 原本每个平台自己写解析，平台一改版就坏；集中到一个会自己换路的网关，网站也顺便有了解析页。",
+      en: "The bot used to parse each platform itself and broke whenever a platform changed; one gateway that reroutes by itself fixes that, and the site gets a parse page for free.",
+    },
+    steps: [
+      step(
+        "LinkHub 网关：统一契约、打分与熔断、API key、MCP",
+        "The LinkHub gateway: one contract, scoring and breakers, API keys, MCP",
+        true,
+      ),
+      step(
+        "网站解析页：正文、作者、媒体与下载",
+        "The site's parse page: text, author, media and downloads",
+        true,
+      ),
+      step(
+        "状态页：每个平台的解析器分数与熔断",
+        "A status page: each platform's parser scores and breakers",
+        true,
+      ),
+      step("部署到 Coolify、bot 切换到 LinkHub", "Deploy on Coolify, switch the bot over"),
+    ],
+    links: [{ label: { zh: "LinkHub", en: "LinkHub" }, href: "/linkhub" }],
+    added: "2026-10-23",
+    started: "2026-10-23",
   },
   {
     id: "tradehub-exchanges",

@@ -2,6 +2,7 @@ import {
   ChartCandlestickIcon,
   FilmIcon,
   Gamepad2Icon,
+  LinkIcon,
   type LucideIcon,
   MapIcon,
   SwordsIcon,
@@ -24,5 +25,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "coinhub", href: "/tradehub", icon: ChartCandlestickIcon },
   { key: "uidhub", href: "/uidhub", icon: Gamepad2Icon },
   { key: "dotahub", href: "/dotahub", icon: SwordsIcon, logo: "/dota/dota2.png" },
+  { key: "linkhub", href: "/linkhub", icon: LinkIcon },
   { key: "roadmap", href: "/roadmap", icon: MapIcon },
 ];

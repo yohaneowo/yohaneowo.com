@@ -34,6 +34,7 @@ const roadmapEn: typeof roadmapZh = {
     admin: "Admin",
     coinhub: "TradeHub",
     uidhub: "UidHub",
+    linkhub: "LinkHub",
     site: "Whole site",
   },
   now: "Now",

@@ -2,6 +2,7 @@
 import coinhubZh from "./coinhub-zh";
 import dotahubZh from "./dotahub-zh";
 import homeZh from "./home-zh";
+import linkhubZh from "./linkhub-zh";
 import moviehubZh from "./moviehub-zh";
 import roadmapZh from "./roadmap-zh";
 
@@ -27,6 +28,10 @@ const zh = {
     dotahub: {
       title: "DotaHub",
       description: "连结 Steam 看自己的 Dota 2：段位、胜率、最近比赛、常用英雄与比赛详情。",
+    },
+    linkhub: {
+      title: "LinkHub",
+      description: "贴一条 YouTube、X、小红书、抖音等链接，拿到贴文正文、作者和可下载的媒体文件。",
     },
     roadmap: {
       title: "开发计划",
@@ -418,6 +423,7 @@ const zh = {
   coinhub: coinhubZh,
   dotahub: dotahubZh,
   home: homeZh,
+  linkhub: linkhubZh,
   moviehub: moviehubZh,
   roadmap: roadmapZh,
 };

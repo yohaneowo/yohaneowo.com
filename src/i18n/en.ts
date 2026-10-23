@@ -1,6 +1,7 @@
 import coinhubEn from "./coinhub-en";
 import dotahubEn from "./dotahub-en";
 import homeEn from "./home-en";
+import linkhubEn from "./linkhub-en";
 import moviehubEn from "./moviehub-en";
 import roadmapEn from "./roadmap-en";
 import type { Dictionary } from "./zh";
@@ -31,6 +32,11 @@ const en: Dictionary = {
       title: "DotaHub",
       description:
         "Connect Steam to see your Dota 2: rank, win rate, recent matches, most played heroes and match details.",
+    },
+    linkhub: {
+      title: "LinkHub",
+      description:
+        "Paste a YouTube, X, Xiaohongshu, Douyin or other link to get the post's text, author and downloadable media.",
     },
     roadmap: {
       title: "Roadmap",
@@ -438,6 +444,7 @@ const en: Dictionary = {
   coinhub: coinhubEn,
   dotahub: dotahubEn,
   home: homeEn,
+  linkhub: linkhubEn,
   moviehub: moviehubEn,
   roadmap: roadmapEn,
 };

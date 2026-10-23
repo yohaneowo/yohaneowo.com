@@ -43,5 +43,6 @@ export const AREA_COLOR: Record<RoadmapArea, string> = {
   admin: "#38a3c9",
   coinhub: "#e8793a",
   uidhub: "#d65fa0",
+  linkhub: "#8a63d2",
   site: "#2fb388",
 };
