@@ -30,9 +30,22 @@ function logDotaHub(request: NextRequest) {
   );
 }
 
+// AI companies' crawlers (training and search indexing, not the agents fetching one page for a
+// user's question): on 2026-10-23 GPTBot walked GOAT's team pages 2,500 times an hour and spent the
+// day's OpenDota and STRATZ quotas. Cloudflare blocks them at the edge too; this is the second
+// line, for DotaHub only, where every page costs calls.
+const AI_CRAWLER =
+  /GPTBot|OAI-SearchBot|ClaudeBot|Claude-SearchBot|anthropic-ai|CCBot|Bytespider|Amazonbot|meta-externalagent|PerplexityBot|Applebot-Extended|Google-Extended|cohere-ai|Diffbot|ImagesiftBot|omgili|YouBot|PetalBot|DataForSeoBot|AI2Bot|TikTokSpider|Timpibot/i;
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   logDotaHub(request);
+  if (DOTAHUB.test(pathname) && AI_CRAWLER.test(request.headers.get("user-agent") ?? "")) {
+    return new NextResponse("AI crawlers are not allowed on DotaHub (see /robots.txt).", {
+      status: 403,
+      headers: { "content-type": "text/plain" },
+    });
+  }
   const prefix = pathname.split("/")[1];
   // /zh/... is the default language: show it without the prefix.
   if (prefix === DEFAULT_LOCALE) {

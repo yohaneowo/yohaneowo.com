@@ -15,3 +15,30 @@ Disallow: /dotahub/goat/teams/
 Disallow: /en/dotahub/goat/teams/
 Disallow: /dotahub/goat/players/
 Disallow: /en/dotahub/goat/players/
+
+# AI training and search crawlers: all of DotaHub is off limits (GPTBot took 2,500 team pages an
+# hour on 2026-10-23 and spent the day's quotas). The site returns 403 to them there as well.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: Amazonbot
+User-agent: meta-externalagent
+User-agent: PerplexityBot
+User-agent: Applebot-Extended
+User-agent: Google-Extended
+User-agent: cohere-ai
+User-agent: Diffbot
+User-agent: ImagesiftBot
+User-agent: omgili
+User-agent: YouBot
+User-agent: PetalBot
+User-agent: DataForSeoBot
+User-agent: AI2Bot
+User-agent: TikTokSpider
+User-agent: Timpibot
+Disallow: /dotahub/
+Disallow: /en/dotahub/

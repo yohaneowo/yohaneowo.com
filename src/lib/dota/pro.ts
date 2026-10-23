@@ -438,7 +438,8 @@ async function openDotaTeamPage(id: number): Promise<TeamPage | null> {
         score: m.radiant ? [m.radiant_score, m.dire_score] : [m.dire_score, m.radiant_score],
         league: m.league_name,
         leagueId: m.leagueid,
-        opponentId: m.opposing_team_id,
+        // OpenDota gives some opponents a negative id (no real team): no page to link to.
+        opponentId: m.opposing_team_id && m.opposing_team_id > 0 ? m.opposing_team_id : null,
         opponent: m.opposing_team_name,
         opponentLogo: m.opposing_team_logo,
       })),
@@ -510,7 +511,7 @@ async function stratzTeamPage(id: number): Promise<TeamPage | null> {
       score: [sum(ours), sum(theirs)],
       league: clean(m.league?.displayName),
       leagueId: m.league?.id ?? 0,
-      opponentId: opponent?.id ?? null,
+      opponentId: opponent?.id && opponent.id > 0 ? opponent.id : null,
       opponent: clean(opponent?.name),
       opponentLogo: clean(opponent?.logo),
     };
