@@ -12,14 +12,14 @@ import type { RankPoint } from "./load";
 // Divine's blue, Immortal's gold).
 const MEDAL_COLORS = [
   "",
-  "#5fa845",
-  "#a4703d",
-  "#2fb5b2",
-  "#d6a93b",
-  "#c2384f",
-  "#9b4fd1",
-  "#3f7ee8",
-  "#f0c640",
+  "#A9DA79",
+  "#5E4B36",
+  "#108A85",
+  "#2F9372",
+  "#7C1441",
+  "#6A1585",
+  "#90A0EA",
+  "#DF9B45",
 ];
 // The player's own bar: the medal's colour at full strength with a bright edge.
 const ME_BORDER = "#ffffff";

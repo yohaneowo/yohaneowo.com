@@ -629,6 +629,19 @@ export function bracketOf(tier: number | null): string | null {
 // disadvantage negative). The 段位 page sets them beside the player's own record. Kept a day.
 export type HeroMatchup = { hero: number; matches: number; wins: number; rate: number; advantage: number };
 
+// matchUp without `week` answers for the current week only (a few hundred matches per pair early
+// in the week), so the page sums this many weeks; each is one aliased field of the same query.
+const MATCHUP_WEEKS = 8;
+const WEEK_S = 7 * 24 * 3600;
+
+// Unix seconds of the Monday 00:00 UTC that starts the week `back` weeks before now.
+function weekStart(back: number) {
+  const now = new Date();
+  const day = (now.getUTCDay() + 6) % 7; // Monday 0 … Sunday 6
+  const monday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - day);
+  return monday / 1000 - back * WEEK_S;
+}
+
 export async function getHeroMatchups(heroId: number, tier: number): Promise<HeroMatchup[] | null> {
   "use cache";
   cacheLife("days");
@@ -639,24 +652,37 @@ export async function getHeroMatchups(heroId: number, tier: number): Promise<Her
     matchCount: number;
     winCount: number;
     synergy: number | null;
-    winsAverage: number | null;
   };
-  const data = await stratzQuery<{
-    heroStats?: { matchUp?: { heroId: number; vs: Row[] | null }[] | null } | null;
-  }>(
-    `{ heroStats { matchUp(heroId: ${Math.trunc(heroId)}, take: 200, bracketBasicIds: [${bracket}]) { heroId vs { heroId2 matchCount winCount synergy winsAverage } } } }`,
+  type Week = { vs: Row[] | null }[] | null;
+  const hero = Math.trunc(heroId);
+  const fields = Array.from(
+    { length: MATCHUP_WEEKS },
+    (_, i) =>
+      `w${i}: matchUp(heroId: ${hero}, take: 200, week: ${weekStart(i)}, bracketBasicIds: [${bracket}]) { vs { heroId2 matchCount winCount synergy } }`,
+  );
+  const data = await stratzQuery<{ heroStats?: Record<string, Week> | null }>(
+    `{ heroStats { ${fields.join(" ")} } }`,
     30_000,
   );
-  const rows = data.heroStats?.matchUp?.[0]?.vs ?? [];
-  return rows
-    .filter((v) => v.matchCount > 0)
-    .map((v) => ({
-      hero: v.heroId2,
-      matches: v.matchCount,
-      wins: v.winCount,
-      rate: v.winsAverage ?? v.winCount / v.matchCount,
-      advantage: v.synergy ?? 0,
-    }));
+  // Sum the weeks per opponent; the advantage is the match-weighted mean of each week's synergy.
+  const sums = new Map<number, { matches: number; wins: number; advantage: number }>();
+  for (const week of Object.values(data.heroStats ?? {})) {
+    for (const v of week?.[0]?.vs ?? []) {
+      if (!(v.matchCount > 0)) continue;
+      const s = sums.get(v.heroId2) ?? { matches: 0, wins: 0, advantage: 0 };
+      s.matches += v.matchCount;
+      s.wins += v.winCount;
+      s.advantage += (v.synergy ?? 0) * v.matchCount;
+      sums.set(v.heroId2, s);
+    }
+  }
+  return [...sums].map(([hero, s]) => ({
+    hero,
+    matches: s.matches,
+    wins: s.wins,
+    rate: s.wins / s.matches,
+    advantage: s.advantage / s.matches,
+  }));
 }
 
 const PEER_MATCHES = 2000;
