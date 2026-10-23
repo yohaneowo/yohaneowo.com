@@ -48,9 +48,9 @@ export interface TradeConnection {
 }
 
 // Binance: spot, funding, earn, coinm. Bybit: unified (spot and contracts together), funding,
-// earn. Pionex: spot (the trading account), usdm (the futures account), bot (what the bots hold),
-// earn.
-export type TradeWallet = "spot" | "funding" | "earn" | "coinm" | "usdm" | "unified" | "bot";
+// earn, bot (the grid bots' own account), other (copy trading, Launchpool, loans…). Pionex: spot
+// (the trading account), usdm (the futures account), bot (what the bots hold), earn.
+export type TradeWallet = "spot" | "funding" | "earn" | "coinm" | "usdm" | "unified" | "bot" | "other";
 
 export interface TradeBalance {
   wallet: TradeWallet;

@@ -481,7 +481,7 @@ function fmtDate(ms: number) {
 // The currencies the holdings can be valued in (USD exchange rates from the valuation API).
 const CURRENCIES = ["USD", "TWD", "CNY", "HKD", "JPY", "KRW", "EUR", "GBP", "SGD", "AUD", "CAD", "MYR"];
 // Every wallet any exchange has; a connection shows the ones it filled.
-const WALLETS: TradeWallet[] = ["unified", "coinm", "usdm", "bot", "funding", "earn", "spot"];
+const WALLETS: TradeWallet[] = ["unified", "coinm", "usdm", "bot", "funding", "earn", "spot", "other"];
 type Wallet = TradeWallet;
 // The wallets that hold contract margin: the positions are listed under them.
 const CONTRACT_WALLETS: Wallet[] = ["unified", "coinm", "usdm"];
