@@ -77,6 +77,8 @@ export interface ChartSettings {
   // position's break-even and liquidation prices.
   showHoldingLines: boolean;
   holdingStyles: Record<HoldingLineKey, HoldingLineStyle>;
+  // The levels of the account's grid bots on this symbol (Pionex), in the candle colours.
+  showGridLines: boolean;
   showLastPrice: boolean;
   countdown: boolean;
   showLegendValues: boolean;
@@ -231,6 +233,7 @@ export const DEFAULT_SETTINGS: ChartSettings = {
     breakEven: { color: "#2962ff", width: 1, style: "dashed" },
     liquidation: { color: "#f6465d", width: 1, style: "dashed" },
   },
+  showGridLines: true,
   showLastPrice: true,
   countdown: true,
   showLegendValues: true,

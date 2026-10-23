@@ -27,6 +27,14 @@ import type {
   ScaleMode,
 } from "./store";
 import type { HoldingLineStyle } from "./store";
+
+// A grid bot's levels and how to tag the ones a buy or a sell waits at.
+export interface GridLines {
+  id: string;
+  levels: number[];
+  buy: { text: string; color: string };
+  sell: { text: string; color: string };
+}
 import type { TradeFill } from "./trade";
 import type { CoinSymbol } from "./types";
 
@@ -109,6 +117,9 @@ export class ChartController {
   private gen = 0;
   private raw: KLineData[] = [];
   private fillMarks: TradeFill[] = [];
+  private gridLines: GridLines[] = [];
+  // Which grid levels were drawn as sells (above the price) last time: redrawn when that changes.
+  private gridSplit = "";
   private unsubscribe: (() => void) | null = null;
   private liveCallback: ((bar: KLineData) => void) | null = null;
   private more = { forward: false };
@@ -259,6 +270,7 @@ export class ChartController {
           callback(this.transform(bars), { forward: more, backward: !this.atRealtime });
           this.emit("status", { loading: false, error: false, empty: bars.length === 0 });
           this.applyFillMarks();
+          this.applyGridLines();
           if (this.anchorEnd !== null) {
             const target = this.anchorEnd - interval.ms * 50;
             this.anchorEnd = null;
@@ -310,6 +322,8 @@ export class ChartController {
     else this.raw.push(bar);
     this.liveCallback?.(this.transformLive(bar));
     this.emit("bar", bar);
+    // A level the price just crossed changes side.
+    if (this.gridLines.length && this.gridSplitKey() !== this.gridSplit) this.applyGridLines();
   }
 
   private transform(bars: KLineData[]): KLineData[] {
@@ -970,6 +984,42 @@ export class ChartController {
     }
   }
 
+  // The levels of the account's grid bots on this symbol: a sell waits at every level above the
+  // last price, a buy at every level below (what Pionex's chart shows). Redrawn when the price
+  // crosses a level.
+  setGridLines(grids: GridLines[]) {
+    this.gridLines = grids;
+    this.applyGridLines();
+  }
+
+  private gridSplitKey() {
+    const price = this.raw[this.raw.length - 1]?.close;
+    if (price === undefined) return "";
+    return this.gridLines.map((g) => g.levels.filter((l) => l > price).length).join(",");
+  }
+
+  private applyGridLines() {
+    this.chart.removeOverlay({ groupId: "grid" });
+    this.gridSplit = this.gridSplitKey();
+    const last = this.raw[this.raw.length - 1];
+    if (!last || !this.gridLines.length) return;
+    const precision = this.symbol?.pricePrecision ?? 2;
+    for (const g of this.gridLines) {
+      g.levels.forEach((level, i) => {
+        const side = level > last.close ? g.sell : g.buy;
+        this.chart.createOverlay({
+          id: `grid_${g.id}_${i}`,
+          name: "gridLine",
+          groupId: "grid",
+          lock: true,
+          points: [{ timestamp: last.timestamp, value: level }],
+          extendData: { text: `${level.toFixed(precision)} ${side.text}`, color: side.color },
+          onRightClick: (e) => e.preventDefault?.(),
+        });
+      });
+    }
+  }
+
   // -------------------------------------------------------------------------------------------
   // Fills from the user's exchange account: one mark per candle and side, under the low for buys
   // and over the high for sells (like Binance's own chart).
@@ -987,8 +1037,8 @@ export class ChartController {
     for (const f of this.fillMarks) {
       const i = indexAt(this.raw, f.time);
       if (i < 0) continue;
-      // Futures fills are hollow marks (contracts, not coins).
-      const hollow = f.product === "coinm";
+      // Contract fills are hollow marks (positions, not coins held).
+      const hollow = f.product === "coinm" || f.product === "usdm";
       const key = `${this.raw[i].timestamp}_${f.side}_${hollow ? "f" : "s"}`;
       const g = groups.get(key) ?? { bar: this.raw[i], side: f.side, hollow, ids: [] };
       g.ids.push(f.id);

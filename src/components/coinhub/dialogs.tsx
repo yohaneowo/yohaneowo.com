@@ -453,6 +453,7 @@ function SettingsBody() {
                 />
               </Row>
             ))}
+          {toggle("showGridLines", s.gridLines)}
           <Row label={s.timezone}>
             <select
               className="h-8 rounded-md border bg-background px-2 text-sm"

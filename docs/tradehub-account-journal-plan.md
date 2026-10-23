@@ -6,6 +6,17 @@
 > 文档版本：v3，纳入链上环境数据、CryptoQuant/BGeometrics 免费权限及 Polymarket/Kalshi 事件预期。
 > 本轮仅整理本文档，没有修改业务代码、连接账户或创建数据库迁移。
 
+## 阶段 B 的第一步：Bybit 与 Pionex（2026-10-23）
+
+- **做法**：admin 的 `module_bot/trade/` 按交易所分流（`service.py` 只管连接、分派与网站要读的形状；`flow_binance.py` / `flow_bybit.py` / `flow_pionex.py` 各自决定刷新读什么、成交怎么翻页；`store.py` 是共用的落库）。Bybit 走 ccxt 的原始端点（`bybit.py`），Pionex 没有 ccxt 支援，自己签名（`pionex.py`：`METHOD + path + "?" + 按 key 排序的 query`，HMAC-SHA256，`timestamp` 要在 20 秒内）。OKX 与 Binance U 本位仍未做。
+- **Bybit 只收统一交易帐户（UTA）**：钱包是 `unified`（现货与合约共用）、`funding`、`earn`；持仓读 linear（USDT、USDC 结算 → `usdm`）与 inverse（→ `coinm`）。成交不用按标的查：`/v5/execution/list` 按产品类别一次一个 7 天窗口往前翻，最多两年（起点刚好两年整会被拒，所以少三天起算），窗口内用 Bybit 的游标（`bot_trade_sync.page_cursor`），sync 行的 symbol 是 `*`。key 的权限从 `/v5/user/query-api` 看：`readOnly` 不是 1 就算「有交易权限」，Wallet 里有 `Withdraw` 拒绝，`uta` 不是 1 拒绝（`keyClassic`）。合约收支（资金费、已实现）还没接——`/v5/account/transaction-log` 的 id 不是数字，要另开表或改 `income_id` 型别。
+- **Pionex 有三个帐户**：交易帐户（`/api/v1/account/balances`，手动现货 → 钱包 `spot`）、合约帐户（`/uapi/v1/account/*`，手动合约 → 钱包 `usdm` 与持仓）、机器人帐户（网格在这里）。机器人帐户只有两条路看得到：`/api/v1/wallet/balancesFull`（每个机器人的投入与利润、停在机器人帐户的现货、理财 → 钱包 `bot` / `earn`）和 `/api/v1/bot/orders`（每个机器人的持仓、开仓价、杠杆、网格利润、总盈亏、手续费、资金费、套利次数 → 新表 `bot_trade_bot`）。**机器人的逐笔成交 API 不给**（`/uapi/v1/trade/fills` 只回手动合约的），所以图上没有网格的标记，网站明讲。实测的坑：`/api/v1/bot/orders` 的 `status` 要传大写 `RUNNING`（小写回空），`finished` 要小写（大写会把运行中的也回来）；网格合约的持仓不出现在 `/uapi/v1/account/positions`。成交按标的查、每次最多 100（现货）/ 200（合约）笔，没有 `fromId`：先用 `endTime` 往回翻到不满一页，再用 `startTime` 往前补。权限页没有接口，读取权限用余额证明、机器人读取用机器人清单证明，提现不是 key 的权限（转帐才是）所以测不出。
+- **Pionex 的资产口径**：`balancesFull` 里每个机器人给 `investmentAmount`（含额外保证金）和 `profit`，机器人帐户的现值就是两者相加（实测与 Pionex 自己的 `totalInUsdt` 一致）；不要再把 `profit` 放进余额列的 `unrealized`，网站估值是 `total + unrealized`，会重复计算（跟单亏掉的钱被扣两遍，第一版就错在这）。网格的「投入」显示 `quoteInvestment + extraMargin`。
+- **估价**：余额列带 `price_usd`（Bybit：统一帐户用 `usdValue ÷ walletBalance`，其余钱包用现货 ticker；Pionex：`balancesFull.prices[coin].priceInUsd`），网站优先用它、没有才用 Binance 现货价。Bybit 要用 `/v5/asset/asset-overview` 才看得全：它按帐户类型（UnifiedTradingAccount、FundingAccount、Earn、TradingBot、CopyTrading、Launchpool、CryptoLoans、Alpha…）给每个币的权益与美元总值，网格机器人的钱在 TradingBot 帐户里，其他接口都看不到（2026-10-23 实测：钱包接口合计 78 USD、app 显示 91.19，差的 13.33 就是合约网格）。统一与资金帐户仍用各自接口读明细，理财 / 机器人 / 其他三个钱包从总览读。Bybit 的网格详情接口（`/v5/fgridbot/detail`、`/v5/grid/query-grid-detail`）要带机器人 id、没有列表接口，所以 Bybit 没有机器人卡片。
+- **网格线**：Pionex 没有逐格挂单的接口（机器人 API 只有参数：`top`、`bottom`、`row`、`gridType`），所以格线由网站算：等差 `bottom + i·(top−bottom)/row`，等比 `bottom·(top/bottom)^(i/row)`，现价之上标「卖」、之下标「买」，用 K 线的涨跌色；价格穿过一格就重画（`chart-controller.setGridLines`，设定里可关）。真实挂单可能跟算出来的差一格（现价那格是空的），接受。
+- **网站**：绑定时选交易所（三个按钮，各自的 key 建法说明）；钱包分页只显示这个连接有的钱包；合约持仓列在 `unified` / `coinm` / `usdm` 下，`coinm` 以外的数量不加「张」；机器人帐户下有机器人卡片（运行中展开、已结束折叠），未实现盈亏用 Binance 的现价估算（Pionex 不回报）。别家交易所的成交按币种对到 Binance 的图：Bybit 现货 `BTCUSDT`、U 本位 `BTCUSDT`、反向 `BTCUSD`；Pionex 现货 `BTC_USDT`、合约 `BTC_USDT_PERP`。估价仍用 Binance 的现货价，Binance 没上的币（Bybit 的小币）估不了。
+- **测试方式**：用 bot 在 Doppler 里的 Bybit / Pionex 只读 key 绑到本机 admin（`trade_e2e.py`，网站用户 `claude-trade-test`），key 值从不印出；测完要解绑。
+
 ## 已定决策（2026-10-22，与站长讨论后；下文各节是完整调研，未选用的部分保留供日后参考）
 
 - **范围**：先做阶段 A，而且 A 包含 Binance **现货＋币本位合约**（币本位是首批用户的主要产品）；U 本位合约、Bybit、OKX、Pionex 进阶段 B。第 11 节全部搁置，不写进开发计划。

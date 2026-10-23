@@ -28,7 +28,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLocale } from "@/i18n/locale-provider";
-import { ChartController, type ReplayState, type ThemeColors } from "@/lib/coinhub/chart-controller";
+import {
+  ChartController,
+  type GridLines,
+  type ReplayState,
+  type ThemeColors,
+} from "@/lib/coinhub/chart-controller";
 import { resolveSymbol } from "@/lib/coinhub/datafeed";
 import { fmtNumber } from "@/lib/coinhub/format";
 import { getInterval } from "@/lib/coinhub/intervals";
@@ -44,7 +49,16 @@ import {
   type ChartConfig,
   type HoldingLineStyle,
 } from "@/lib/coinhub/store";
-import { costBasis, fillSources, loadWallets, trade, useChartFills, useTrade } from "@/lib/coinhub/trade";
+import {
+  costBasis,
+  fillSources,
+  gridLevels,
+  isContract,
+  loadWallets,
+  trade,
+  useChartFills,
+  useTrade,
+} from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 import { COMPARE_COLORS, Legend } from "./legend";
 import { SelectionToolbar } from "./selection-toolbar";
@@ -334,6 +348,7 @@ export function ChartPanel({
   const tradeConnection = useTerminal((s) => s.trade.connection);
   const connections = useTrade((s) => s.connections);
   const accountId = tradeConnection ?? connections?.[0]?.id ?? null;
+  const exchange = connections?.find((c) => c.id === accountId)?.exchange ?? "binance";
   const fillConnection = tradeShow || settings.showHoldingLines ? accountId : null;
   const fills = useChartFills(symbol, fillConnection);
   useEffect(() => {
@@ -345,9 +360,9 @@ export function ChartPanel({
   // futures position's break-even and liquidation prices (from the exchange).
   const wallets = useTrade((s) => (accountId === null ? undefined : s.wallets[accountId]));
   useEffect(() => {
-    if (accountId === null || !settings.showHoldingLines) return;
+    if (accountId === null || !(settings.showHoldingLines || settings.showGridLines)) return;
     loadWallets(accountId).catch(() => {});
-  }, [accountId, settings.showHoldingLines]);
+  }, [accountId, settings.showHoldingLines, settings.showGridLines]);
   const holdingLines = useMemo(() => {
     if (!symbol || !settings.showHoldingLines) return [];
     const l = c.account.lines;
@@ -355,9 +370,10 @@ export function ChartPanel({
     const out: Array<{ id: string; price: number; title: string } & HoldingLineStyle> = [];
     const cost = costBasis(fills);
     if (cost) out.push({ id: "cost", price: cost.avg, title: l.cost, ...st.cost });
-    const futures = fillSources(symbol).find((s) => s.product === "coinm");
-    const position =
-      futures && wallets?.positions.find((p) => p.symbol === futures.symbol && Number(p.qty) !== 0);
+    const contracts = fillSources(symbol, exchange).filter((s) => isContract(s.product));
+    const position = wallets?.positions.find(
+      (p) => contracts.some((s) => s.product === p.product && s.symbol === p.symbol) && Number(p.qty) !== 0,
+    );
     if (position) {
       const breakEven = Number(position.breakEvenPrice ?? position.entryPrice);
       if (breakEven > 0) out.push({ id: "breakEven", price: breakEven, title: l.breakEven, ...st.breakEven });
@@ -366,7 +382,7 @@ export function ChartPanel({
         out.push({ id: "liquidation", price: liquidation, title: l.liquidation, ...st.liquidation });
     }
     return out;
-  }, [symbol, settings.showHoldingLines, settings.holdingStyles, fills, wallets, c]);
+  }, [symbol, exchange, settings.showHoldingLines, settings.holdingStyles, fills, wallets, c]);
 
   useEffect(() => {
     if (!controller || status.loading) return;
@@ -377,6 +393,27 @@ export function ChartPanel({
     if (!controller || status.loading) return;
     controller.setHoldingLines(holdingLines);
   }, [controller, holdingLines, status.loading]);
+
+  // The levels of the account's running grid bots on this symbol (Pionex), tagged buy below the
+  // price and sell above it, in the candle colours.
+  const gridLines = useMemo<GridLines[]>(() => {
+    if (!symbol || !settings.showGridLines || !wallets?.bots.length) return [];
+    const sources = fillSources(symbol, exchange).map((s) => s.symbol);
+    const side = c.account.side;
+    return wallets.bots
+      .filter((b) => b.status === "running" && sources.includes(b.symbol))
+      .map((b) => ({
+        id: b.id,
+        levels: gridLevels(b),
+        buy: { text: side.BUY, color: settings.upColor },
+        sell: { text: side.SELL, color: settings.downColor },
+      }))
+      .filter((g) => g.levels.length);
+  }, [symbol, exchange, settings.showGridLines, settings.upColor, settings.downColor, wallets, c]);
+  useEffect(() => {
+    if (!controller || status.loading) return;
+    controller.setGridLines(gridLines);
+  }, [controller, gridLines, status.loading]);
 
   const sel = selection?.chart === index ? selection.overlay : null;
   const precision = symbol?.pricePrecision ?? 2;

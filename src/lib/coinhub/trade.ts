@@ -4,15 +4,27 @@ import { useEffect, useMemo, useSyncExternalStore } from "react";
 import type { CoinSymbol } from "./types";
 
 // The terminal's view of the user's exchange accounts (admin reads them in the background, see
-// trade-admin.ts): what's connected, the balances and positions, and the fills the charts mark.
-// Amounts come as decimal strings and stay strings until they're shown.
+// trade-admin.ts): what's connected, the balances, positions and bots, and the fills the charts
+// mark. Amounts come as decimal strings and stay strings until they're shown.
 
-export type TradeProduct = "spot" | "coinm" | "stock";
+export type TradeExchange = "binance" | "bybit" | "pionex";
+export const EXCHANGES: TradeExchange[] = ["binance", "bybit", "pionex"];
+export const EXCHANGE_NAMES: Record<TradeExchange, string> = {
+  binance: "Binance",
+  bybit: "Bybit",
+  pionex: "Pionex",
+};
+
+// spot; coinm = coin-margined contracts (Binance COIN-M, Bybit inverse); usdm = USDⓈ-margined
+// contracts (Bybit linear, Pionex futures); stock = Binance Stocks.
+export type TradeProduct = "spot" | "coinm" | "usdm" | "stock";
+
+export const isContract = (product: TradeProduct) => product === "coinm" || product === "usdm";
 
 export interface TradeSync {
   product: TradeProduct;
   symbol: string;
-  source: "balance" | "position" | "income" | "manual" | "stock";
+  source: "balance" | "position" | "income" | "manual" | "stock" | "stream";
   count: number;
   backfilled: boolean;
   oldestTime: number | null;
@@ -23,7 +35,7 @@ export interface TradeSync {
 
 export interface TradeConnection {
   id: number;
-  exchange: "binance";
+  exchange: TradeExchange;
   label: string;
   keyTail: string;
   permissions: Record<string, boolean>;
@@ -35,13 +47,21 @@ export interface TradeConnection {
   syncs: TradeSync[];
 }
 
+// Binance: spot, funding, earn, coinm. Bybit: unified (spot and contracts together), funding,
+// earn, bot (the grid bots' own account), other (copy trading, Launchpool, loans…). Pionex: spot
+// (the trading account), usdm (the futures account), bot (what the bots hold), earn.
+export type TradeWallet = "spot" | "funding" | "earn" | "coinm" | "usdm" | "unified" | "bot" | "other";
+
 export interface TradeBalance {
-  wallet: "spot" | "funding" | "earn" | "coinm";
+  wallet: TradeWallet;
   asset: string;
   free: string;
   locked: string;
   total: string;
   unrealized: string | null;
+  // The exchange's own USD price of the asset at the refresh (Bybit, Pionex); null at Binance,
+  // where the terminal prices with Binance's spot price anyway.
+  priceUsd: string | null;
   updatedAt: number | null;
 }
 
@@ -58,6 +78,57 @@ export interface TradePosition {
   leverage: number | null;
   marginType: string | null;
   updatedAt: number | null;
+}
+
+// A trading bot (Pionex grids and smart copy): what it was given, what it holds and what it made.
+export interface TradeBot {
+  id: string;
+  type: "futures_grid" | "future_hedge_grid" | "spot_grid" | "smart_copy" | string;
+  name: string;
+  symbol: string;
+  base: string;
+  quote: string;
+  status: "running" | "finished";
+  state: string | null;
+  reason: string | null;
+  side: "long" | "short" | "neutral" | null;
+  leverage: number | null;
+  investment: string | null;
+  margin: string | null;
+  qty: string | null;
+  entryPrice: string | null;
+  gridProfit: string | null;
+  realizedPnl: string | null;
+  fee: string | null;
+  funding: string | null;
+  pairs: number | null;
+  top: string | null;
+  bottom: string | null;
+  rows: number | null;
+  // arithmetic (equal steps) or geometric (equal ratios).
+  gridType: string | null;
+  liquidationPrice: string | null;
+  createdAt: number | null;
+  closedAt: number | null;
+  updatedAt: number | null;
+}
+
+// The price levels of a grid bot, lowest first (the exchange doesn't list its pending orders, so
+// they're computed from the range and the grid count); empty when the bot has no grid.
+export function gridLevels(bot: TradeBot): number[] {
+  const top = Number(bot.top);
+  const bottom = Number(bot.bottom);
+  const rows = bot.rows ?? 0;
+  if (!(top > bottom) || !(bottom > 0) || rows < 1 || rows > 1000) return [];
+  const out: number[] = [];
+  if (bot.gridType === "geometric") {
+    const ratio = Math.pow(top / bottom, 1 / rows);
+    for (let i = 0; i <= rows; i++) out.push(bottom * Math.pow(ratio, i));
+  } else {
+    const step = (top - bottom) / rows;
+    for (let i = 0; i <= rows; i++) out.push(bottom + step * i);
+  }
+  return out;
 }
 
 export interface TradeFill {
@@ -100,6 +171,13 @@ export async function tradeApi<T>(path: string, init: { method?: string; body?: 
 
 // ── Store ─────────────────────────────────────────────────────────────────────────────────────
 
+export interface TradeWallets {
+  balances: TradeBalance[];
+  positions: TradePosition[];
+  bots: TradeBot[];
+  at: number;
+}
+
 export interface TradeState {
   // null until the first load; false when the visitor isn't signed in.
   signedIn: boolean | null;
@@ -108,7 +186,7 @@ export interface TradeState {
   error: string | null;
   // The connection the panel shows (the first one unless chosen).
   selected: number | null;
-  wallets: Record<number, { balances: TradeBalance[]; positions: TradePosition[]; at: number }>;
+  wallets: Record<number, TradeWallets>;
   // Fills by connection, product and symbol; all of a symbol's fills, oldest first.
   fills: Record<string, { rows: TradeFill[]; at: number }>;
   ip: string | null;
@@ -199,11 +277,13 @@ function putConnection(row: TradeConnection) {
   }));
 }
 
-export async function connectExchange(form: { label: string; apiKey: string; apiSecret: string }) {
-  const row = await tradeApi<TradeConnection>("connections", {
-    method: "POST",
-    body: { exchange: "binance", ...form },
-  });
+export async function connectExchange(form: {
+  exchange: TradeExchange;
+  label: string;
+  apiKey: string;
+  apiSecret: string;
+}) {
+  const row = await tradeApi<TradeConnection>("connections", { method: "POST", body: form });
   putConnection(row);
   trade.set({ selected: row.id, signedIn: true });
   return row;
@@ -242,10 +322,10 @@ export async function setTracked(
 export async function loadWallets(id: number, force = false) {
   const have = trade.get().wallets[id];
   if (!force && have && Date.now() - have.at < WALLET_TTL) return have;
-  const data = await tradeApi<{ balances: TradeBalance[]; positions: TradePosition[] }>(
+  const data = await tradeApi<{ balances: TradeBalance[]; positions: TradePosition[]; bots?: TradeBot[] }>(
     `connections/${id}/balances`,
   );
-  const entry = { ...data, at: Date.now() };
+  const entry: TradeWallets = { ...data, bots: data.bots ?? [], at: Date.now() };
   trade.set((s) => ({ wallets: { ...s.wallets, [id]: entry } }));
   return entry;
 }
@@ -304,27 +384,44 @@ export async function loadIp() {
 
 // ── Which fills belong on a chart ─────────────────────────────────────────────────────────────
 
-// The exchange symbols whose fills a chart symbol shows: a Binance spot chart has its own spot
-// fills and the COIN-M perpetual of its base (prices in USD ≈ USDT), a Binance perpetual chart the
-// COIN-M perpetual, a Yahoo stock chart its Binance Stocks fills.
-// The exchange symbols whose fills a chart symbol shows: a Binance spot chart has its own spot
-// fills and the COIN-M perpetual of its base (prices in USD ≈ USDT), a Binance perpetual chart the
-// COIN-M perpetual, a Yahoo stock chart its Binance Stocks fills. Binance's tokenized stocks
-// (MSTRB) are their own symbols: no mapping to the stock they track.
-export function fillSources(symbol: CoinSymbol): Array<{ product: TradeProduct; symbol: string }> {
-  if (symbol.source === "binance") {
-    const out: Array<{ product: TradeProduct; symbol: string }> = [
-      { product: "spot", symbol: symbol.ticker },
-    ];
-    if (symbol.base) out.push({ product: "coinm", symbol: `${symbol.base}USD_PERP` });
+export interface FillSource {
+  product: TradeProduct;
+  symbol: string;
+}
+
+// The exchange symbols whose fills a chart symbol shows, for an account at this exchange. The
+// charts are Binance's (and Yahoo's), so another exchange's symbols are matched by base and quote:
+// prices in USDT ≈ USD ≈ USDC, close enough for marks.
+// - Binance: a spot chart has its own spot fills and the COIN-M perpetual of its base; a perpetual
+//   chart the COIN-M perpetual; a Yahoo stock chart its Binance Stocks fills. Binance's tokenized
+//   stocks (MSTRB) are their own symbols: no mapping to the stock they track.
+// - Bybit: spot BTCUSDT, the USDT perpetual BTCUSDT (usdm) and the inverse perpetual BTCUSD (coinm).
+// - Pionex: spot BTC_USDT and the perpetual BTC_USDT_PERP (usdm).
+export function fillSources(symbol: CoinSymbol, exchange: TradeExchange = "binance"): FillSource[] {
+  const base = symbol.base;
+  const quote = symbol.quote ?? "USDT";
+  if (exchange === "binance") {
+    if (symbol.source === "binance") {
+      const out: FillSource[] = [{ product: "spot", symbol: symbol.ticker }];
+      if (base) out.push({ product: "coinm", symbol: `${base}USD_PERP` });
+      return out;
+    }
+    if (symbol.source === "binance-futures" && base) return [{ product: "coinm", symbol: `${base}USD_PERP` }];
+    if (symbol.source === "yahoo" && (symbol.kind === "stock" || symbol.kind === "etf"))
+      return [{ product: "stock", symbol: symbol.ticker }];
+    return [];
+  }
+  if (!base || (symbol.source !== "binance" && symbol.source !== "binance-futures")) return [];
+  if (exchange === "bybit") {
+    const out: FillSource[] = [];
+    if (symbol.source === "binance") out.push({ product: "spot", symbol: `${base}${quote}` });
+    out.push({ product: "usdm", symbol: `${base}${quote}` }, { product: "coinm", symbol: `${base}USD` });
     return out;
   }
-  if (symbol.source === "binance-futures" && symbol.base)
-    return [{ product: "coinm", symbol: `${symbol.base}USD_PERP` }];
-  if (symbol.source === "yahoo" && (symbol.kind === "stock" || symbol.kind === "etf")) {
-    return [{ product: "stock", symbol: symbol.ticker }];
-  }
-  return [];
+  const out: FillSource[] = [];
+  if (symbol.source === "binance") out.push({ product: "spot", symbol: `${base}_${quote}` });
+  out.push({ product: "usdm", symbol: `${base}_${quote}_PERP` });
+  return out;
 }
 
 // The wallet asset behind a chart: the base, or EQ_<ticker> for a stock.
@@ -333,12 +430,22 @@ export function holdingAsset(symbol: CoinSymbol): string | null {
   return symbol.base ?? null;
 }
 
+// The base coin of an exchange symbol of any of the three formats: BTCUSDT, BTCUSD_PERP, BTCUSD,
+// BTC_USDT, BTC_USDT_PERP.
+export function symbolBase(symbol: string): string {
+  if (symbol.includes("_")) return symbol.split("_")[0];
+  return symbol.replace(/(USDT|USDC|USD|BUSD|FDUSD|PERP)+$/, "");
+}
+
 const EMPTY: TradeFill[] = [];
 
 // The fills a chart marks (oldest first), loaded when the connection or symbol changes and cached
 // a minute.
 export function useChartFills(symbol: CoinSymbol | null, connection: number | null): TradeFill[] {
-  const sources = useMemo(() => (symbol ? fillSources(symbol) : []), [symbol]);
+  const exchange = useTrade(
+    (s) => s.connections?.find((c) => c.id === connection)?.exchange ?? ("binance" as TradeExchange),
+  );
+  const sources = useMemo(() => (symbol ? fillSources(symbol, exchange) : []), [symbol, exchange]);
   const keys = useMemo(
     () => (connection === null ? [] : sources.map((s) => fillsKey(connection, s.product, s.symbol))),
     [connection, sources],
@@ -364,7 +471,7 @@ export function costBasis(fills: TradeFill[]): { qty: number; avg: number } | nu
   let qty = 0;
   let avg = 0;
   for (const f of fills) {
-    if (f.product === "coinm") continue;
+    if (isContract(f.product)) continue;
     const q = Number(f.qty);
     const price = Number(f.price);
     if (!(q > 0) || !(price > 0)) continue;

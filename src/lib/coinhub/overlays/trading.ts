@@ -172,6 +172,39 @@ const holdingLine: OverlayTemplate = tool(
   },
 );
 
+// One level of a grid bot (Pionex), drawn like Pionex's own chart: a thin line across the pane with
+// a small tag at the left saying the price and whether a buy or a sell waits there. Dozens of them
+// at once, so no axis label and no border box. Not draggable.
+export type GridLineOptions = { text: string; color: string };
+
+const gridLine: OverlayTemplate = tool(
+  "gridLine",
+  1,
+  ({ coordinates, bounding, overlay }) => {
+    const o = ext(overlay, { text: "", color: "#0ecb81" } as GridLineOptions);
+    const y = coordinates[0].y;
+    return [
+      line(
+        [
+          { x: 0, y },
+          { x: bounding.width, y },
+        ],
+        { color: alpha(o.color, 0.55), size: 1, style: "solid" },
+      ),
+      label(8, y, o.text, {
+        color: o.color,
+        background: alpha(o.color, 0.12),
+        borderColor: alpha(o.color, 0.6),
+        baseline: "middle",
+        padding: 2,
+        size: 10,
+        ignoreEvent: true,
+      }),
+    ];
+  },
+  { needDefaultPointFigure: false, needDefaultXAxisFigure: false, needDefaultYAxisFigure: false },
+);
+
 // A real fill (or the fills of one candle) from the user's exchange account, drawn like Binance's
 // own marks: a rounded square with a small point towards the candle and a thin line up to its
 // wick — "B" under the low for a buy, "S" over the high for a sell (the point is that low or
@@ -243,5 +276,6 @@ export const TRADING_OVERLAYS: OverlayTemplate[] = [
   priceTagLine("alertLine"),
   priceTagLine("orderLine"),
   holdingLine,
+  gridLine,
   fillMark,
 ];
