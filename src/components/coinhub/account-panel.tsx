@@ -513,8 +513,10 @@ function Wallets({ connection }: { connection: TradeConnection }) {
   }, [assetKey]);
   if (!wallets) return <p className="px-3 py-2 text-muted-foreground">{tr.noBalances}</p>;
   const rate = valuation?.rates[currency] ?? (currency === "USD" ? 1 : null);
+  // The exchange's own price first (it values coins Binance doesn't list), Binance's otherwise.
   const valueOf = (b: TradeBalance) => {
-    const price = valuation?.prices[b.asset];
+    const price =
+      b.priceUsd !== null && Number(b.priceUsd) > 0 ? Number(b.priceUsd) : valuation?.prices[b.asset];
     if (price === undefined || rate === null) return null;
     return (Number(b.total) + Number(b.unrealized ?? 0)) * price * rate;
   };

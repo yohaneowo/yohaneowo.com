@@ -615,7 +615,8 @@ const coinhubZh = {
     foldHint: "点一下收起，再点只看前三个，再点全部显示",
     more: (n: number) => `还有 ${n} 个…`,
     currency: "计价货币",
-    valueHint: "按 Binance 现货价与每日汇率估算，合约钱包含未实现盈亏；Binance 没上的币估不了价。",
+    valueHint:
+      "按交易所自己回报的美元价（Bybit、Pionex）或 Binance 现货价，加每日汇率估算；合约钱包含未实现盈亏。",
     side: { BUY: "买", SELL: "卖" },
     product: { spot: "现货", coinm: "币本位", usdm: "U 本位", stock: "股票" },
     fee: "手续费",

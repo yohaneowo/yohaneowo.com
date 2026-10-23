@@ -619,7 +619,7 @@ const coinhubEn: typeof coinhubZh = {
     more: (n: number) => `${n} more…`,
     currency: "Currency",
     valueHint:
-      "At Binance spot prices and daily exchange rates; futures wallets include unrealized profit. Coins Binance doesn't list can't be valued.",
+      "At the exchange's own USD prices (Bybit, Pionex) or Binance spot prices, with daily exchange rates; futures wallets include unrealized profit.",
     side: { BUY: "Buy", SELL: "Sell" },
     product: { spot: "Spot", coinm: "COIN-M", usdm: "USDⓈ-M", stock: "Stock" },
     fee: "Fee",

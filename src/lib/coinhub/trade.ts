@@ -59,6 +59,9 @@ export interface TradeBalance {
   locked: string;
   total: string;
   unrealized: string | null;
+  // The exchange's own USD price of the asset at the refresh (Bybit, Pionex); null at Binance,
+  // where the terminal prices with Binance's spot price anyway.
+  priceUsd: string | null;
   updatedAt: number | null;
 }
 
