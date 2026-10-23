@@ -263,6 +263,11 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
+        "图上画网格机器人的格线（现价上卖、下买，像 Pionex 自己的图）",
+        "Grid bot levels on the chart (sells above the price, buys below, like Pionex's own chart)",
+        true,
+      ),
+      step(
         "Bybit 合约收支（资金费、已实现）与 Pionex 合约帐户的资金费",
         "Bybit contract income (funding, realized) and Pionex futures funding",
       ),

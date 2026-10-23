@@ -458,6 +458,7 @@ const coinhubEn: typeof coinhubZh = {
     highLow: "High and low price labels",
     axisWheel: "Price-axis wheel like TradingView (up zooms in)",
     holdingLines: "Holding lines (spot cost, futures break-even and liquidation)",
+    gridLines: "Grid bot levels (sells above the price, buys below; Pionex)",
     lastPrice: "Last price line",
     countdown: "Countdown to bar close",
     legendValues: "OHLC values",

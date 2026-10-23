@@ -102,10 +102,30 @@ export interface TradeBot {
   top: string | null;
   bottom: string | null;
   rows: number | null;
+  // arithmetic (equal steps) or geometric (equal ratios).
+  gridType: string | null;
   liquidationPrice: string | null;
   createdAt: number | null;
   closedAt: number | null;
   updatedAt: number | null;
+}
+
+// The price levels of a grid bot, lowest first (the exchange doesn't list its pending orders, so
+// they're computed from the range and the grid count); empty when the bot has no grid.
+export function gridLevels(bot: TradeBot): number[] {
+  const top = Number(bot.top);
+  const bottom = Number(bot.bottom);
+  const rows = bot.rows ?? 0;
+  if (!(top > bottom) || !(bottom > 0) || rows < 1 || rows > 1000) return [];
+  const out: number[] = [];
+  if (bot.gridType === "geometric") {
+    const ratio = Math.pow(top / bottom, 1 / rows);
+    for (let i = 0; i <= rows; i++) out.push(bottom * Math.pow(ratio, i));
+  } else {
+    const step = (top - bottom) / rows;
+    for (let i = 0; i <= rows; i++) out.push(bottom + step * i);
+  }
+  return out;
 }
 
 export interface TradeFill {
