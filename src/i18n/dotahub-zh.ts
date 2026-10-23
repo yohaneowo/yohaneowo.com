@@ -292,7 +292,12 @@ const dotahubZh = {
       `同段位胜率是 STRATZ 统计的「${bracket}」段位里，这个英雄对上各英雄的胜率；你的纪录是你用这个英雄对上它的结果。两者差得多的会标出来。`,
     intro: (hero: string, bracket: string) => `在「${bracket}」的天梯对局里，用${hero}时：`,
     introHint: (range: string) =>
-      `优势是 STRATZ 算的「对上这个英雄比平常多赢（或少赢）几个百分点」，后面是实际胜率，取${range}的天梯对局；每一行下面是你自己用它对上这个英雄的纪录。`,
+      `优势是 STRATZ 算的「对上这个英雄比平常多赢（或少赢）几个百分点」，取${range}的天梯对局；红绿条是优势值的大小，不是场次。每张卡下面一行是同段位胜率与样本场数、你自己用它对上这个英雄的纪录，再下面两条线是两个胜率（灰：同段位，彩色：你）。`,
+    barHint: "红绿条的长度是优势值的大小（相对这页最大的优势值），不是场次。",
+    rateBarsHint: "上面一条是同段位胜率，下面一条是你的胜率。",
+    bracketLine: (rate: string, n: number) => `同段位 ${rate} · ${n.toLocaleString()} 场`,
+    sampleColumn: "样本",
+    tableHint: "全部对手：STRATZ 样本 ≥ 30 场的，加上你遇过的；排序跟上面的卡片一样按优势值。",
     range: "时间范围",
     ranges: { 0: "本周", 1: "最近 1 周", 4: "最近 1 个月", 12: "最近 3 个月" },
     rangeHint:
@@ -334,7 +339,11 @@ const dotahubZh = {
     better: "比同段位更擅长",
     verdictHint: "至少 5 场、差距 8 个百分点以上才标；场次少时按同段位胜率收缩。",
     onlyMet: "只看遇过的",
-    sortBy: { counters: "最克制这个英雄的在前", targets: "这个英雄最克制的在前", met: "你遇最多的在前" },
+    sortBy: {
+      counters: "按优势值：最克制这个英雄的在前",
+      targets: "按优势值：这个英雄最好打的在前",
+      met: "按你遇到的次数",
+    },
     bracketMissing: "STRATZ 没有这个段位的对位统计。",
     overall: "不分英雄：谁最常赢你",
     overallHint:

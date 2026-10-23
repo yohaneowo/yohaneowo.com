@@ -305,7 +305,13 @@ const dotahubEn: typeof dotahubZh = {
       `The bracket win rate is STRATZ's: in the ${bracket} bracket, how often this hero beats each other hero. Your record is your own result on this hero against it. Big gaps are flagged.`,
     intro: (hero: string, bracket: string) => `In ${bracket} ranked matches, playing ${hero}:`,
     introHint: (range: string) =>
-      `Advantage is STRATZ's figure: how many points more (or fewer) this hero wins against that one than usual, then the actual win rate, over ranked matches of the ${range}; under each row is your own record on it against that hero.`,
+      `Advantage is STRATZ's figure: how many points more (or fewer) this hero wins against that one than usual, over ranked matches of the ${range}; the red or green bar is the size of the advantage, not the sample. Under each card: the bracket's win rate with its sample, your own record on this hero against it, and two thin bars for the two win rates (grey: bracket, coloured: you).`,
+    barHint: "The bar is the size of the advantage (relative to the largest on this page), not the sample.",
+    rateBarsHint: "Top bar: the bracket's win rate; bottom bar: yours.",
+    bracketLine: (rate: string, n: number) => `Bracket ${rate} · ${n.toLocaleString()} matches`,
+    sampleColumn: "Sample",
+    tableHint:
+      "Every opponent: those with 30+ STRATZ matches plus the ones you've met; sorted by advantage like the cards above.",
     range: "Time range",
     ranges: { 0: "this week", 1: "last week", 4: "last month", 12: "last 3 months" },
     rangeHint:
@@ -348,7 +354,11 @@ const dotahubEn: typeof dotahubZh = {
     verdictHint:
       "Flagged from 5 matches and an 8-point gap; small samples are shrunk towards the bracket rate.",
     onlyMet: "Only heroes you've met",
-    sortBy: { counters: "Hardest counters first", targets: "Easiest targets first", met: "Most met first" },
+    sortBy: {
+      counters: "By advantage: hardest counters first",
+      targets: "By advantage: easiest targets first",
+      met: "By how often you've met them",
+    },
     bracketMissing: "STRATZ has no matchup statistics for this bracket.",
     overall: "On any hero: who beats you most",
     overallHint:

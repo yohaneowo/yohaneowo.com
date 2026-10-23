@@ -177,9 +177,10 @@ export function HeroMatchups({
 
   const tableRows = useMemo(() => {
     const filtered = onlyMet ? rows.filter((r) => r.mine) : rows;
-    const rate = (r: Row) => r.bracket?.rate ?? null;
+    // Sorted by STRATZ's advantage, like the cards above.
+    const rate = (r: Row) => r.bracket?.advantage ?? null;
     return [...filtered].sort((a, b) => {
-      if (sort === "met") return (b.mine?.g ?? 0) - (a.mine?.g ?? 0) || (rate(a) ?? 1) - (rate(b) ?? 1);
+      if (sort === "met") return (b.mine?.g ?? 0) - (a.mine?.g ?? 0) || (rate(a) ?? 0) - (rate(b) ?? 0);
       const ra = rate(a);
       const rb = rate(b);
       if (ra == null || rb == null) return ra == null ? (rb == null ? 0 : 1) : -1;
@@ -203,40 +204,38 @@ export function HeroMatchups({
   // What an empty counters / targets list means.
   const rankedEmpty = failed ? t.stratzDown : !stratz?.length ? t.bracketMissing : t.noneMet;
 
-  // One opponent in a short list: the hero, STRATZ's advantage as a bar, and the player's own
-  // record beside it.
-  const Item = ({ r, tone }: { r: Row; tone: "counter" | "target" | "own" }) => {
+  // One opponent card: the hero and STRATZ's advantage (the bar is its size), then the bracket's
+  // win rate with its sample and the player's own record, and the two win rates as thin bars.
+  const Item = ({ r }: { r: Row }) => {
     const advantage = r.bracket?.advantage ?? 0;
     const width = r.bracket ? Math.round((Math.abs(advantage) / largest) * 100) : 0;
     const ownRate = r.mine ? r.mine.w / r.mine.g : null;
     return (
-      <li className="flex flex-col gap-1 rounded-lg border px-2 py-1.5 text-sm">
+      <li className="flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 text-sm">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2">
-            <HeroImage hero={heroes[r.hero]} lang={lang} className="h-6 w-10" />
-            {name(r.hero)}
+          <span className="flex min-w-0 items-center gap-2">
+            <HeroImage hero={heroes[r.hero]} lang={lang} className="h-6 w-10 shrink-0" />
+            <span className="truncate">{name(r.hero)}</span>
           </span>
           {r.bracket ? (
-            <span
-              className={cn("text-xs tabular-nums", advantage < 0 ? DOWN : UP)}
-              title={t.sampled(r.bracket.matches)}
-            >
-              {t.advantage(signedPct(advantage))} · {pct(r.bracket.rate)}
+            <span className={cn("shrink-0 text-xs font-medium tabular-nums", advantage < 0 ? DOWN : UP)}>
+              {t.advantage(signedPct(advantage))}
             </span>
           ) : (
             <span className="text-xs text-muted-foreground">–</span>
           )}
         </div>
         {r.bracket && (
-          <div className="h-1 rounded-full bg-muted">
+          <div className="h-1 rounded-full bg-muted" title={t.barHint}>
             <div
               className={cn("h-1 rounded-full", advantage < 0 ? "bg-red-500/70" : "bg-emerald-500/70")}
               style={{ width: `${width}%` }}
             />
           </div>
         )}
-        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span className="tabular-nums">
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground tabular-nums">
+          <span>{r.bracket ? t.bracketLine(pct(r.bracket.rate), r.bracket.matches) : "–"}</span>
+          <span className="text-right">
             {r.mine && ownRate !== null ? (
               <>
                 {t.yourShort(r.mine.w, r.mine.g)}{" "}
@@ -246,7 +245,28 @@ export function HeroMatchups({
               t.notMet
             )}
           </span>
-          {r.verdict && (
+        </div>
+        {r.bracket && ownRate !== null && (
+          <div className="flex flex-col gap-0.5" title={t.rateBarsHint}>
+            <div className="h-1 rounded-full bg-muted">
+              <div
+                className="h-1 rounded-full bg-muted-foreground/50"
+                style={{ width: `${Math.round(r.bracket.rate * 100)}%` }}
+              />
+            </div>
+            <div className="h-1 rounded-full bg-muted">
+              <div
+                className={cn(
+                  "h-1 rounded-full",
+                  ownRate < r.bracket.rate ? "bg-red-500/70" : "bg-emerald-500/70",
+                )}
+                style={{ width: `${Math.round(ownRate * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {r.verdict && (
+          <div className="flex text-xs">
             <span
               className={cn(
                 "rounded-full border px-1.5 py-0.5",
@@ -257,9 +277,8 @@ export function HeroMatchups({
             >
               {r.verdict === "worse" ? t.worse : t.better}
             </span>
-          )}
-          {!r.verdict && tone === "own" && r.bracket && <span>{t.bracketShort(pct(r.bracket.rate))}</span>}
-        </div>
+          </div>
+        )}
       </li>
     );
   };
@@ -279,9 +298,9 @@ export function HeroMatchups({
     <section className="flex flex-col gap-2">
       <h3 className="text-sm font-medium">{title}</h3>
       {rows.length ? (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
           {rows.map((r) => (
-            <Item key={r.hero} r={r} tone={tone} />
+            <Item key={r.hero} r={r} />
           ))}
         </ul>
       ) : (
@@ -395,7 +414,7 @@ export function HeroMatchups({
             </span>
             {loading && <span className="ml-2 text-xs text-muted-foreground">{t.loading}</span>}
           </p>
-          <div className={cn("grid gap-4 lg:grid-cols-3", pending && "opacity-60 transition-opacity")}>
+          <div className={cn("flex flex-col gap-5", pending && "opacity-60 transition-opacity")}>
             {list({ title: t.countersOf(name(hero)), rows: counters, tone: "counter", empty: rankedEmpty })}
             {list({ title: t.targetsOf(name(hero)), rows: targets, tone: "target", empty: rankedEmpty })}
             {list({ title: t.yoursOf(name(hero)), rows: ownWorst, tone: "own", empty: t.tooFewOwn })}
@@ -412,6 +431,7 @@ export function HeroMatchups({
           </button>
           {table && (
             <>
+              <p className="text-xs text-muted-foreground">{t.tableHint}</p>
               <div role="group" className="flex flex-wrap gap-1 text-xs">
                 {(["counters", "targets", "met"] as const).map((key) => (
                   <button
@@ -435,6 +455,7 @@ export function HeroMatchups({
                       <th className="px-3 py-2 font-medium">{t.opponent}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.advantageColumn}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.bracketRate}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t.sampleColumn}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.yourRecord}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.yourRate}</th>
                       <th className="px-3 py-2 font-medium" />
@@ -459,11 +480,10 @@ export function HeroMatchups({
                           )}
                         </td>
                         <td className="px-3 py-1.5 text-right tabular-nums">
-                          {r.bracket ? (
-                            <span title={t.sampled(r.bracket.matches)}>{pct(r.bracket.rate)}</span>
-                          ) : (
-                            <span className="text-muted-foreground">–</span>
-                          )}
+                          {r.bracket ? pct(r.bracket.rate) : <span className="text-muted-foreground">–</span>}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">
+                          {r.bracket ? r.bracket.matches.toLocaleString() : "–"}
                         </td>
                         <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">
                           {r.mine ? t.record(r.mine.w, r.mine.g) : t.notMet}
