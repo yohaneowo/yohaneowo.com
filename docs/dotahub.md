@@ -91,6 +91,15 @@ OpenDota 的资料用自订 `cacheLife`：胜率、最近比赛 15 分钟后算�
 - 页面：`signature/`（`body.tsx` 卡片与高熟练表、`leaderboard.tsx` 排行榜与 server action `actions.ts`），别人的在 `players/[id]/signature`。时间外验证脚本还没做（方案 8.2）。
 - 小导航另有「局内科研」（`research/`，见下）。
 
+### 段位
+
+小导航「段位」（`rank/`，别人的在 `players/[id]/rank`），放在 IMP 与绝活之间。四块：
+
+- **目前段位与百分位**：OpenDota 的 `rank_tier`（没有就 STRATZ 的 `seasonRank`）与天梯名次；百分位用 OpenDota `/distributions` 的 `ranks`（每个 `rank_tier` 一格的人数与累计，`getRankDistribution`，快取一天）：低于自己 tier 的累计 ÷ 总数。同一份资料画「所有玩家的段位分布」长条图，自己那格亮色。
+- **对局平均段位的走势**：`getRankedIndex` 每场的 `average_rank`（MMR 不公开，匹配到的对局段位就是当时的分数），按时间画散点（赢绿输红）加最近 20 场的中位数线（`rank/charts.tsx`，y 轴是奖章整数、星星散在四周，同 IMP 页的 `rankPosition`）。
+- **不同段位对局里的胜率**：按比赛平均段位的奖章分组的胜率长条；下面三格「高于 / 同 / 低于自己段位的对局」只算最近 100 场（`aroundOwn`），因为更早的比赛是在当时的段位打的。
+- **英雄对位**：最常玩的 6 个英雄（≥ 5 场）各查一次 STRATZ `heroStats.matchUp(heroId, bracketBasicIds)`（`getHeroMatchups`，快取一天）：对每个对手英雄的样本场数、胜场、胜率（`winsAverage`）与优势值（`synergy`）；只列样本 ≥ 30 场的。自己的纪录（`rank/load.ts` 的 `loadMatchups`）：连结玩家用 admin 存的「其他九人」（`getStoredBracket` 的 `others`，取对面五人，跟 `getStoredDetails` 用 matchId 对上自己的英雄），所以场数只算有详情与九人资料的比赛；其他人用 OpenDota `/players/{id}/heroes`（不分英雄的 against__）和每个英雄一次 `?hero_id=X&lobby_type=7`（该英雄对各英雄的 against__；每英雄一次调用，快取 6 小时）。比较时把自己的胜率向同段位胜率收缩（k=8 场）再比，≥ 5 场且差 ≥ 8 个百分点才标「比同段位更不擅长 / 更擅长」。`matchUp` 一次最多回 `take` 个对手，取 200 够全英雄。底下另有「不分英雄：谁最常赢你」（overall，≥ 8 场、最差在前）。
+
 - **精通型的标准**：STRATZ 的 IMP 本来就是跟同段位、同英雄比（各段位排行榜前 50 的平均 IMP 都在 3–15，没有随段位升高），所以 IMP > 0 已是「赢过同段位平均」，顶尖玩家几乎每个英雄都过（Yatoro 有 20 多个精通型）。2026-10-21 试过「还要不低于自己其他英雄的平均 IMP」，用户决定撤回，维持原标准。
 - **没有近期天梯与训练赛**：帐号近 180 天看不到天梯时，页面上方说明原因（没打，或是 8500 分以上的对局从 2025 年 3 月起不公开，见「已知的坑」；有官方排行名次时直接写出这个原因）；是 GOAT 里的职业选手就连到他的战队。职业选手的比赛多是练习房的队长模式（`lobby_type 1`、模式 2：训练赛与正式比赛），不算天梯；`getPracticeHistory()` 抓最近 500 场，满 20 场就列「训练赛与职业比赛」表（每个英雄的场数、近 180 天、胜率、平均 IMP，也是天梯绝活的标出来），不进绝活判断。
 

@@ -183,7 +183,17 @@ export type PlayerMatch = {
   average_rank?: number | null;
 };
 
-export type PlayerHero = { hero_id: number | string; games: number; win: number; last_played: number };
+export type PlayerHero = {
+  hero_id: number | string;
+  games: number;
+  win: number;
+  last_played: number;
+  // Matches with / against the hero (on the other team) and how many of those were won.
+  with_games?: number;
+  with_win?: number;
+  against_games?: number;
+  against_win?: number;
+};
 export type Peer = {
   account_id: number;
   personaname: string | null;
@@ -293,6 +303,37 @@ export async function getPlayerHeroes(accountId: number) {
   "use cache";
   cacheLife(SLOW);
   return fresh(getJson<PlayerHero[]>(`${OPENDOTA}/players/${accountId}/heroes`));
+}
+
+// The same statistics over the ranked matches the player played one hero in: each row's
+// against_games / against_win are then the player's record on that hero against each other hero
+// (the 段位 page's own matchups when admin doesn't store the player's matches).
+export async function getPlayerHeroesAs(accountId: number, heroId: number) {
+  "use cache";
+  cacheLife(SLOW);
+  return getJson<PlayerHero[]>(
+    `${OPENDOTA}/players/${accountId}/heroes?hero_id=${Math.trunc(heroId)}&lobby_type=7`,
+  );
+}
+
+// How every player is spread over the rank tiers (OpenDota's distributions): one row per tier
+// (medal × 10 + stars) with its count and the running total, and the total of all players. Kept
+// a day: it moves slowly.
+export type RankDistribution = {
+  rows: { tier: number; count: number; cumulative: number }[];
+  total: number;
+};
+
+export async function getRankDistribution(): Promise<RankDistribution> {
+  "use cache";
+  cacheLife("days");
+  const data = await getJson<{
+    ranks: { rows: { bin: number; count: number; cumulative_sum: number }[]; sum: { count: number } };
+  }>(`${OPENDOTA}/distributions`);
+  return {
+    rows: data.ranks.rows.map((r) => ({ tier: r.bin, count: r.count, cumulative: r.cumulative_sum })),
+    total: data.ranks.sum.count,
+  };
 }
 
 // OpenDota's player statistics sometimes time out while the rest of it answers: STRATZ's teammates

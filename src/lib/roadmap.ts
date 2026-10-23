@@ -780,6 +780,35 @@ export const ROADMAP: RoadmapItem[] = [
     shipped: "2026-10-22",
   },
   {
+    id: "dotahub-rank",
+    status: "building",
+    area: "dotahub",
+    title: { zh: "DotaHub：段位", en: "DotaHub: rank" },
+    summary: {
+      zh: "小导航多一页「段位」：自己在所有玩家里的位置与分布图、对局平均段位的走势、在高于或低于自己段位的对局里的胜率，以及同段位的英雄克制对照自己的对位纪录（哪些英雄你比同段位更不擅长对付）。",
+      en: "A new Rank page: where you sit among all players with the distribution, the average rank of your matches over time, win rates in matches above and below your rank, and the bracket's hero matchups beside your own record (which heroes you handle worse than your bracket does).",
+    },
+    why: {
+      zh: "段位本身只有一个数字；想知道自己在哪、往哪走，以及同段位统计上的克制对自己是否成立。",
+      en: "A rank is one number; the point is to see where it sits, where it's heading, and whether the bracket's counters hold for you.",
+    },
+    steps: [
+      step(
+        "段位位置、分布图、对局段位走势、分段胜率",
+        "Rank place, distribution, rank over time, win rate by bracket",
+        true,
+      ),
+      step(
+        "同段位英雄对位（STRATZ）对照自己的纪录",
+        "The bracket's matchups (STRATZ) beside your own record",
+        true,
+      ),
+    ],
+    links: [{ label: { zh: "段位", en: "Rank" }, href: "/dotahub/rank" }],
+    added: "2026-10-24",
+    started: "2026-10-24",
+  },
+  {
     id: "dotahub-trends",
     status: "shipped",
     area: "dotahub",

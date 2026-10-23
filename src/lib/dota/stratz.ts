@@ -619,6 +619,46 @@ export async function getRankAverages(heroId: number, tier: number): Promise<Ran
 // The people played with and against most, over the newest PEER_MATCHES matches: the stand-in for
 // OpenDota's peers when its player statistics are down (they sometimes time out while the rest of
 // OpenDota answers). In OpenDota's shape.
+// STRATZ's bracket of a rank tier (medal × 10 + stars), null for the unranked.
+export function bracketOf(tier: number | null): string | null {
+  return (tier ? BRACKETS[Math.floor(tier / 10)] : "") || null;
+}
+
+// A hero's matchups at a bracket (STRATZ heroStats.matchUp): against each other hero, the matches
+// sampled, how many the hero won, its win rate there and STRATZ's advantage (percentage points, a
+// disadvantage negative). The 段位 page sets them beside the player's own record. Kept a day.
+export type HeroMatchup = { hero: number; matches: number; wins: number; rate: number; advantage: number };
+
+export async function getHeroMatchups(heroId: number, tier: number): Promise<HeroMatchup[] | null> {
+  "use cache";
+  cacheLife("days");
+  const bracket = bracketOf(tier);
+  if (!bracket) return null;
+  type Row = {
+    heroId2: number;
+    matchCount: number;
+    winCount: number;
+    synergy: number | null;
+    winsAverage: number | null;
+  };
+  const data = await stratzQuery<{
+    heroStats?: { matchUp?: { heroId: number; vs: Row[] | null }[] | null } | null;
+  }>(
+    `{ heroStats { matchUp(heroId: ${Math.trunc(heroId)}, take: 200, bracketBasicIds: [${bracket}]) { heroId vs { heroId2 matchCount winCount synergy winsAverage } } } }`,
+    30_000,
+  );
+  const rows = data.heroStats?.matchUp?.[0]?.vs ?? [];
+  return rows
+    .filter((v) => v.matchCount > 0)
+    .map((v) => ({
+      hero: v.heroId2,
+      matches: v.matchCount,
+      wins: v.winCount,
+      rate: v.winsAverage ?? v.winCount / v.matchCount,
+      advantage: v.synergy ?? 0,
+    }));
+}
+
 const PEER_MATCHES = 2000;
 const PEERS = 50;
 

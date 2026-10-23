@@ -16,7 +16,8 @@ export type LoadingKind =
   | "goatSchedule"
   | "goatLive"
   | "goatCompare"
-  | "research";
+  | "research"
+  | "rank";
 
 const Block = ({ className }: { className?: string }) => (
   <div className={cn("animate-pulse rounded-xl bg-muted/50", className)} />
