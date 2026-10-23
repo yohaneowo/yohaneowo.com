@@ -240,7 +240,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: "tradehub-exchanges",
-    status: "building",
+    status: "shipped",
     area: "coinhub",
     title: { zh: "TradeHub：更多交易所（Bybit、Pionex）", en: "TradeHub: more exchanges (Bybit, Pionex)" },
     summary: {
@@ -275,6 +275,7 @@ export const ROADMAP: RoadmapItem[] = [
     links: [{ label: { zh: "TradeHub", en: "TradeHub" }, href: "/tradehub" }],
     added: "2026-10-23",
     started: "2026-10-23",
+    shipped: "2026-10-23",
   },
   {
     id: "dotahub",
