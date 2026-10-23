@@ -803,6 +803,11 @@ export const ROADMAP: RoadmapItem[] = [
         "The bracket's matchups (STRATZ) beside your own record",
         true,
       ),
+      step(
+        "对位可选任何英雄与时间范围（1 周 / 1 个月 / 3 个月），「只看遇过的」开关",
+        'Matchups for any hero and time range (week / month / 3 months), an "only heroes you\'ve met" toggle',
+        true,
+      ),
     ],
     links: [{ label: { zh: "段位", en: "Rank" }, href: "/dotahub/rank" }],
     added: "2026-10-24",

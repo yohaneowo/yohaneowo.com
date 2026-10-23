@@ -21,6 +21,8 @@ export function HeroPicker({
   counts,
   className,
   showCount = true,
+  allowAll = true,
+  anyHero = false,
 }: {
   value: number;
   onChange: (hero: number) => void;
@@ -29,6 +31,10 @@ export function HeroPicker({
   className?: string;
   // Off where the matches are shown next to it already.
   showCount?: boolean;
+  // Off where one hero must be picked (no "all heroes").
+  allowAll?: boolean;
+  // On where unplayed heroes still have something to show (they're not greyed out).
+  anyHero?: boolean;
 }) {
   const { t: dict, lang } = useLocale();
   const t = dict.dotahub.deaths;
@@ -64,19 +70,21 @@ export function HeroPicker({
         <ChevronDownIcon className="size-3.5 text-muted-foreground" aria-hidden />
       </PopoverTrigger>
       <PopoverContent align="start" className="max-h-[70vh] w-[min(92vw,600px)] gap-3 overflow-y-auto">
-        <button
-          type="button"
-          onClick={() => pick(0)}
-          aria-pressed={value === 0}
-          className={cn(
-            "self-start rounded-full border px-3 py-1 text-xs",
-            value === 0
-              ? "border-foreground/40 bg-muted font-medium"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {t.allHeroes}
-        </button>
+        {allowAll && (
+          <button
+            type="button"
+            onClick={() => pick(0)}
+            aria-pressed={value === 0}
+            className={cn(
+              "self-start rounded-full border px-3 py-1 text-xs",
+              value === 0
+                ? "border-foreground/40 bg-muted font-medium"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.allHeroes}
+          </button>
+        )}
         {groups.map((group) => (
           <section key={group.attr} className="flex flex-col gap-1.5">
             <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -97,7 +105,7 @@ export function HeroPicker({
                   <button
                     key={id}
                     type="button"
-                    disabled={!n}
+                    disabled={!n && !anyHero}
                     onClick={() => pick(id)}
                     aria-pressed={value === id}
                     aria-label={`${hero[lang]}${n ? ` (${n})` : ""}`}
@@ -105,7 +113,8 @@ export function HeroPicker({
                     className={cn(
                       "relative flex aspect-square items-center justify-center rounded-md border transition-colors",
                       value === id ? "border-foreground/60 bg-muted" : "border-transparent",
-                      n ? "hover:bg-muted" : "opacity-25 grayscale",
+                      n || anyHero ? "hover:bg-muted" : "opacity-25 grayscale",
+                      !n && anyHero && "opacity-60",
                     )}
                   >
                     <Image src={hero.icon} alt="" width={32} height={32} unoptimized className="size-8" />

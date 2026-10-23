@@ -1,6 +1,6 @@
 import "server-only";
 import { getStoredBracket, getStoredDetails } from "@/lib/dota/admin";
-import { getPlayerHeroes, getPlayerHeroesAs, type RankedEntry } from "@/lib/dota/data";
+import { getPlayerHeroes, getPlayerHeroesAs, type PlayerHero, type RankedEntry } from "@/lib/dota/data";
 import type { DeathsSource } from "../deaths/deaths-view";
 
 // What the 段位 page computes on the server: the player's own matchups (who they beat and lose to,
@@ -70,15 +70,19 @@ export async function loadMatchups(source: DeathsSource, accountId: number): Pro
   }
   await Promise.all(
     topHeroes(out).map(async (hero) => {
-      const vs = await getPlayerHeroesAs(accountId, hero).catch(() => []);
-      const onHero: Record<number, Rec> = {};
-      for (const r of vs) {
-        const theirs = Number(r.hero_id);
-        if (theirs && r.against_games) onHero[theirs] = { g: r.against_games, w: r.against_win ?? 0 };
-      }
-      out.byHero[hero] = onHero;
+      out.byHero[hero] = againstOf(await getPlayerHeroesAs(accountId, hero).catch(() => []));
     }),
   );
+  return out;
+}
+
+// OpenDota's per-hero rows (queried as one hero) as the record against each of them.
+export function againstOf(rows: PlayerHero[]): Record<number, Rec> {
+  const out: Record<number, Rec> = {};
+  for (const r of rows) {
+    const theirs = Number(r.hero_id);
+    if (theirs && r.against_games) out[theirs] = { g: r.against_games, w: r.against_win ?? 0 };
+  }
   return out;
 }
 

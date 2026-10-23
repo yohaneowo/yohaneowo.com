@@ -3,6 +3,7 @@ import { cacheLife } from "next/cache";
 import type { DeathEvent, MatchDetails, StoredMatch } from "./admin";
 import type { Peer } from "./data";
 import { recordCall } from "./health";
+import { DEFAULT_MATCHUP_WEEKS, type MatchupWeeks } from "./matchup-range";
 
 // After a query for a player fails, the same query isn't sent again for COOLDOWN_MS: a failure
 // isn't cached, so every view of their pages (and the prewarm behind it) would otherwise send it
@@ -630,8 +631,8 @@ export function bracketOf(tier: number | null): string | null {
 export type HeroMatchup = { hero: number; matches: number; wins: number; rate: number; advantage: number };
 
 // matchUp without `week` answers for the current week only (a few hundred matches per pair early
-// in the week), so the page sums this many weeks; each is one aliased field of the same query.
-const MATCHUP_WEEKS = 8;
+// in the week), so the page sums the current week and the chosen number of full weeks before it
+// (MATCHUP_WEEKS in matchup-range.ts); each week is one aliased field of the same query.
 const WEEK_S = 7 * 24 * 3600;
 
 // Unix seconds of the Monday 00:00 UTC that starts the week `back` weeks before now.
@@ -642,7 +643,11 @@ function weekStart(back: number) {
   return monday / 1000 - back * WEEK_S;
 }
 
-export async function getHeroMatchups(heroId: number, tier: number): Promise<HeroMatchup[] | null> {
+export async function getHeroMatchups(
+  heroId: number,
+  tier: number,
+  weeks: MatchupWeeks = DEFAULT_MATCHUP_WEEKS,
+): Promise<HeroMatchup[] | null> {
   "use cache";
   cacheLife("days");
   const bracket = bracketOf(tier);
@@ -656,7 +661,7 @@ export async function getHeroMatchups(heroId: number, tier: number): Promise<Her
   type Week = { vs: Row[] | null }[] | null;
   const hero = Math.trunc(heroId);
   const fields = Array.from(
-    { length: MATCHUP_WEEKS },
+    { length: weeks + 1 },
     (_, i) =>
       `w${i}: matchUp(heroId: ${hero}, take: 200, week: ${weekStart(i)}, bracketBasicIds: [${bracket}]) { vs { heroId2 matchCount winCount synergy } }`,
   );

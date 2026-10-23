@@ -1,5 +1,6 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getHeroes, getPlayer, getRankDistribution, getRankedIndex, type RankedEntry } from "@/lib/dota/data";
+import { DEFAULT_MATCHUP_WEEKS } from "@/lib/dota/matchup-range";
 import { bracketOf, getHeroMatchups, getStratzProfile } from "@/lib/dota/stratz";
 import type { DeathsSource } from "../deaths/deaths-view";
 import { Medal, medalName, Notice } from "../parts";
@@ -40,9 +41,15 @@ export async function RankBody({ t, accountId, source }: { t: T; accountId: numb
       : null;
 
   const top = matchups ? topHeroes(matchups) : [];
-  const brackets = tier
-    ? await Promise.all(top.map((hero) => getHeroMatchups(hero, tier!).catch(() => null)))
-    : top.map(() => null);
+  // The first hero's bracket matchups come with the page; the rest load as they're picked.
+  const initial =
+    top[0] && tier
+      ? {
+          hero: top[0],
+          weeks: DEFAULT_MATCHUP_WEEKS,
+          bracket: await getHeroMatchups(top[0], tier, DEFAULT_MATCHUP_WEEKS).catch(() => null),
+        }
+      : null;
   const bracketName = tier ? bracketLabel(tier, t) : null;
 
   return (
@@ -128,8 +135,11 @@ export async function RankBody({ t, accountId, source }: { t: T; accountId: numb
           <HeroMatchups
             heroes={heroes}
             bracketName={bracketName}
-            top={top.map((hero, i) => ({ hero, games: matchups.heroGames[hero] ?? 0, bracket: brackets[i] }))}
+            tier={tier}
+            top={top.map((hero) => ({ hero, games: matchups.heroGames[hero] ?? 0 }))}
+            initial={initial}
             mine={matchups}
+            accountId={matchups.source === "opendota" ? accountId : null}
           />
         ) : (
           <Notice>{r.noHeroes}</Notice>

@@ -304,8 +304,14 @@ const dotahubEn: typeof dotahubZh = {
     matchupsHint: (bracket: string) =>
       `The bracket win rate is STRATZ's: in the ${bracket} bracket, how often this hero beats each other hero. Your record is your own result on this hero against it. Big gaps are flagged.`,
     intro: (hero: string, bracket: string) => `In ${bracket} ranked matches, playing ${hero}:`,
-    introHint:
-      "Advantage is STRATZ's figure: how many points more (or fewer) this hero wins against that one than usual, then the actual win rate, over the last 8 weeks of ranked matches; under each row is your own record on it against that hero.",
+    introHint: (range: string) =>
+      `Advantage is STRATZ's figure: how many points more (or fewer) this hero wins against that one than usual, then the actual win rate, over ranked matches of the ${range}; under each row is your own record on it against that hero.`,
+    range: "Time range",
+    ranges: { 1: "last week", 4: "last month", 12: "last 3 months" },
+    mostPlayed: "Most played:",
+    pickAHero: "Pick a hero to see its matchups at your bracket.",
+    loading: "Loading…",
+    noneMet: "\"Only heroes you've met\" is on, but you haven't met these opponents on this hero.",
     countersOf: (hero: string) => `Hardest counters to ${hero}`,
     targetsOf: (hero: string) => `Easiest targets for ${hero}`,
     yoursOf: (hero: string) => `Your worst opponents on ${hero}`,
