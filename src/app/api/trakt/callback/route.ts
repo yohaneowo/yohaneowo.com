@@ -14,17 +14,44 @@ export async function GET(request: Request) {
   // and the redirect URI must match the one the authorization was started with.
   const origin = process.env.BETTER_AUTH_URL?.replace(/\/+$/, "") ?? url.origin;
   const jar = await cookies();
-  const state = readTraktState(url.searchParams.get("state"), jar.get(TRAKT_STATE_COOKIE)?.value);
+  const stateParam = url.searchParams.get("state");
+  const cookie = jar.get(TRAKT_STATE_COOKIE)?.value;
+  const state = readTraktState(stateParam, cookie);
   jar.delete(TRAKT_STATE_COOKIE);
+  // Failures are logged (no tokens, no codes): someone's connect failing silently is otherwise
+  // invisible, as Trakt talks straight to the browser and the browser straight to us.
+  const fail = (reason: string, detail: Record<string, unknown> = {}) =>
+    console.warn(
+      `[trakt] connect failed: ${reason}`,
+      JSON.stringify({
+        ...detail,
+        ua: request.headers.get("user-agent")?.slice(0, 120) ?? null,
+        country: request.headers.get("cf-ipcountry") ?? null,
+      }),
+    );
   const back = (lang: "zh" | "en", error?: string) =>
     NextResponse.redirect(
       new URL(localePath(lang, "/moviehub") + (error ? `?error=${error}` : "?connected=1"), origin),
     );
-  if (!state) return back("zh", "traktState");
+  if (!state) {
+    fail("state", {
+      hasState: Boolean(stateParam),
+      hasCookie: Boolean(cookie),
+      traktError: url.searchParams.get("error"),
+      referer: request.headers.get("referer"),
+    });
+    return back("zh", "traktState");
+  }
   const session = await getSession();
-  if (!session || session.user.id !== state.userId) return back(state.lang, "signIn");
+  if (!session || session.user.id !== state.userId) {
+    fail("session", { user: state.userId, signedIn: session?.user.id ?? null });
+    return back(state.lang, "signIn");
+  }
   const code = url.searchParams.get("code");
-  if (!code) return back(state.lang, "traktDenied");
+  if (!code) {
+    fail("denied", { user: state.userId, traktError: url.searchParams.get("error") });
+    return back(state.lang, "traktDenied");
+  }
   try {
     const linked = await getDiscordAccount(session.user.id);
     await connectTrakt(session.user.id, {
@@ -35,7 +62,13 @@ export async function GET(request: Request) {
       discordId: linked?.accountId ?? null,
     });
   } catch (error) {
-    return back(state.lang, error instanceof MoviesUnavailable ? error.code : "saveFailed");
+    const code = error instanceof MoviesUnavailable ? error.code : "saveFailed";
+    fail("exchange", {
+      user: state.userId,
+      code,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return back(state.lang, code);
   }
   return back(state.lang);
 }
