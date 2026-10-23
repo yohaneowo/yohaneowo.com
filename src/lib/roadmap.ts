@@ -269,7 +269,12 @@ export const ROADMAP: RoadmapItem[] = [
         "A status page: each platform's parser scores and breakers",
         true,
       ),
-      step("部署到 Coolify、bot 切换到 LinkHub", "Deploy on Coolify, switch the bot over"),
+      step(
+        "测试版部署到 Coolify，网站测试版接上",
+        "The test deployment on Coolify, wired to the site's test deployment",
+        true,
+      ),
+      step("稳定版上线、bot 切换到 LinkHub", "Ship the stable deployment, switch the bot over"),
     ],
     links: [{ label: { zh: "LinkHub", en: "LinkHub" }, href: "/linkhub" }],
     added: "2026-10-23",
