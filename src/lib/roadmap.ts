@@ -242,7 +242,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: "linkhub",
-    status: "building",
+    status: "shipped",
     area: "linkhub",
     title: { zh: "LinkHub：链接解析", en: "LinkHub: link parsing" },
     summary: {
@@ -274,11 +274,16 @@ export const ROADMAP: RoadmapItem[] = [
         "The test deployment on Coolify, wired to the site's test deployment",
         true,
       ),
-      step("稳定版上线、bot 切换到 LinkHub", "Ship the stable deployment, switch the bot over"),
+      step("稳定版上线、bot 切换到 LinkHub", "Ship the stable deployment, switch the bot over", true),
+      step(
+        "探针链接（每个平台几条固定的公开链接，定时检查）",
+        "Probe links (a few fixed public links per platform, checked on a schedule)",
+      ),
     ],
     links: [{ label: { zh: "LinkHub", en: "LinkHub" }, href: "/linkhub" }],
     added: "2026-10-23",
     started: "2026-10-23",
+    shipped: "2026-10-23",
   },
   {
     id: "tradehub-exchanges",
