@@ -7,19 +7,22 @@ import type { RankDistribution } from "@/lib/dota/data";
 import { LOSS, WIN } from "../stats/charts";
 import type { RankPoint } from "./load";
 
-// One colour per medal, Herald to Immortal.
+// One colour per medal, Herald to Immortal: each medal's own colour in the game (Herald's green
+// leaves, Guardian's bronze, Crusader's teal, Archon's gold, Legend's crimson, Ancient's purple,
+// Divine's blue, Immortal's gold).
 const MEDAL_COLORS = [
   "",
-  "#9ca3af",
-  "#84cc16",
-  "#f59e0b",
-  "#06b6d4",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
-  "#ef4444",
+  "#5fa845",
+  "#a4703d",
+  "#2fb5b2",
+  "#d6a93b",
+  "#c2384f",
+  "#9b4fd1",
+  "#3f7ee8",
+  "#f0c640",
 ];
-const ME = "#fbbf24";
+// The player's own bar: the medal's colour at full strength with a bright edge.
+const ME_BORDER = "#ffffff";
 const MEDIAN_LINE = "#f59e0b";
 const MEDIAN_WINDOW = 20;
 
@@ -85,9 +88,10 @@ export function DistributionChart({ rows, total, tier }: RankDistribution & { ti
         data: sorted.map((r) => ({
           value: r.count,
           itemStyle: {
-            color: r.tier === tier ? ME : MEDAL_COLORS[Math.floor(r.tier / 10)],
-            opacity: r.tier === tier ? 1 : 0.55,
-            borderColor: r.tier === tier ? "#000" : undefined,
+            color: MEDAL_COLORS[Math.floor(r.tier / 10)],
+            opacity: r.tier === tier ? 1 : 0.5,
+            borderColor: r.tier === tier ? ME_BORDER : undefined,
+            borderWidth: r.tier === tier ? 2 : 0,
           },
         })),
         barCategoryGap: "15%",
@@ -225,8 +229,9 @@ export function BracketWinRateChart({
           value: Math.round((100 * r.wins) / r.games),
           itemStyle: {
             color: MEDAL_COLORS[r.medal],
-            opacity: own === r.medal ? 1 : 0.6,
-            borderColor: own === r.medal ? "#000" : undefined,
+            opacity: own === r.medal ? 1 : 0.55,
+            borderColor: own === r.medal ? ME_BORDER : undefined,
+            borderWidth: own === r.medal ? 2 : 0,
           },
         })),
         label: {

@@ -1,6 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { getSession } from "@/lib/auth";
+import { PREWARM_COOKIE } from "./prewarm";
 import { setDotaNotify, unlinkDota } from "@/lib/dota/admin";
 import { requestParse } from "@/lib/dota/data";
 import { requestStratzParse } from "@/lib/dota/stratz";
@@ -21,6 +23,16 @@ export async function saveDotaNotify(notify: unknown) {
   if (!session || typeof notify !== "boolean") return { ok: false };
   const saved = await setDotaNotify(session.user.id, notify).catch(() => null);
   return { ok: Boolean(saved) };
+}
+
+// The browser setting: whether opening a DotaHub page fetches the other pages' data ahead (prewarm.ts).
+// A cookie, so it's per browser and costs nothing to read.
+export async function saveDotaPrewarm(on: unknown) {
+  if (typeof on !== "boolean") return { ok: false };
+  const jar = await cookies();
+  if (on) jar.delete(PREWARM_COOKIE);
+  else jar.set(PREWARM_COOKIE, "off", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 365 * 86400 });
+  return { ok: true };
 }
 
 export async function askStratzToParse(matchId: unknown) {

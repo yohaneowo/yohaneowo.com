@@ -1,11 +1,18 @@
 import "server-only";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { after, connection } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getGuestDeaths, getGuestDetails, getStoredDeaths, getStoredDetails } from "@/lib/dota/admin";
 import { getHeroes, getItemCosts, getItems, getPeers, getRankedSides } from "@/lib/dota/data";
+import { opendotaKeyUntil, opendotaPaidStatus } from "@/lib/dota/opendota-key";
 import { getHeroLevels, getPracticeHistory, getRankedHistory, getStratzRanked } from "@/lib/dota/stratz";
 import type { DeathsSource } from "./deaths/deaths-view";
+
+// The visitor's own switch (the settings page): "off" skips the prewarm altogether.
+export const PREWARM_COOKIE = "dota_prewarm";
+// When the free OpenDota quota is spent and the paid budget is this far used, the OpenDota part of
+// the prewarm is skipped (the pages still fetch what they need when opened).
+const PAID_BUDGET_SHARE = 0.8;
 
 // Once a player's DotaHub page has gone out, fetch what their other pages need into the cache (the
 // death map, economy, IMP, 绝活), so the next click finds it there instead of waiting seconds for
@@ -22,13 +29,16 @@ export async function prewarm(accountId: number, source: DeathsSource) {
   await connection();
   if (BOT.test((await headers()).get("user-agent") ?? "")) return;
   if (!(await getSession().catch(() => null))) return;
+  if ((await cookies()).get(PREWARM_COOKIE)?.value === "off") return;
   after(async () => {
+    // OpenDota only while it's cheap: on the free quota, or with most of the paid budget left.
+    const paid = opendotaKeyUntil() ? await opendotaPaidStatus().catch(() => null) : null;
+    const opendotaOk = !paid || (!paid.capped && paid.today < paid.dailyCap * PAID_BUDGET_SHARE);
     await Promise.allSettled([
       getHeroes(),
       getItems(),
       getItemCosts(),
-      getRankedSides(accountId),
-      getPeers(accountId),
+      ...(opendotaOk ? [getRankedSides(accountId), getPeers(accountId)] : []),
       getRankedHistory(accountId),
       getHeroLevels(accountId),
       getPracticeHistory(accountId),

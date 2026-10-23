@@ -303,6 +303,19 @@ const dotahubEn: typeof dotahubZh = {
     matchups: "Hero matchups",
     matchupsHint: (bracket: string) =>
       `The bracket win rate is STRATZ's: in the ${bracket} bracket, how often this hero beats each other hero. Your record is your own result on this hero against it. Big gaps are flagged.`,
+    intro: (hero: string, bracket: string) => `In ${bracket} ranked matches, playing ${hero}:`,
+    introHint:
+      "Advantage is STRATZ's figure: how many points more (or fewer) this hero wins against that one than usual, then the actual win rate; under each row is your own record on it against that hero.",
+    countersOf: (hero: string) => `Hardest counters to ${hero}`,
+    targetsOf: (hero: string) => `Easiest targets for ${hero}`,
+    yoursOf: (hero: string) => `Your worst opponents on ${hero}`,
+    tooFewOwn: "You haven't met any hero 3 times on this hero yet.",
+    advantage: (v: string) => `advantage ${v}`,
+    advantageColumn: "Advantage",
+    bracketShort: (rate: string) => `bracket ${rate}`,
+    yourShort: (w: number, g: number) => `you ${w}–${g - w}`,
+    showTable: "Show the full table",
+    hideTable: "Hide the table",
     matchupsSource: {
       stored: "Your record comes from the ranked matches stored here (the five opposing heroes).",
       opendota: "Your record comes from OpenDota's ranked statistics.",
@@ -419,6 +432,9 @@ const dotahubEn: typeof dotahubZh = {
     title: "DotaHub",
     notify: "DM me the death map on Discord after each ranked match",
     hint: "Off by default. Needs Discord linked; ranked matches only.",
+    prewarm: "When any DotaHub page opens, fetch the other pages' data into the cache first",
+    prewarmHint:
+      "On by default: the next page opens at once instead of in a few seconds. It costs 2 OpenDota and 3 STRATZ calls every few hours; when OpenDota's free quota is spent and the paid budget is nearly used, the OpenDota part is skipped by itself. Turning it off saves only that; kept in this browser.",
     needSteam: "Connect Steam in DotaHub to change this.",
     saveFailed: "Couldn't save. Please try again.",
   },

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 import { localePath } from "@/i18n/config";
@@ -9,6 +10,7 @@ import { getAnimeSettings } from "@/lib/movies";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { dotaViewer, syncDotaLink } from "../dotahub/account";
+import { PREWARM_COOKIE } from "../dotahub/prewarm";
 import { AnimeSettings } from "./anime-settings";
 import { DotaSettings } from "./dota-settings";
 import { DiscordLink } from "./discord-link";
@@ -73,7 +75,10 @@ async function SettingsContent({ searchParams }: { searchParams: Promise<{ error
         </CardHeader>
         <CardContent>
           {dota?.linked ? (
-            <DotaSettings notify={dota.notify} />
+            <DotaSettings
+              notify={dota.notify}
+              prewarm={(await cookies()).get(PREWARM_COOKIE)?.value !== "off"}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               {dota === undefined ? t.dotahub.settings.needSteam : t.dotahub.unavailable}

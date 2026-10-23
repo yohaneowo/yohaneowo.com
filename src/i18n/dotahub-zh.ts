@@ -290,6 +290,19 @@ const dotahubZh = {
     matchups: "英雄对位",
     matchupsHint: (bracket: string) =>
       `同段位胜率是 STRATZ 统计的「${bracket}」段位里，这个英雄对上各英雄的胜率；你的纪录是你用这个英雄对上它的结果。两者差得多的会标出来。`,
+    intro: (hero: string, bracket: string) => `在「${bracket}」段位的天梯对局里，用${hero}时：`,
+    introHint:
+      "优势是 STRATZ 算的「对上这个英雄比平常多赢（或少赢）几个百分点」，后面是实际胜率；每一行下面是你自己用它对上这个英雄的纪录。",
+    countersOf: (hero: string) => `最克制${hero}的英雄`,
+    targetsOf: (hero: string) => `${hero}最好打的英雄`,
+    yoursOf: (hero: string) => `你用${hero}打得最差的对手`,
+    tooFewOwn: "你用这个英雄对上各英雄的场次都还不到 3 场。",
+    advantage: (v: string) => `优势 ${v}`,
+    advantageColumn: "优势",
+    bracketShort: (rate: string) => `同段位 ${rate}`,
+    yourShort: (w: number, g: number) => `你 ${w} 胜 ${g} 场`,
+    showTable: "看全部对手的表格",
+    hideTable: "收起表格",
     matchupsSource: {
       stored: "你的对位纪录来自本站存下的天梯比赛（对面五人的英雄）。",
       opendota: "你的对位纪录来自 OpenDota 的天梯统计。",
@@ -404,6 +417,9 @@ const dotahubZh = {
     title: "DotaHub",
     notify: "每场天梯比赛后，用 Discord 私讯这场的死亡地图",
     hint: "预设关闭。要先关联 Discord；只有天梯比赛会私讯。",
+    prewarm: "打开 DotaHub 任一页时，先把其他页面的资料读进快取",
+    prewarmHint:
+      "预设开启：下一页点开就有，不用等几秒。它每几小时多花 2 次 OpenDota 与 3 次 STRATZ；OpenDota 免费额度用完、付费额度也快到上限时会自动略过 OpenDota 的部分。关掉只省这一点，存在这个浏览器。",
     needSteam: "在 DotaHub 连结 Steam 后才能设定。",
     saveFailed: "没有存成功，请再试一次。",
   },
