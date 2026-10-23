@@ -9,3 +9,9 @@ Disallow: /en/dotahub/matches/
 # The GOAT comparison takes any combination of players in ?ids=, endless pages each costing calls.
 Disallow: /dotahub/goat/compare
 Disallow: /en/dotahub/goat/compare
+# Every pro team and player has a GOAT page, each four or five OpenDota calls: Googlebot walking
+# them was the biggest spender on 2026-10-24.
+Disallow: /dotahub/goat/teams/
+Disallow: /en/dotahub/goat/teams/
+Disallow: /dotahub/goat/players/
+Disallow: /en/dotahub/goat/players/

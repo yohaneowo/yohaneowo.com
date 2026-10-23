@@ -325,7 +325,7 @@ const dotahubEn: typeof dotahubZh = {
     bracketMissing: "STRATZ has no matchup statistics for this bracket.",
     overall: "On any hero: who beats you most",
     overallHint:
-      "Whatever you play, your win rate when this hero is on the other side; at least 8 matches, worst first.",
+      "Whatever you play, your win rate when this hero is on the other side; at least 8 matches. The order shrinks each rate towards 50% by its match count (fewer matches, closer to 50%), so 20% in 10 doesn't outrank 32% in 34; the bar behind a row is how often you meet the hero.",
     more: "Show more",
   },
   signature: {

@@ -40,6 +40,9 @@ const store = ((
       quota: Record<DotaSource, Record<string, number>>;
       calls: Record<DotaSource, CallCounts>;
       since: number;
+      // When each source was last probed: a probe goes out at most every PROBE_AFTER_MS whatever
+      // the samples say (2026-10-24: 118 OpenDota probes in 95 minutes showed up in the counts).
+      probedAt?: Record<DotaSource, number>;
     };
   }
 ).__dotaHealth ??= {
@@ -47,7 +50,9 @@ const store = ((
   quota: { opendota: {}, stratz: {}, steam: {} },
   calls: { opendota: {}, stratz: {}, steam: {} },
   since: Date.now(),
+  probedAt: { opendota: 0, stratz: 0, steam: 0 },
 });
+store.probedAt ??= { opendota: 0, stratz: 0, steam: 0 };
 
 // Quota headers per source: header name → the key shown.
 const QUOTA_HEADERS: Record<DotaSource, [string, string][]> = {
@@ -98,6 +103,7 @@ export function recordCall(
 // is left).
 async function probe(source: DotaSource) {
   const started = Date.now();
+  store.probedAt![source] = started;
   try {
     let response: Response;
     if (source === "opendota") {
@@ -183,7 +189,9 @@ export function dotaCalls() {
 export async function dotaHealth(): Promise<Record<DotaSource, SourceHealth>> {
   const now = Date.now();
   const stale = (["opendota", "stratz", "steam"] as const).filter(
-    (source) => now - (store.samples[source].at(-1)?.at ?? 0) > PROBE_AFTER_MS,
+    (source) =>
+      now - (store.samples[source].at(-1)?.at ?? 0) > PROBE_AFTER_MS &&
+      now - (store.probedAt?.[source] ?? 0) > PROBE_AFTER_MS,
   );
   // One round of probes at a time, however many viewers ask.
   if (stale.length) {

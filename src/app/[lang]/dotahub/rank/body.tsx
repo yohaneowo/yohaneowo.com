@@ -6,6 +6,7 @@ import { Medal, medalName, Notice } from "../parts";
 import { BracketWinRateChart, DistributionChart, RankTrendChart } from "./charts";
 import { aroundOwn, byMedal, loadMatchups, rankPoints, topHeroes } from "./load";
 import { HeroMatchups } from "./matchups";
+import { WorstOpponents } from "./worst-opponents";
 
 type T = Dictionary["dotahub"];
 
@@ -80,35 +81,46 @@ export async function RankBody({ t, accountId, source }: { t: T; accountId: numb
         )}
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">{r.byBracket}</h2>
-        {medals.length ? (
-          <>
-            <BracketWinRateChart rows={medals} own={ownMedal} />
-            {around && (
-              <dl className="grid grid-cols-3 gap-3 text-sm">
-                {(["above", "same", "below"] as const).map((key) => {
-                  const rec = around[key];
-                  return (
-                    <div key={key} className="rounded-lg border p-3">
-                      <dt className="text-xs text-muted-foreground">{r[key]}</dt>
-                      <dd className="text-lg font-semibold tabular-nums">
-                        {rec.g ? `${Math.round((100 * rec.w) / rec.g)}%` : "–"}
-                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                          {r.games(rec.g)}
-                        </span>
-                      </dd>
-                    </div>
-                  );
-                })}
-              </dl>
-            )}
-            <p className="text-xs text-muted-foreground">{r.byBracketHint}</p>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">{r.noBracketData}</p>
-        )}
-      </section>
+      <div className="grid gap-8 md:grid-cols-2">
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">{r.byBracket}</h2>
+          {medals.length ? (
+            <>
+              <BracketWinRateChart rows={medals} own={ownMedal} />
+              {around && (
+                <dl className="grid grid-cols-3 gap-2 text-sm">
+                  {(["above", "same", "below"] as const).map((key) => {
+                    const rec = around[key];
+                    return (
+                      <div key={key} className="rounded-lg border p-2">
+                        <dt className="text-xs text-muted-foreground">{r[key]}</dt>
+                        <dd className="text-lg font-semibold tabular-nums">
+                          {rec.g ? `${Math.round((100 * rec.w) / rec.g)}%` : "–"}
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            {r.games(rec.g)}
+                          </span>
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              )}
+              <p className="text-xs text-muted-foreground">{r.byBracketHint}</p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">{r.noBracketData}</p>
+          )}
+        </section>
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">{r.overall}</h2>
+          {matchups ? (
+            <WorstOpponents heroes={heroes} overall={matchups.overall} />
+          ) : (
+            <p className="text-sm text-muted-foreground">{r.noHeroes}</p>
+          )}
+          <p className="text-xs text-muted-foreground">{r.overallHint}</p>
+        </section>
+      </div>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">{r.matchups}</h2>

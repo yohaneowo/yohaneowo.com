@@ -16,8 +16,6 @@ const SHRINK = 8;
 const MIN_OWN_GAMES = 5;
 const FLAG_GAP = 0.08;
 const ROWS = 25;
-const OVERALL_MIN_GAMES = 8;
-const OVERALL_ROWS = 10;
 
 const UP = "text-emerald-600 dark:text-emerald-400";
 const DOWN = "text-red-600 dark:text-red-400";
@@ -89,16 +87,6 @@ export function HeroMatchups({
     });
     return filtered;
   }, [current, mine, heroes, sort, onlyMet]);
-
-  const overall = useMemo(
-    () =>
-      Object.entries(mine.overall)
-        .map(([id, rec]) => ({ hero: Number(id), rec }))
-        .filter((r) => heroes[r.hero] && r.rec.g >= OVERALL_MIN_GAMES)
-        .sort((a, b) => a.rec.w / a.rec.g - b.rec.w / b.rec.g || b.rec.g - a.rec.g)
-        .slice(0, OVERALL_ROWS),
-    [mine, heroes],
-  );
 
   if (!top.length) return <p className="text-sm text-muted-foreground">{t.noHeroes}</p>;
   const shown = all ? rows : rows.slice(0, ROWS);
@@ -227,31 +215,6 @@ export function HeroMatchups({
         {bracketName ? t.matchupsHint(bracketName) : t.bracketMissing} {t.verdictHint}{" "}
         {t.matchupsSource[mine.source]}
       </p>
-      {overall.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">{t.overall}</h3>
-          <p className="text-xs text-muted-foreground">{t.overallHint}</p>
-          <ul className="grid gap-1 sm:grid-cols-2">
-            {overall.map(({ hero: id, rec }) => (
-              <li
-                key={id}
-                className="flex items-center justify-between gap-2 rounded-lg border px-2 py-1 text-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <HeroImage hero={heroes[id]} lang={lang} className="h-6 w-10" />
-                  {name(id)}
-                </span>
-                <span className="tabular-nums">
-                  <span className={cn(rec.w / rec.g < 0.47 && DOWN, rec.w / rec.g > 0.53 && UP)}>
-                    {pct(rec.w / rec.g)}
-                  </span>
-                  <span className="ml-2 text-xs text-muted-foreground">{t.record(rec.w, rec.g)}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }
