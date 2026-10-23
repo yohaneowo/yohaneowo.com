@@ -8,15 +8,15 @@
 
 ## 已定决策（2026-10-22，与站长讨论后；下文各节是完整调研，未选用的部分保留供日后参考）
 
-- **范围**：先做阶段 A，而且 A 包含 Binance **现货＋币本位合约**（站长主要用币本位）；U 本位合约、Bybit、OKX、Pionex 进阶段 B。第 11 节全部搁置，不写进开发计划。
-- **多用户**：第一版就让任何登录用户绑自己的只读 API，不是只给站长用。密钥存 admin MySQL、以 Doppler 里的主金钥加密（`TRADE_CREDENTIAL_KEY`），网站永远拿不到明文，只显示 key 的末四码；用户可随时解除。绑定时 admin 先查 key 的权限：开了提现的拒绝，开了交易的警告并建议换成只读 key。
+- **范围**：先做阶段 A，而且 A 包含 Binance **现货＋币本位合约**（币本位是首批用户的主要产品）；U 本位合约、Bybit、OKX、Pionex 进阶段 B。第 11 节全部搁置，不写进开发计划。
+- **多用户**：第一版就让任何登录用户绑自己的只读 API，不是只给一个人用。密钥存 admin MySQL、以 Doppler 里的主金钥加密（`TRADE_CREDENTIAL_KEY`），网站永远拿不到明文，只显示 key 的末四码；用户可随时解除。绑定时 admin 先查 key 的权限：开了提现的拒绝，开了交易的警告并建议换成只读 key。
 - **同步跑在 admin**（`module_bot/trade/`），照观影统计与 DotaHub 的既有模式：admin 背景同步、以网站帐号 ID 为键、网站用服务端接口只读。所有金额计算在 Python `Decimal` 做，网站只显示。同一个对外 IP 下所有用户共用 Binance 的每分钟权重，由 admin 统一排程。
 - **追踪的标的**：Binance 没有「全部成交」接口，只能按标的查，所以每个连接有追踪清单：预设余额不为零的资产 × USDT / USDC 加上有持仓或有过成交的币本位合约，用户可手动加（清仓过的币）。没列入的不算在成本里，页面写明。
 - **资料表（第一版五张＋两张合约用）**：`trade_connection`、`trade_fill`（含 product：spot / coinm）、`trade_balance`、`trade_sync`、`trade_position`（合约持仓快照，开仓均价与盈亏先用交易所回报值）、`trade_income`（资金费、已实现盈亏、手续费等合约收支）。订单按成交的 `orderId` 分组，不单独建表。笔记放网站 Postgres。
 - **成本口径**：现货用移动加权平均并标注「分析用」；转入没有成本的标「成本未知」。币本位合约按合约乘数（BTCUSD 每张 100 USD）与反向盈亏公式处理，第一版不自行重算均价。
-- **MSTR**：站长是在 Binance 的「股票」专区（Binance Stocks，2026-06 上线，美股与 ETF，USDC 结算）买的，不是现货也不是闪兑：持仓以 `EQ_MSTR` 出现在资金钱包，成交与订单走 `/sapi/v1/equity/*`（成交 id 是 UUID、数量可为小数、手续费在订单层）。阶段 A 把它当第三条产品线 `stock` 接进同步；bot 的 `EQ_MSTR → MSTRB/USDT` 对应只是拿来估价的，`MSTRB` 是另一个产品（可铸造赎回的代币化股票 bStocks）。真正在证券商的股票以后才用「手动持仓」补录。
-- **沿用 bot 的经验**：bot 的 `/portfolio` 已用 ccxt 读站长的 Binance（现货、资金、理财、币本位钱包、合约持仓）、Bybit、Pionex（原生接口）并把总额快照回报 admin（`bot_portfolio_snapshot`）。admin 的同步也用 ccxt（Python 版，接口相同），Pionex 等 ccxt 不支持的再写原生；余额快照要包含资金与理财钱包，不只现货。交易所资料只有 admin 一个来源，网站与 bot 都是读者；bot 的 `/portfolio` 之后可改读 admin，不再自己打交易所。
-- **U 本位合约**：站长目前没用，`product` 栏位预留 `usdm`，阶段 A 不写代码。
+- **美股**：Binance 的「股票」专区（Binance Stocks，2026-06 上线，美股与 ETF，USDC 结算）买的股票不是现货也不是闪兑：持仓以 `EQ_<代号>` 出现在资金钱包，成交与订单走 `/sapi/v1/equity/*`（成交 id 是 UUID、数量可为小数、手续费在订单层）。阶段 A 把它当第三条产品线 `stock` 接进同步；bot 的 `EQ_<代号> → <代号>B/USDT` 对应只是拿来估价的，`<代号>B` 是另一个产品（可铸造赎回的代币化股票 bStocks）。真正在证券商的股票以后才用「手动持仓」补录。
+- **沿用 bot 的经验**：bot 的 `/portfolio` 已用 ccxt 读 Binance（现货、资金、理财、币本位钱包、合约持仓）、Bybit、Pionex（原生接口）并把总额快照回报 admin（`bot_portfolio_snapshot`）。admin 的同步也用 ccxt（Python 版，接口相同），Pionex 等 ccxt 不支持的再写原生；余额快照要包含资金与理财钱包，不只现货。交易所资料只有 admin 一个来源，网站与 bot 都是读者；bot 的 `/portfolio` 之后可改读 admin，不再自己打交易所。
+- **U 本位合约**：第一版不做，`product` 栏位预留 `usdm`，阶段 A 不写代码。
 - **笔记**：第一版最简——一段 Markdown，可挂在一个标的或一笔成交（订单）上，图表与成交列表都能开；截图附件后补。
 - **界面**：不开新页面。右侧面板加「账户」分页（余额、持仓、成本、同步状态、绑定管理），下方放成交时间线，图表加「我的成交」开关；同一根 K 线内的成交合并成一个带数字的标记，点开看明细。真实成交与现有模拟交易（paper）是不同资料域、不同图示。
 
