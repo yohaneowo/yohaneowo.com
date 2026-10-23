@@ -290,11 +290,17 @@ const dotahubZh = {
     matchups: "英雄对位",
     matchupsHint: (bracket: string) =>
       `同段位胜率是 STRATZ 统计的「${bracket}」段位里，这个英雄对上各英雄的胜率；你的纪录是你用这个英雄对上它的结果。两者差得多的会标出来。`,
-    intro: (hero: string, bracket: string) => `在「${bracket}」段位的天梯对局里，用${hero}时：`,
+    intro: (hero: string, bracket: string) => `在「${bracket}」的天梯对局里，用${hero}时：`,
     introHint: (range: string) =>
       `优势是 STRATZ 算的「对上这个英雄比平常多赢（或少赢）几个百分点」，后面是实际胜率，取${range}的天梯对局；每一行下面是你自己用它对上这个英雄的纪录。`,
     range: "时间范围",
     ranges: { 1: "最近 1 周", 4: "最近 1 个月", 12: "最近 3 个月" },
+    bracketChoice: "段位",
+    yourBracket: "你的段位",
+    allBrackets: "全部段位",
+    metOf: (met: number, all: number) => `（遇过 ${met} / ${all}）`,
+    stratzDown: "STRATZ 暂时没回应（额度用完或服务异常），这栏先空着。",
+    retry: "再试一次",
     mostPlayed: "最常玩：",
     pickAHero: "选一个英雄看它在同段位的克制关系。",
     loading: "载入中…",

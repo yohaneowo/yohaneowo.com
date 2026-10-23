@@ -3,7 +3,13 @@ import { cacheLife } from "next/cache";
 import type { DeathEvent, MatchDetails, StoredMatch } from "./admin";
 import type { Peer } from "./data";
 import { recordCall } from "./health";
-import { DEFAULT_MATCHUP_WEEKS, type MatchupWeeks } from "./matchup-range";
+import {
+  ALL_BRACKETS,
+  DEFAULT_MATCHUP_WEEKS,
+  type MatchupBracket,
+  type MatchupBracketChoice,
+  type MatchupWeeks,
+} from "./matchup-range";
 
 // After a query for a player fails, the same query isn't sent again for COOLDOWN_MS: a failure
 // isn't cached, so every view of their pages (and the prewarm behind it) would otherwise send it
@@ -621,8 +627,8 @@ export async function getRankAverages(heroId: number, tier: number): Promise<Ran
 // OpenDota's peers when its player statistics are down (they sometimes time out while the rest of
 // OpenDota answers). In OpenDota's shape.
 // STRATZ's bracket of a rank tier (medal × 10 + stars), null for the unranked.
-export function bracketOf(tier: number | null): string | null {
-  return (tier ? BRACKETS[Math.floor(tier / 10)] : "") || null;
+export function bracketOf(tier: number | null): MatchupBracket | null {
+  return ((tier ? BRACKETS[Math.floor(tier / 10)] : "") as MatchupBracket | "") || null;
 }
 
 // A hero's matchups at a bracket (STRATZ heroStats.matchUp): against each other hero, the matches
@@ -645,13 +651,12 @@ function weekStart(back: number) {
 
 export async function getHeroMatchups(
   heroId: number,
-  tier: number,
+  bracket: MatchupBracketChoice,
   weeks: MatchupWeeks = DEFAULT_MATCHUP_WEEKS,
-): Promise<HeroMatchup[] | null> {
+): Promise<HeroMatchup[]> {
   "use cache";
   cacheLife("days");
-  const bracket = bracketOf(tier);
-  if (!bracket) return null;
+  const filter = bracket === ALL_BRACKETS ? "" : `, bracketBasicIds: [${bracket}]`;
   type Row = {
     heroId2: number;
     matchCount: number;
@@ -663,7 +668,7 @@ export async function getHeroMatchups(
   const fields = Array.from(
     { length: weeks + 1 },
     (_, i) =>
-      `w${i}: matchUp(heroId: ${hero}, take: 200, week: ${weekStart(i)}, bracketBasicIds: [${bracket}]) { vs { heroId2 matchCount winCount synergy } }`,
+      `w${i}: matchUp(heroId: ${hero}, take: 200, week: ${weekStart(i)}${filter}) { vs { heroId2 matchCount winCount synergy } }`,
   );
   const data = await stratzQuery<{ heroStats?: Record<string, Week> | null }>(
     `{ heroStats { ${fields.join(" ")} } }`,

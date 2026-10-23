@@ -1,12 +1,12 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getHeroes, getPlayer, getRankDistribution, getRankedIndex, type RankedEntry } from "@/lib/dota/data";
-import { DEFAULT_MATCHUP_WEEKS } from "@/lib/dota/matchup-range";
+import { ALL_BRACKETS, DEFAULT_MATCHUP_WEEKS } from "@/lib/dota/matchup-range";
 import { bracketOf, getHeroMatchups, getStratzProfile } from "@/lib/dota/stratz";
 import type { DeathsSource } from "../deaths/deaths-view";
 import { Medal, medalName, Notice } from "../parts";
 import { BracketWinRateChart, DistributionChart, RankTrendChart } from "./charts";
 import { aroundOwn, byMedal, loadMatchups, rankPoints, topHeroes } from "./load";
-import { HeroMatchups } from "./matchups";
+import { HeroMatchups, type InitialMatchups } from "./matchups";
 import { WorstOpponents } from "./worst-opponents";
 
 type T = Dictionary["dotahub"];
@@ -41,16 +41,19 @@ export async function RankBody({ t, accountId, source }: { t: T; accountId: numb
       : null;
 
   const top = matchups ? topHeroes(matchups) : [];
-  // The first hero's bracket matchups come with the page; the rest load as they're picked.
-  const initial =
-    top[0] && tier
-      ? {
-          hero: top[0],
-          weeks: DEFAULT_MATCHUP_WEEKS,
-          bracket: await getHeroMatchups(top[0], tier, DEFAULT_MATCHUP_WEEKS).catch(() => null),
-        }
-      : null;
-  const bracketName = tier ? bracketLabel(tier, t) : null;
+  // The first hero's matchups at the player's own bracket (every bracket for the unranked) come
+  // with the page; the rest load as they're picked.
+  const ownBracket = bracketOf(tier);
+  const initial: InitialMatchups | null = top[0]
+    ? {
+        hero: top[0],
+        bracket: ownBracket ?? ALL_BRACKETS,
+        weeks: DEFAULT_MATCHUP_WEEKS,
+        rows: await getHeroMatchups(top[0], ownBracket ?? ALL_BRACKETS, DEFAULT_MATCHUP_WEEKS).catch(
+          () => null,
+        ),
+      }
+    : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -134,8 +137,7 @@ export async function RankBody({ t, accountId, source }: { t: T; accountId: numb
         {matchups ? (
           <HeroMatchups
             heroes={heroes}
-            bracketName={bracketName}
-            tier={tier}
+            ownBracket={ownBracket}
             top={top.map((hero) => ({ hero, games: matchups.heroGames[hero] ?? 0 }))}
             initial={initial}
             mine={matchups}
@@ -148,14 +150,3 @@ export async function RankBody({ t, accountId, source }: { t: T; accountId: numb
     </div>
   );
 }
-
-// STRATZ's bracket as the two medals it spans, in the dictionary's names.
-function bracketLabel(tier: number, t: T) {
-  const bracket = bracketOf(tier);
-  if (!bracket) return null;
-  const medal = Math.floor(tier / 10);
-  const first = medal % 2 ? medal : medal - 1;
-  return `${t.medals[first]}–${t.medals[first + 1]}`;
-}
-
-export { bracketLabel };
