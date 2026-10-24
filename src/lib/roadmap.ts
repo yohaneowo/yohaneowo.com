@@ -781,7 +781,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: "dotahub-rank",
-    status: "building",
+    status: "shipped",
     area: "dotahub",
     title: { zh: "DotaHub：段位", en: "DotaHub: rank" },
     summary: {
@@ -808,10 +808,16 @@ export const ROADMAP: RoadmapItem[] = [
         'Matchups for any hero and time range (week / month / 3 months), an "only heroes you\'ve met" toggle',
         true,
       ),
+      step(
+        "对位可选段位（四档或全部）与「本周」（跟 stratz.com 一致），卡片与表格统一按优势值排",
+        'Matchups by bracket (four or all) and "this week" (as on stratz.com); cards and table both sorted by advantage',
+        true,
+      ),
     ],
     links: [{ label: { zh: "段位", en: "Rank" }, href: "/dotahub/rank" }],
     added: "2026-10-24",
     started: "2026-10-24",
+    shipped: "2026-10-24",
   },
   {
     id: "dotahub-trends",
