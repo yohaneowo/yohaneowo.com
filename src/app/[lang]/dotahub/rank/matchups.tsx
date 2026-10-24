@@ -31,6 +31,9 @@ const FLAG_GAP = 0.08;
 const LIST_ROWS = 8;
 const OWN_LIST_MIN_GAMES = 3;
 const TABLE_ROWS = 25;
+// The win-rate scale on each card.
+const SCALE_MIN = 0.3;
+const SCALE_MAX = 0.7;
 
 const UP = "text-emerald-600 dark:text-emerald-400";
 const DOWN = "text-red-600 dark:text-red-400";
@@ -173,7 +176,6 @@ export function HeroMatchups({
     .map((r) => ({ ...r, ownShrunk: (r.mine.w + 2) / (r.mine.g + 4) }))
     .sort((a, b) => a.ownShrunk - b.ownShrunk || b.mine.g - a.mine.g)
     .slice(0, LIST_ROWS);
-  const largest = Math.max(1, ...ranked.map((r) => Math.abs(r.bracket.advantage)));
 
   const tableRows = useMemo(() => {
     const filtered = onlyMet ? rows.filter((r) => r.mine) : rows;
@@ -204,12 +206,17 @@ export function HeroMatchups({
   // What an empty counters / targets list means.
   const rankedEmpty = failed ? t.stratzDown : !stratz?.length ? t.bracketMissing : t.noneMet;
 
-  // One opponent card: the hero and STRATZ's advantage (the bar is its size), then the bracket's
-  // win rate with its sample and the player's own record, and the two win rates as thin bars.
+  // One opponent card: the hero and STRATZ's advantage, then one scale (SCALE_MIN–SCALE_MAX win
+  // rate) with three marks: the win rate the two heroes' usual rates predict (hollow), the
+  // bracket's actual rate against it (grey; the coloured segment between them is the advantage)
+  // and the player's own rate (coloured). Under it the same numbers in words.
   const Item = ({ r }: { r: Row }) => {
     const advantage = r.bracket?.advantage ?? 0;
-    const width = r.bracket ? Math.round((Math.abs(advantage) / largest) * 100) : 0;
     const ownRate = r.mine ? r.mine.w / r.mine.g : null;
+    const actual = r.bracket?.rate ?? null;
+    const expected = actual !== null ? actual - advantage / 100 : null;
+    const at = (v: number) =>
+      `${((Math.min(SCALE_MAX, Math.max(SCALE_MIN, v)) - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100}%`;
     return (
       <li className="flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 text-sm">
         <div className="flex items-center justify-between gap-2">
@@ -225,16 +232,54 @@ export function HeroMatchups({
             <span className="text-xs text-muted-foreground">–</span>
           )}
         </div>
-        {r.bracket && (
-          <div className="h-1 rounded-full bg-muted" title={t.barHint}>
-            <div
-              className={cn("h-1 rounded-full", advantage < 0 ? "bg-red-500/70" : "bg-emerald-500/70")}
-              style={{ width: `${width}%` }}
-            />
+        {(actual !== null || ownRate !== null) && (
+          <div className="relative mx-1.5 my-1 h-3" title={t.scaleHint}>
+            <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-muted" />
+            <div className="absolute top-0 bottom-0 w-px bg-muted-foreground/40" style={{ left: at(0.5) }} />
+            {actual !== null && expected !== null && (
+              <div
+                className={cn(
+                  "absolute top-1/2 h-1 -translate-y-1/2 rounded-full",
+                  advantage < 0 ? "bg-red-500/70" : "bg-emerald-500/70",
+                )}
+                style={{
+                  left: at(Math.min(actual, expected)),
+                  width: `calc(${at(Math.max(actual, expected))} - ${at(Math.min(actual, expected))})`,
+                }}
+              />
+            )}
+            {expected !== null && (
+              <div
+                className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-foreground/70 bg-background"
+                style={{ left: at(expected) }}
+                title={t.expectedLabel(pct(expected))}
+              />
+            )}
+            {actual !== null && (
+              <div
+                className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-muted-foreground"
+                style={{ left: at(actual) }}
+                title={t.bracketLine(pct(actual), r.bracket!.matches)}
+              />
+            )}
+            {ownRate !== null && (
+              <div
+                className={cn(
+                  "absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background",
+                  actual !== null && ownRate < actual ? "bg-red-500" : "bg-emerald-500",
+                )}
+                style={{ left: at(ownRate) }}
+                title={t.yourShort(r.mine!.w, r.mine!.g)}
+              />
+            )}
           </div>
         )}
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground tabular-nums">
-          <span>{r.bracket ? t.bracketLine(pct(r.bracket.rate), r.bracket.matches) : "–"}</span>
+          <span>
+            {actual !== null && expected !== null
+              ? `${t.expectedLabel(pct(expected))} → ${t.bracketLine(pct(actual), r.bracket!.matches)}`
+              : "–"}
+          </span>
           <span className="text-right">
             {r.mine && ownRate !== null ? (
               <>
@@ -246,25 +291,6 @@ export function HeroMatchups({
             )}
           </span>
         </div>
-        {r.bracket && ownRate !== null && (
-          <div className="flex flex-col gap-0.5" title={t.rateBarsHint}>
-            <div className="h-1 rounded-full bg-muted">
-              <div
-                className="h-1 rounded-full bg-muted-foreground/50"
-                style={{ width: `${Math.round(r.bracket.rate * 100)}%` }}
-              />
-            </div>
-            <div className="h-1 rounded-full bg-muted">
-              <div
-                className={cn(
-                  "h-1 rounded-full",
-                  ownRate < r.bracket.rate ? "bg-red-500/70" : "bg-emerald-500/70",
-                )}
-                style={{ width: `${Math.round(ownRate * 100)}%` }}
-              />
-            </div>
-          </div>
-        )}
         {r.verdict && (
           <div className="flex text-xs">
             <span
@@ -414,6 +440,21 @@ export function HeroMatchups({
             </span>
             {loading && <span className="ml-2 text-xs text-muted-foreground">{t.loading}</span>}
           </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-3 rounded-full border-2 border-foreground/70 bg-background" />
+              {t.legendExpected}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-full bg-muted-foreground" />
+              {t.legendBracket}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-full bg-emerald-500" />
+              {t.legendYou}
+            </span>
+            <span>{t.scaleRange(Math.round(SCALE_MIN * 100), Math.round(SCALE_MAX * 100))}</span>
+          </div>
           <div className={cn("flex flex-col gap-5", pending && "opacity-60 transition-opacity")}>
             {list({ title: t.countersOf(name(hero)), rows: counters, tone: "counter", empty: rankedEmpty })}
             {list({ title: t.targetsOf(name(hero)), rows: targets, tone: "target", empty: rankedEmpty })}
@@ -454,6 +495,7 @@ export function HeroMatchups({
                     <tr>
                       <th className="px-3 py-2 font-medium">{t.opponent}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.advantageColumn}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t.expectedColumn}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.bracketRate}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.sampleColumn}</th>
                       <th className="px-3 py-2 text-right font-medium">{t.yourRecord}</th>
@@ -475,6 +517,13 @@ export function HeroMatchups({
                             <span className={cn(r.bracket.advantage < 0 ? DOWN : UP)}>
                               {signedPct(r.bracket.advantage)}
                             </span>
+                          ) : (
+                            <span className="text-muted-foreground">–</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">
+                          {r.bracket ? (
+                            pct(r.bracket.rate - r.bracket.advantage / 100)
                           ) : (
                             <span className="text-muted-foreground">–</span>
                           )}
