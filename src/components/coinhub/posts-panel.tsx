@@ -144,16 +144,18 @@ export function PostsPanel() {
         <span className="text-sm font-medium">{t.coinhub.panels.posts}</span>
         {status !== "signedOut" && (
           <div className="flex items-center gap-0.5">
-            <Button
-              size="icon-sm"
-              variant={showSources ? "secondary" : "ghost"}
-              onClick={() => setManage((v) => !v)}
-              aria-label={p.sources}
-              title={p.sources}
-              disabled={status === "ready" && sources.length === 0}
-            >
-              <PlugIcon />
-            </Button>
+            {/* With no sources yet the panel shows them anyway: no toggle then. */}
+            {sources.length > 0 && (
+              <Button
+                size="icon-sm"
+                variant={showSources ? "secondary" : "ghost"}
+                onClick={() => setManage((v) => !v)}
+                aria-label={p.sources}
+                title={p.sources}
+              >
+                <PlugIcon />
+              </Button>
+            )}
             <Button
               size="icon-sm"
               variant="ghost"
