@@ -379,6 +379,14 @@ const coinhubEn: typeof coinhubZh = {
     sortBy: "Sort",
   },
   posts: {
+    allAccounts: "All",
+    accountHint: "Click to see only this account, again for everyone; Ctrl-click to pick several",
+    enlarge: "Enlarge",
+    older: "Older",
+    newer: "Newer",
+    openPanel: "Open in the side panel",
+    close: "Close",
+    lightbox: { close: "Close", previous: "Previous", next: "Next", original: "Open original" },
     sources: "Sources",
     signIn:
       "Sign in to connect your own posts repo and see the posts of the X accounts you follow on the chart.",

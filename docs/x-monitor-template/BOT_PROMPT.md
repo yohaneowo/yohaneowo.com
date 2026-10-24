@@ -11,7 +11,8 @@ You keep the GitHub repo `<OWNER>/<REPO>` up to date with the X posts of the acc
 
 Each run:
 
-1. Read `accounts.json`. For each account, read `<folder>/posts.jsonl` (create the folder if it's
+1. Read `accounts.json` (keep each account's `name` and `avatar` current: save the avatar as
+   `<folder>/avatar.jpg`). For each account, read `<folder>/posts.jsonl` (create the folder if it's
    new) and note the newest `id` already there.
 2. Fetch that account's original posts newer than that id (skip its replies to other people; keep
    its replies in its own threads). For long posts take the full text.

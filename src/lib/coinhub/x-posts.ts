@@ -17,6 +17,10 @@ export interface XPost {
   // The source (x_post_source id) it was read from.
   source: string;
   account: string;
+  // The display name and the repo path of the avatar (accounts.json in the repo), when the bot
+  // keeps them.
+  authorName: string | null;
+  avatar: string | null;
   // The account's folder in its repo (lower case); with the source, the key for filters.
   folder: string;
   url: string;
@@ -94,8 +98,21 @@ const SPECIAL: Record<string, string> = {
 };
 const STOCK_EXCHANGES = new Set(["NASDAQ", "NYSE", "AMEX", "ARCA", "NYSEARCA", "BATS", "CBOE"]);
 
+// Different instruments for the same thing: tokenized gold (XAUT, PAXG) shows gold's posts and
+// gold shows theirs.
+const SAME: Record<string, string> = {
+  "COIN:XAUT": "YAHOO:GC=F",
+  "COIN:PAXG": "YAHOO:GC=F",
+};
+const same = (key: string) => SAME[key] ?? key;
+
 // The chart key of a post's symbol.
 export function postSymbolKey(tradingView: string): string | null {
+  const key = rawPostSymbolKey(tradingView);
+  return key && same(key);
+}
+
+function rawPostSymbolKey(tradingView: string): string | null {
   const id = tradingView.trim().toUpperCase();
   if (SPECIAL[id]) return SPECIAL[id];
   const [exchange, ticker] = id.split(":");
@@ -113,9 +130,9 @@ export function postSymbolKey(tradingView: string): string | null {
 export function chartSymbolKey(symbol: CoinSymbol): string {
   if (symbol.source === "binance" || symbol.source === "binance-futures") {
     const base = stableBase(symbol.ticker);
-    return base ? `COIN:${base}` : `PAIR:${symbol.ticker}`;
+    return same(base ? `COIN:${base}` : `PAIR:${symbol.ticker}`);
   }
-  return symbol.id.toUpperCase();
+  return same(symbol.id.toUpperCase());
 }
 
 // Whether a post is about the chart's symbol, and the author's view of it there.
@@ -199,6 +216,9 @@ export interface XPostsState {
   highlight: string[];
   // The post whose levels are drawn on the charts.
   selected: string | null;
+  // The pop-up card of a badge clicked on a chart: which chart and post, where the click was in the
+  // chart area (px) and that area's size.
+  card: { chart: number; id: string; x: number; y: number; width: number; height: number } | null;
 }
 
 let state: XPostsState = {
@@ -209,6 +229,7 @@ let state: XPostsState = {
   at: 0,
   highlight: [],
   selected: null,
+  card: null,
 };
 const listeners = new Set<() => void>();
 

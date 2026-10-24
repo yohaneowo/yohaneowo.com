@@ -310,6 +310,11 @@ export const ROADMAP: RoadmapItem[] = [
         true,
       ),
       step(
+        "图上用作者头像、点了弹出贴文卡片（可翻同一作者）、只看某个帐号、图片放大、代币化黄金对到金价",
+        "Author avatars on the chart, a pop-up card per post (through the author's others), one account at a time, enlarged images, tokenized gold on gold",
+        true,
+      ),
+      step(
         "建 GitHub App（dev、正式站）并发布范本 repo",
         "Create the GitHub Apps (dev, live) and publish the template",
       ),

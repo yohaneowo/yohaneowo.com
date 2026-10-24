@@ -66,12 +66,14 @@ import {
   biasColor,
   chartSymbolKey,
   LEVEL_COLORS,
+  postImageUrl,
   postLevels,
   postOnChart,
   useXPosts,
   xPosts,
 } from "@/lib/coinhub/x-posts";
 import { COMPARE_COLORS, Legend } from "./legend";
+import { PostPopover } from "./post-popover";
 import { SelectionToolbar } from "./selection-toolbar";
 import { openDialog, registry, ui, useUi } from "./ui-store";
 
@@ -206,9 +208,19 @@ export function ChartPanel({
         trade.set({ tab: "fills", highlight: ids });
         setState({ panel: "account", active: index });
       }),
-      // A post mark opens the posts panel on those posts (the newest one's levels drawn).
-      ctrl.on("postMark", (ids) => {
-        xPosts.set({ highlight: ids, selected: ids[0] ?? null });
+      // A post's badge opens its card beside it (its levels drawn); a stack's "+n" opens the posts
+      // panel on the whole stack.
+      ctrl.on("postMark", ({ id, ids, pageX, pageY }) => {
+        if (id) {
+          const box = containerRef.current?.getBoundingClientRect();
+          const x = pageX - window.scrollX - (box?.left ?? 0);
+          const y = pageY - window.scrollY - (box?.top ?? 0);
+          const area = { width: box?.width ?? 0, height: box?.height ?? 0 };
+          xPosts.set({ card: { chart: index, id, x, y, ...area }, selected: id, highlight: [id] });
+          setState({ active: index });
+          return;
+        }
+        xPosts.set({ card: null, highlight: ids, selected: ids[0] ?? null });
         setState((s) => ({ panel: "posts", active: index, posts: { ...s.posts, scope: "symbol" } }));
       }),
     ];
@@ -394,6 +406,7 @@ export function ChartPanel({
         time: post.time,
         tag: accountTag(post.account),
         color: biasColor(bias),
+        avatar: post.avatar ? postImageUrl(post, post.avatar) : null,
       })),
       selectedPost,
     );
@@ -579,6 +592,7 @@ export function ChartPanel({
         </div>
       )}
       {controller && sel && <SelectionToolbar chart={index} controller={controller} overlay={sel} />}
+      {controller && <PostPopover chart={index} chartKey={postKey} controller={controller} />}
       {controller && replay.mode !== "off" && (
         <ReplayBar controller={controller} replay={replay} labels={c.replay} />
       )}

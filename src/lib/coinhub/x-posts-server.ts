@@ -15,8 +15,9 @@ import type { XAction, XBias, XLevelType, XPost, XSource } from "./x-posts";
 
 export const MAX_SOURCES = 8;
 export const REPO = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
-// A post's image: <folder>/images/<post id>_<n>.<ext>.
+// A post's image: <folder>/images/<post id>_<n>.<ext>; an account's avatar: <folder>/avatar.<ext>.
 export const IMAGE_PATH = /^[A-Za-z0-9_.-]{1,60}\/images\/\d{5,25}_\d{1,2}\.(jpg|jpeg|png|webp|gif)$/i;
+export const AVATAR_PATH = /^[A-Za-z0-9_.-]{1,60}\/avatar\.(jpg|jpeg|png|webp|gif)$/i;
 
 export const repoTag = (repo: string) => `xrepo:${repo.toLowerCase()}`;
 
@@ -63,6 +64,8 @@ export async function repoFile(repo: string, path: string, installationId: strin
 type Row = {
   id: string | number;
   account: string;
+  author_name?: string | null;
+  avatar?: string | null;
   folder?: string;
   url: string;
   created_at: string;
@@ -91,6 +94,8 @@ function toPost(r: Row): RepoPost | null {
   return {
     id: String(r.id),
     account: r.account,
+    authorName: typeof r.author_name === "string" && r.author_name.trim() ? r.author_name.trim() : null,
+    avatar: typeof r.avatar === "string" && AVATAR_PATH.test(r.avatar) ? r.avatar : null,
     folder: r.folder ?? r.account.toLowerCase(),
     url: typeof r.url === "string" ? r.url : `https://x.com/${r.account}/status/${r.id}`,
     time,
@@ -251,7 +256,7 @@ export async function dropInstallation(installationId: string, repos?: string[])
 
 // One image of one of the account's sources (null: not theirs, or not there).
 export async function sourceImage(userId: string, sourceId: string, path: string): Promise<Response | null> {
-  if (!IMAGE_PATH.test(path)) return null;
+  if (!IMAGE_PATH.test(path) && !AVATAR_PATH.test(path)) return null;
   const [row] = await db
     .select()
     .from(xPostSource)

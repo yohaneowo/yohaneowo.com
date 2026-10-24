@@ -1,4 +1,4 @@
-import type { OverlayFigure, OverlayTemplate } from "klinecharts";
+import type { FigureTemplate, OverlayFigure, OverlayTemplate } from "klinecharts";
 import { tool } from "./factory";
 import { alpha, ext, fmtPrice, label, line } from "./utils";
 
@@ -273,20 +273,94 @@ const fillMark: OverlayTemplate = tool(
 );
 
 // The X posts on the chart (lib/coinhub/x-posts.ts), like TradingView's events: stacks of small
-// round badges at the bottom of the pane, one badge per post (up to MAX_POST_BADGES a stack, then
-// "+n"), each with the account's two letters on the colour of its view (green bullish, red
-// bearish, grey neutral or none); the selected post's badge has a ring. One overlay holds every
-// candle that has posts (a point each, `groups` beside them); candles closer than a badge are
-// stacked together on every redraw, so zooming out merges them instead of piling badges up. A
-// badge's figure key carries the ids of its stack, which a click opens.
-export type PostBadge = { id: string; tag: string; color: string; selected: boolean };
+// round badges at the bottom of the pane, one per post (up to MAX_POST_BADGES a stack, then "+n"):
+// the author's avatar ringed in the colour of the post's view (green bullish, red bearish, grey
+// neutral or none), or their two letters on that colour until the avatar has loaded; the selected
+// post has a second ring. One overlay holds every candle that has posts (a point each, `groups`
+// beside them); candles closer than a badge are stacked together on every redraw, so zooming out
+// merges them instead of piling badges up. A badge's figure key names its post and its stack
+// (`posts:<id>|<id,id,…>`); the "+n" names only the stack.
+export type PostBadge = { id: string; tag: string; color: string; selected: boolean; avatar: string | null };
 export type PostMarksOptions = { groups: PostBadge[][] };
 
 const MAX_POST_BADGES = 3;
-const BADGE_R = 8;
+const BADGE_R = 9;
 const BADGE_GAP = 2;
 
 export const POST_KEY = "posts:";
+
+// Avatars as images the canvas can draw, loaded once per URL; whoever draws them is told when one
+// arrives (the chart redraws its marks).
+const avatars = new Map<string, HTMLImageElement | "failed">();
+const avatarListeners = new Set<() => void>();
+
+export function onAvatarLoaded(listener: () => void) {
+  avatarListeners.add(listener);
+  return () => {
+    avatarListeners.delete(listener);
+  };
+}
+
+function avatarImage(src: string): HTMLImageElement | null {
+  const cached = avatars.get(src);
+  if (cached === "failed") return null;
+  if (cached) return cached.complete && cached.naturalWidth ? cached : null;
+  if (typeof Image === "undefined") return null;
+  const img = new Image();
+  img.onload = () => avatarListeners.forEach((l) => l());
+  img.onerror = () => avatars.set(src, "failed");
+  img.src = src;
+  avatars.set(src, img);
+  return null;
+}
+
+type AvatarAttrs = {
+  x: number;
+  y: number;
+  r: number;
+  src: string | null;
+  tag: string;
+  color: string;
+  selected: boolean;
+};
+
+// The badge itself, registered as a figure so it can draw an image clipped to a circle.
+export const POST_AVATAR_FIGURE: FigureTemplate<AvatarAttrs> = {
+  name: "postAvatar",
+  checkEventOn: (c, a) => (c.x - a.x) ** 2 + (c.y - a.y) ** 2 <= (a.r + 2) ** 2,
+  draw: (ctx, a) => {
+    const img = a.src ? avatarImage(a.src) : null;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+    if (img) {
+      ctx.save();
+      ctx.clip();
+      ctx.drawImage(img, a.x - a.r, a.y - a.r, a.r * 2, a.r * 2);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = a.color;
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = `bold ${Math.round(a.r * 0.9)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(a.tag, a.x, a.y + 0.5);
+    }
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = a.color;
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+    ctx.stroke();
+    if (a.selected) {
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  },
+};
 
 const postMarks: OverlayTemplate = tool(
   "postMarks",
@@ -295,7 +369,7 @@ const postMarks: OverlayTemplate = tool(
     const o = ext(overlay, { groups: [] } as PostMarksOptions);
     const r = BADGE_R;
     const step = 2 * r + BADGE_GAP;
-    const bottom = bounding.height - 4;
+    const bottom = bounding.height - 5;
     // Each candle's posts (newest first) at its x, left to right; a stack takes the candles that
     // start within one badge of its first.
     const placed = coordinates
@@ -314,43 +388,36 @@ const postMarks: OverlayTemplate = tool(
     const figures: OverlayFigure[] = [];
     for (const stack of stacks) {
       const x = stack.xs.reduce((a, b) => a + b, 0) / stack.xs.length;
-      const key = POST_KEY + stack.items.map((i) => i.id).join(",");
+      const ids = stack.items.map((i) => i.id).join(",");
       stack.items.slice(0, MAX_POST_BADGES).forEach((item, i) => {
-        const y = bottom - r - i * step;
-        if (item.selected)
-          figures.push({
-            key,
-            type: "circle",
-            attrs: { x, y, r: r + 2.5 },
-            styles: { style: "stroke", borderColor: item.color, borderSize: 1.5 },
-          });
         figures.push({
-          key,
-          type: "circle",
-          attrs: { x, y, r },
-          styles: {
-            style: "stroke_fill",
+          key: `${POST_KEY}${item.id}|${ids}`,
+          type: "postAvatar",
+          attrs: {
+            x,
+            y: bottom - r - i * step,
+            r,
+            src: item.avatar,
+            tag: item.tag,
             color: item.color,
-            borderColor: alpha("#ffffff", 0.85),
-            borderSize: 1,
-          },
+            selected: item.selected,
+          } satisfies AvatarAttrs,
         });
-        figures.push(
-          label(x, y, item.tag, { color: "#fff", size: 8, bold: true, align: "center", baseline: "middle" }),
-        );
       });
       const shown = Math.min(stack.items.length, MAX_POST_BADGES);
       const extra = stack.items.length - shown;
       if (extra > 0)
-        figures.push(
-          label(x, bottom - shown * step - 1, `+${extra}`, {
+        figures.push({
+          ...label(x, bottom - shown * step - 1, `+${extra}`, {
             color: "#787b86",
-            size: 9,
+            size: 10,
             bold: true,
             align: "center",
             baseline: "bottom",
+            ignoreEvent: false,
           }),
-        );
+          key: `${POST_KEY}|${ids}`,
+        });
     }
     return figures;
   },

@@ -28,6 +28,7 @@ import {
   SettingsDialog,
 } from "./dialogs";
 import { DrawingToolbar, FavoritesBar, selectTool } from "./drawing-toolbar";
+import { ImageLightbox } from "./image-lightbox";
 import { MarketPanel } from "./market-panel";
 import { SideIconBar, SidePanelContent } from "./side-panel";
 import { SymbolDialog } from "./symbol-dialog";
@@ -241,6 +242,7 @@ export function Terminal() {
       <IntervalDialog />
       <DrawingSettingsDialog />
       <Toaster position="bottom-right" />
+      <ImageLightbox />
     </TooltipProvider>
   );
 }

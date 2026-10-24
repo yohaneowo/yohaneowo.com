@@ -23,7 +23,10 @@ export async function GET(request: Request) {
   return new NextResponse(upstream.body, {
     headers: {
       "Content-Type": TYPES[ext] ?? "application/octet-stream",
-      "Cache-Control": "private, max-age=31536000, immutable",
+      // A post's images never change; an avatar can, so it is kept a day.
+      "Cache-Control": /\/avatar\.[a-z]+$/i.test(path)
+        ? "private, max-age=86400"
+        : "private, max-age=31536000, immutable",
     },
   });
 }

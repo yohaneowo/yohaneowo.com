@@ -11,6 +11,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REQ = ["id", "account", "url", "created_at", "text", "summary_zh", "lang", "symbols", "assets",
        "stance", "levels", "timeframe", "action", "images", "quoted_post_id", "has_video"]
 
+# accounts.json: the display name and avatar copied into each post that lacks them.
+accounts = {}
+try:
+    for acc in json.load(open(os.path.join(ROOT, "accounts.json"), encoding="utf-8")):
+        accounts[acc.get("folder")] = acc
+except (OSError, ValueError, TypeError):
+    pass
+
 allrows, bad = [], 0
 for path in sorted(glob.glob(os.path.join(ROOT, "*", "posts.jsonl"))):
     folder = os.path.basename(os.path.dirname(path))
@@ -32,6 +40,11 @@ for path in sorted(glob.glob(os.path.join(ROOT, "*", "posts.jsonl"))):
             if not os.path.exists(os.path.join(ROOT, img)):
                 print(f"{path}:{n} missing image {img}", file=sys.stderr)
         r["id"] = str(r["id"])
+        acc = accounts.get(folder) or {}
+        if acc.get("avatar") and not r.get("avatar"):
+            r["avatar"] = acc["avatar"]
+        if acc.get("name") and not r.get("author_name"):
+            r["author_name"] = acc["name"]
         r["folder"] = folder
         rows[r["id"]] = r
     ordered = sorted(rows.values(), key=lambda r: (r["created_at"], r["id"]))

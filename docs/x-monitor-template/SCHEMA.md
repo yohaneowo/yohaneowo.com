@@ -6,7 +6,12 @@ Each account folder (`some_trader/`, lower case) contains:
   (replies to others excluded, the author's own thread replies kept), unique by `id`, sorted by
   `created_at` ascending.
 - `images/<post_id>_<n>.<ext>` — the post's photos / video thumbnails (`jpg`, `png`, `webp`, `gif`).
+- `avatar.<ext>` — the account's avatar (square, e.g. 400×400).
 - Optional `YYYY-MM-DD.md` daily digests for people. Never parsed.
+
+The root `accounts.json` lists the followed accounts: an array of `{ folder, account, name, avatar,
+description, followers_count, updated_at }` (`avatar` repo-relative, `account` the handle, `name` the
+display name). `build_index.py` copies `avatar` and `name` (as `author_name`) into every post.
 
 The root `index.jsonl` is every account merged and sorted by `created_at`, each row with an extra
 `folder` field. It's rebuilt by `scripts/build_index.py` (the GitHub Action runs it on every push);
@@ -41,6 +46,8 @@ Recommended (readers use them when present):
 
 | field            | type           | notes                                                                                                                                             |
 | ---------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `author_name`    | string         | the display name (from `accounts.json`)                                                                                                           |
+| `avatar`         | string         | the author's avatar, repo-relative (`some_trader/avatar.jpg`)                                                                                     |
 | `fetched_at`     | string         | ISO 8601 UTC — when the bot saw the post. Posts are collected a few times a day, so this is when the post was _knowable_; backtests should use it |
 | `quoted_text`    | string \| null | the quoted post's text (many posts only make sense with it)                                                                                       |
 | `quoted_account` | string \| null | the quoted post's handle                                                                                                                          |

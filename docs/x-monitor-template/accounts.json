@@ -1,9 +1,11 @@
-{
-  "accounts": [
-    {
-      "handle": "example_handle",
-      "folder": "example_handle",
-      "note": "Replace with the accounts you follow. note: what they trade and on what horizon (optional)."
-    }
-  ]
-}
+[
+  {
+    "folder": "example_handle",
+    "account": "Example_Handle",
+    "name": "Display name",
+    "avatar": "example_handle/avatar.jpg",
+    "description": "Replace with the accounts you follow (their bio, optional).",
+    "followers_count": 0,
+    "updated_at": "2026-01-01T00:00:00Z"
+  }
+]

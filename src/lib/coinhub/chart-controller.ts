@@ -16,7 +16,7 @@ import { fetchBars, subscribeBars } from "./datafeed";
 import { registerIndicators } from "./indicators";
 import { bucketStart, type IntervalDef } from "./intervals";
 import { registerDrawingTools } from "./overlays";
-import { POST_KEY } from "./overlays/trading";
+import { onAvatarLoaded, POST_KEY } from "./overlays/trading";
 import { DEFAULT_COLOR, indexAt } from "./overlays/utils";
 import type {
   ChartSettings,
@@ -65,8 +65,9 @@ export type ControllerEvents = {
   click: { price: number | null; timestamp: number | null };
   // A fill mark was clicked: the ids of the fills it stands for.
   fillMark: string[];
-  // An X post mark was clicked: the ids of the posts it stands for.
-  postMark: string[];
+  // An X post mark was clicked: the badge's post (null for a stack's "+n"), every post of its
+  // stack, and where on the page.
+  postMark: { id: string | null; ids: string[]; pageX: number; pageY: number };
 };
 
 // An X post on this chart (lib/coinhub/x-posts.ts): when, the account's two letters and the colour
@@ -76,6 +77,8 @@ export interface PostMarkInput {
   time: number;
   tag: string;
   color: string;
+  // The author's avatar URL, when the source has one.
+  avatar: string | null;
 }
 
 // A price level of the selected post, drawn from the post's candle onwards.
@@ -169,6 +172,8 @@ export class ChartController {
   private selectedId: string | null = null;
   private compareSeries: CompareSeries[] = [];
   private resizeObserver: ResizeObserver;
+  // Redraws the post marks when an avatar they show has loaded.
+  private offAvatars: () => void;
 
   constructor(
     private readonly el: HTMLElement,
@@ -198,9 +203,15 @@ export class ChartController {
     el.addEventListener("contextmenu", this.onContextMenu);
     el.addEventListener("wheel", this.onWheel, { capture: true, passive: false });
     el.addEventListener("click", this.onClick);
+    let avatarFrame = 0;
+    this.offAvatars = onAvatarLoaded(() => {
+      cancelAnimationFrame(avatarFrame);
+      avatarFrame = requestAnimationFrame(() => this.applyPostMarks());
+    });
   }
 
   destroy() {
+    this.offAvatars();
     this.stopReplayTimer();
     this.unsubscribe?.();
     this.resizeObserver.disconnect();
@@ -1124,12 +1135,25 @@ export class ChartController {
             groups: bars.map((ts) =>
               [...groups.get(ts)!]
                 .sort((a, b) => b.time - a.time)
-                .map((m) => ({ id: m.id, tag: m.tag, color: m.color, selected: m.id === this.selectedPost })),
+                .map((m) => ({
+                  id: m.id,
+                  tag: m.tag,
+                  color: m.color,
+                  avatar: m.avatar,
+                  selected: m.id === this.selectedPost,
+                })),
             ),
           },
           onClick: (e) => {
             const key = e.figure?.key;
-            if (key?.startsWith(POST_KEY)) this.emit("postMark", key.slice(POST_KEY.length).split(","));
+            if (!key?.startsWith(POST_KEY)) return;
+            const [id, ids] = key.slice(POST_KEY.length).split("|");
+            this.emit("postMark", {
+              id: id || null,
+              ids: ids.split(","),
+              pageX: e.pageX ?? 0,
+              pageY: e.pageY ?? 0,
+            });
           },
           onRightClick: (e) => e.preventDefault?.(),
         });

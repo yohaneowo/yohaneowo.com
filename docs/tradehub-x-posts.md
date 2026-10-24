@@ -41,14 +41,25 @@ Bot 用 TradingView 的写法（`BINANCE:BTCUSDT`、`TVC:GOLD`、`NASDAQ:TSLA`�
 
 - 币对美元稳定币（USDT / USDC / FDUSD / BUSD / TUSD / USD）一律是 `COIN:<币>`：一则 BTC 贴文在 BTCUSDT、BTCUSDC、BTCUSDT.P 都会出现；其他交易对（SUIBTC）是 `PAIR:<对>`。
 - 美股交易所（NASDAQ / NYSE / AMEX / ARCA / BATS / CBOE）→ `YAHOO:<代码>`；`CRYPTOCAP:X` → `INDEX:X`；`TWSE` → `.TW`、`HKEX` → `.HK`。
+- 不同商品其实是同一样东西的写在 `SAME`（两边的键都会换过去）：代币化黄金 `COIN:XAUT`、`COIN:PAXG` → 金价 `YAHOO:GC=F`，所以 XAUTUSDT、PAXGUSDT 的图显示讲黄金的贴文，金价图也显示讲 XAUT 的贴文。
 - 名字不一样的写在 `SPECIAL`：金 `TVC:GOLD` → `GC=F`、`SP:SPX` → `^GSPC`、`NASDAQ:IXIC` → `^IXIC`、`SSE:000001` → `000001.SS`、DXY、VIX、原油等。新出现对不上的标的就加在这里。
 - `symbols: []` 的贴文（纯评论）只在面板的「全部」里。
 
+## 谁判读什么
+
+摘要（`summary_zh`）、标的（`symbols` / `assets`）、多空（`stance`）、价位（`levels`）、动作（`action`）都是 bot 写进 repo 的；本站只把 `symbols` 换成图表的键（上一节），不自己读贴文内容判断。判读有错要改 bot 的指示（范本的 `BOT_PROMPT.md`），或在 repo 里追加一行同 `id` 的修正。
+
+## 头像
+
+bot 在根目录 `accounts.json` 记每个帐号（`name`、`avatar` 等），每个帐号资料夹放 `avatar.<ext>`，每则贴文带 `avatar`（repo 路径）与 `author_name`。网站读成 `XPost.avatar` / `authorName`，头像经图片代理（路径白名单多了 `<folder>/avatar.<ext>`，浏览器快取一天，贴文图片仍是一年）。
+
 ## 图上的标记与面板
 
-- 一个 overlay（`overlays/trading.ts` 的 `postMarks`）装下所有有贴文的 K 线（每根一个点，`extendData.groups` 是该根的贴文），每次重画时把相距不到一个徽章宽的 K 线合成一叠，缩小时合并而不是叠在一起；一叠最多 3 个徽章，多的写「+n」。徽章在 K 线区底部（像 TradingView 的事件），文字是帐号两个字母（`accountTag`），底色是这则贴文对这个标的的看法（绿多、红空、灰中性或只是提及）。
-- 点徽章：KLineChart 的点击事件带着点到的 `figure`，徽章的 `key` 是 `posts:<id,id,…>`，控制器发 `postMark` → 打开「X 贴文」、标出那几则、选取最新一则。选取的贴文：图跳到那根 K 线，`levels` 里属于这个标的的价位画成横线（`postLevel`：贴文之前淡、之后清楚，标签在左；支撑 / 进场绿、压力 / 止损 / 失效红、目标蓝）。
+- 一个 overlay（`overlays/trading.ts` 的 `postMarks`）装下所有有贴文的 K 线（每根一个点，`extendData.groups` 是该根的贴文），每次重画时把相距不到一个徽章宽的 K 线合成一叠，缩小时合并而不是叠在一起；一叠最多 3 个徽章，多的写「+n」。徽章在 K 线区底部（像 TradingView 的事件），是作者的头像，外圈是这则贴文对这个标的的看法（绿多、红空、灰中性或只是提及）；头像用自订图形 `postAvatar`（`registerFigure`，canvas 圆形裁切）画，还没载入或没有头像时画两个字母（`accountTag`）在那个颜色上，载入后控制器重画标记（`onAvatarLoaded`）。
+- 点徽章：KLineChart 的点击事件带着点到的 `figure`，徽章的 `key` 是 `posts:<这则 id>|<这叠的 id,…>`，「+n」是 `posts:|<这叠的 id,…>`；控制器发 `postMark`（带页面座标）。点徽章在旁边弹出那则贴文的卡片（`post-popover.tsx`，位置在点击当下量好存进 `xPosts.card`），卡片上方的箭头走同一作者在这个标的上的其他贴文（图跟着跳），可以转到侧栏、Esc 或点外面关闭；点「+n」打开侧栏并标出整叠。卡片与侧栏共用 `post-card.tsx`。选取的贴文：图跳到那根 K 线，`levels` 里属于这个标的的价位画成横线（`postLevel`：贴文之前淡、之后清楚，标签在左；支撑 / 进场绿、压力 / 止损 / 失效红、目标蓝）。
 - 终端状态 `posts: { show, hidden, scope }`（localStorage）：图上显示与否、隐藏的帐号（键是 `来源 id:资料夹`，跨来源不撞名）、面板列这个商品还是全部。
+- 帐号筛选：侧栏的帐号标签点一下只看那个帐号（隐藏其他），再点一次看全部，「全部」也回到全部；按住 Ctrl / ⌘ 点是逐个显示 / 隐藏。图上标记跟着一起筛。
+- 贴文的图片点了用灯箱放大（`image-lightbox.tsx`：左右切换、方向键、点图放大到原尺寸、Esc 或点背景关闭；开着时卡片不响应 Esc 与点外面）。
 - 面板（`components/coinhub/posts-panel.tsx`）：未登录显示登录按钮；没有来源时先显示「资料来源」（连接 GitHub、填公开 repo、范本连结），之后用标题列的插头按钮打开。从 GitHub 回来的结果用网址参数 `?xposts=connected&n=…` / `noIndex` / `state`… 带回，侧栏读到就弹提示、打开面板、清掉参数（`useXPostsReturn`）。
 
 ## 测试
