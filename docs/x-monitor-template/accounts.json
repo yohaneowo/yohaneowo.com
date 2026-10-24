@@ -1,0 +1,9 @@
+{
+  "accounts": [
+    {
+      "handle": "example_handle",
+      "folder": "example_handle",
+      "note": "Replace with the accounts you follow. note: what they trade and on what horizon (optional)."
+    }
+  ]
+}

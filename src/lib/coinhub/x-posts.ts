@@ -1,11 +1,11 @@
 import { useSyncExternalStore } from "react";
 import type { CoinSymbol } from "./types";
 
-// Posts from the X accounts the owner follows, collected twice a day by a Grok bot into the private
-// x-monitor repo (one posts.jsonl per account, index.jsonl for all; format in its SCHEMA.md). The
-// site reads index.jsonl server-side (x-posts-server.ts) and the terminal marks each post on the
-// candle it was written in, on every chart its symbols stand for. Only the viewers listed in
-// X_MONITOR_VIEWERS get them; for everyone else the feature isn't there.
+// X posts on TradeHub's charts. Each signed-in account brings its own sources: GitHub repos in the
+// x-monitor format (one posts.jsonl per followed X account, index.jsonl for all; see its SCHEMA.md),
+// filled by a bot such as Grok. A private repo is read through the site's GitHub App, which the
+// person installs on the repos they choose; a public one needs nothing (x-posts-server.ts). The
+// terminal marks each post on the candle it was written in, on every chart its symbols stand for.
 
 export type XBias = "bullish" | "bearish" | "neutral" | null;
 export type XLevelType = "support" | "resistance" | "entry" | "stop" | "target" | "invalidation" | "other";
@@ -14,8 +14,10 @@ export type XAction =
 
 export interface XPost {
   id: string;
+  // The source (x_post_source id) it was read from.
+  source: string;
   account: string;
-  // The account's folder in the repo (lower case), a stable key for filters.
+  // The account's folder in its repo (lower case); with the source, the key for filters.
   folder: string;
   url: string;
   // When it was posted, ms.
@@ -37,6 +39,21 @@ export interface XPost {
   quotedId: string | null;
   replyTo: string | null;
 }
+
+// One of the account's sources, as the panel shows it.
+export interface XSource {
+  id: string;
+  repo: string;
+  // Read through the GitHub App (a private repo) rather than as a public one.
+  private: boolean;
+  lastOkAt: number | null;
+  // notFound | denied | badFormat | unavailable, from the last read.
+  lastError: string | null;
+  count: number | null;
+}
+
+// The key of the X account a post is from, across sources.
+export const accountKey = (post: Pick<XPost, "source" | "folder">) => `${post.source}:${post.folder}`;
 
 // ── Symbols ───────────────────────────────────────────────────────────────────────────────────
 // The bot names symbols the TradingView way; the terminal's charts are Binance pairs, Yahoo tickers
@@ -166,14 +183,17 @@ export const LEVEL_COLORS: Record<XLevelType, string> = {
   other: "#787b86",
 };
 
-export const postImageUrl = (path: string) => `/api/coinhub/posts/image?p=${encodeURIComponent(path)}`;
+export const postImageUrl = (post: Pick<XPost, "source">, path: string) =>
+  `/api/coinhub/posts/image?s=${encodeURIComponent(post.source)}&p=${encodeURIComponent(path)}`;
 
 // ── Store ─────────────────────────────────────────────────────────────────────────────────────
 
 export interface XPostsState {
-  // off: the visitor isn't a viewer (or the site has no token): no panel, no marks.
-  status: "idle" | "loading" | "ready" | "off" | "error";
+  status: "idle" | "loading" | "ready" | "signedOut" | "error";
   posts: XPost[];
+  sources: XSource[];
+  // Whether the site has its GitHub App (connecting private repos).
+  app: boolean;
   at: number;
   // Posts to point out in the panel (a mark on the chart was clicked).
   highlight: string[];
@@ -181,7 +201,15 @@ export interface XPostsState {
   selected: string | null;
 }
 
-let state: XPostsState = { status: "idle", posts: [], at: 0, highlight: [], selected: null };
+let state: XPostsState = {
+  status: "idle",
+  posts: [],
+  sources: [],
+  app: false,
+  at: 0,
+  highlight: [],
+  selected: null,
+};
 const listeners = new Set<() => void>();
 
 export const xPosts = {
@@ -206,22 +234,46 @@ export function useXPosts<T>(selector: (s: XPostsState) => T): T {
   );
 }
 
-// The bot updates the repo twice a day; the server keeps it ten minutes. Loaded when the terminal
-// opens and again from the panel.
+// The bots update their repos a couple of times a day; the server keeps each ten minutes. Loaded
+// when the terminal opens, again from the panel and after a source changes.
 const TTL = 10 * 60_000;
+
+type PostsResponse = { posts: XPost[]; sources: XSource[]; app: boolean } | null;
 
 export async function loadXPosts(force = false) {
   const s = xPosts.get();
-  if (s.status === "loading" || s.status === "off") return;
-  if (!force && s.status === "ready" && Date.now() - s.at < TTL) return;
+  if (s.status === "loading") return;
+  if (!force && (s.status === "ready" || s.status === "signedOut") && Date.now() - s.at < TTL) return;
   xPosts.set({ status: "loading" });
   try {
     const response = await fetch("/api/coinhub/posts");
-    const result = (await response.json().catch(() => null)) as { data?: XPost[] | null } | null;
+    const result = (await response.json().catch(() => null)) as { data?: PostsResponse } | null;
     if (!response.ok || !result) throw new Error(`HTTP ${response.status}`);
-    if (!result.data) xPosts.set({ status: "off", posts: [] });
-    else xPosts.set({ status: "ready", posts: result.data, at: Date.now() });
+    if (!result.data) xPosts.set({ status: "signedOut", posts: [], sources: [], at: Date.now() });
+    else xPosts.set({ status: "ready", ...result.data, at: Date.now() });
   } catch {
     xPosts.set({ status: s.posts.length ? "ready" : "error" });
   }
 }
+
+// Adds a public repo as a source; the error code when it can't be read (badRepo, notFound,
+// badFormat, tooMany, unavailable).
+export async function addPublicSource(repo: string): Promise<string | null> {
+  const response = await fetch("/api/coinhub/posts/sources", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo }),
+  });
+  const result = (await response.json().catch(() => null)) as { error?: string } | null;
+  if (!response.ok || result?.error) return result?.error ?? "unavailable";
+  await loadXPosts(true);
+  return null;
+}
+
+export async function removeSource(id: string) {
+  await fetch(`/api/coinhub/posts/sources?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  await loadXPosts(true);
+}
+
+export const connectGitHubUrl = (lang: string, mode: "install" | "authorize" = "install") =>
+  `/api/coinhub/posts/github/connect?lang=${lang}${mode === "authorize" ? "&mode=authorize" : ""}`;

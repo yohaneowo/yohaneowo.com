@@ -1,16 +1,19 @@
 import { connection, NextResponse } from "next/server";
-import { canSeeXPosts, getXPosts } from "@/lib/coinhub/x-posts-server";
+import { getSession } from "@/lib/auth";
+import { postsForUser } from "@/lib/coinhub/x-posts-server";
+import { githubApp } from "@/lib/github-app";
 
-// The X posts for the terminal's chart marks (lib/coinhub/x-posts.ts). Visitors who aren't viewers
-// get `data: null` (not an error: the terminal asks on every load and just leaves the feature out).
+// The signed-in account's X posts and their sources (lib/coinhub/x-posts.ts). Signed out:
+// `data: null` (the panel offers to sign in). `app` says whether "connect GitHub" is available.
 export async function GET() {
-  // Per visitor, at request time: without this the route is prerendered (no token, no session at
-  // build) and answers null forever.
+  // Per visitor, at request time (never prerendered).
   await connection();
-  if (!(await canSeeXPosts())) return NextResponse.json({ data: null });
+  const session = await getSession();
+  if (!session) return NextResponse.json({ data: null });
   try {
+    const { sources, posts } = await postsForUser(session.user.id);
     return NextResponse.json(
-      { data: await getXPosts() },
+      { data: { sources, posts, app: githubApp() !== null } },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {

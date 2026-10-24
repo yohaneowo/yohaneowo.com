@@ -379,6 +379,51 @@ const coinhubEn: typeof coinhubZh = {
     sortBy: "Sort",
   },
   posts: {
+    sources: "Sources",
+    signIn:
+      "Sign in to connect your own posts repo and see the posts of the X accounts you follow on the chart.",
+    signInButton: "Sign in",
+    noPosts: "Your sources have no posts yet.",
+    sourcesIntro:
+      'Posts come from your own GitHub repo in the x-monitor format (an index.jsonl at the root), usually kept up to date by a bot such as Grok. A private repo connects through "Connect GitHub" (read-only, only the repos you pick); a public one just needs its name.',
+    privateRepo: "Private repo",
+    connectGitHub: "Connect GitHub",
+    connectHint:
+      "You'll install this site's App on GitHub and pick the repos with your posts (read access to contents only); repos with an index.jsonl are added when you come back. Installed it already?",
+    reauthorize: "Just authorize",
+    appMissing: "This site has no GitHub App set up yet; only public repos for now.",
+    publicRepo: "Public repo",
+    publicPlaceholder: "owner/repo or a GitHub URL",
+    add: "Add",
+    adding: "Checking…",
+    remove: "Remove",
+    private: "Private (through the GitHub App)",
+    public: "Public",
+    sourceCount: (n: number) => `${n} ${n === 1 ? "post" : "posts"}`,
+    template: "Template repo",
+    templateHint:
+      "No data yet? Start from the template: the format, the index script and the bot's instructions are all in it.",
+    done: "Done",
+    sourceErrors: {
+      notFound:
+        "No index.jsonl to read: the repo doesn't exist, isn't public, or has no such file at its root.",
+      denied: "No access: the GitHub App was removed or this repo isn't picked. Connect GitHub again.",
+      badFormat: "index.jsonl isn't in the format; not a single line could be read.",
+      unavailable: "Can't read it right now; try again later.",
+      badRepo: "Enter owner/repo or a GitHub URL.",
+      tooMany: "Eight sources at most.",
+    },
+    returned: {
+      connected: (n: number) =>
+        n ? `GitHub connected; ${n} ${n === 1 ? "repo" : "repos"} added.` : "GitHub connected.",
+      noIndex: "GitHub connected, but none of the picked repos has an index.jsonl at its root.",
+      noInstall: "This site's App isn't installed on GitHub; install it and pick your repos first.",
+      denied: "The GitHub authorization was cancelled.",
+      state: "That took too long or started in another browser; press Connect GitHub again.",
+      signIn: "Sign in before connecting GitHub.",
+      notConfigured: "This site has no GitHub App set up yet.",
+      failed: "Connecting GitHub failed; try again later.",
+    },
     showMarks: "Show posts on the chart",
     hideMarks: "Hide posts on the chart",
     refresh: "Reload",
@@ -398,7 +443,7 @@ const coinhubEn: typeof coinhubZh = {
     quoted: "Quotes another post",
     thread: "Continues a thread",
     switchTo: (symbol: string) => `Switch to ${symbol}`,
-    hint: "Collected by Grok twice a day (around 01:00 and 13:00 UTC); symbols, views, levels and actions are machine-read, the original text is what counts. Selecting a post draws its levels on the chart.",
+    hint: "Symbols, views, levels and actions are usually read by a bot; the original text is what counts. Selecting a post draws its levels on the chart.",
     bias: { bullish: "bullish", bearish: "bearish", neutral: "neutral", none: "mentioned" },
     actions: {
       open_long: "Long",

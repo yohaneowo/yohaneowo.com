@@ -72,6 +72,9 @@ function apply(workspace: Workspace) {
       favorites: { ...current.favorites, ...t.favorites },
       charts: t.charts?.length ? t.charts : current.charts,
       tool: null,
+      // Which side panel is open belongs to this screen (and may have just been opened on purpose,
+      // e.g. coming back from connecting GitHub), not to the account.
+      panel: current.panel,
     });
     const keep = new Set(Object.keys(workspace.drawings));
     for (const key of Object.keys(snapshot().drawings)) if (!keep.has(key)) saveDrawings(key, []);

@@ -61,6 +61,7 @@ import {
 } from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
 import {
+  accountKey,
   accountTag,
   biasColor,
   chartSymbolKey,
@@ -381,7 +382,7 @@ export function ChartPanel({
   const chartPosts = useMemo(() => {
     if (!postKey || !postsShow) return [];
     return allPosts
-      .filter((p) => !postsHidden.includes(p.folder))
+      .filter((p) => !postsHidden.includes(accountKey(p)))
       .map((p) => ({ post: p, ...postOnChart(p, postKey) }))
       .filter((p) => p.on);
   }, [postKey, postsShow, postsHidden, allPosts]);

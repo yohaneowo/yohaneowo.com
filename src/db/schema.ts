@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -186,3 +187,26 @@ export const dotaSnapshot = pgTable("dota_snapshot", {
   data: jsonb().notNull(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+// TradeHub X posts: where a site account's posts come from (lib/coinhub/x-sources.ts), each a
+// GitHub repo in the x-monitor format. A private one is read through the site's GitHub App, which
+// the person installed on the repos they chose (`installationId`; tokens are minted per read, none
+// stored); a public one is read as is (`installationId` null). The last read's outcome is kept for
+// the panel.
+export const xPostSource = pgTable(
+  "x_post_source",
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // owner/name, as GitHub spells it.
+    repo: text().notNull(),
+    installationId: text(),
+    lastOkAt: timestamp({ withTimezone: true }),
+    lastError: text(),
+    lastCount: integer(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("x_post_source_user_repo_idx").on(t.userId, t.repo)],
+);

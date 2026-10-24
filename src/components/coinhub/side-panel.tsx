@@ -24,13 +24,13 @@ import { fmtCompact, fmtNumber, fmtPercent, fmtPrice } from "@/lib/coinhub/forma
 import { setChartSymbol, setState, useTerminal, type SidePanel as Panel } from "@/lib/coinhub/store";
 import { useTicker } from "@/lib/coinhub/tickers";
 import type { CoinSymbol } from "@/lib/coinhub/types";
-import { loadXPosts, useXPosts } from "@/lib/coinhub/x-posts";
+import { loadXPosts } from "@/lib/coinhub/x-posts";
 import { AlertsPanel } from "./alerts-panel";
 import { HotlistsPanel } from "./hotlists-panel";
 import { DataWindow, ObjectTree } from "./objects-panel";
 import { useActiveSymbol, useResolved } from "./hooks";
 import { AccountPanel } from "./account-panel";
-import { PostsPanel } from "./posts-panel";
+import { PostsPanel, useXPostsReturn } from "./posts-panel";
 import { TradingPanel } from "./trading-panel";
 import { openDialog } from "./ui-store";
 
@@ -278,15 +278,15 @@ export function SideIconBar() {
   const { t } = useLocale();
   const panel = useTerminal((s) => s.panel);
   const alerts = useTerminal((s) => s.alerts.filter((a) => a.active).length);
-  // The X posts panel is only there for the viewers the site allows (lib/coinhub/x-posts.ts).
-  const postsStatus = useXPosts((s) => s.status);
-  const posts = postsStatus === "ready" || postsStatus === "error";
+  // X posts load with the terminal (their marks are on the charts even with the panel closed), and
+  // a return from connecting GitHub is announced from here.
   useEffect(() => {
     loadXPosts();
   }, []);
+  useXPostsReturn();
   return (
     <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 border-l bg-background py-1">
-      {PANELS.filter(({ key }) => key !== "posts" || posts).map(({ key, icon: Icon }) => (
+      {PANELS.map(({ key, icon: Icon }) => (
         <Tooltip key={key}>
           <TooltipTrigger
             render={

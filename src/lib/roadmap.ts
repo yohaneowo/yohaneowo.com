@@ -291,8 +291,8 @@ export const ROADMAP: RoadmapItem[] = [
     area: "coinhub",
     title: { zh: "TradeHub：X 贴文上 K 线", en: "TradeHub: X posts on the chart" },
     summary: {
-      zh: "关注的 X 交易者的贴文（Grok 每天抓两次）标在发文那根 K 线上：头像颜色是看多 / 看空，点了看摘要、原文、图片与他给的价位，价位画在图上。",
-      en: "Posts from the X traders being followed (collected by Grok twice a day) marked on the candle they were written in: coloured by the view, with the summary, text, images and price levels a click away, and the levels drawn on the chart.",
+      zh: "连接自己的贴文 repo（私有的用 GitHub 授权、只读，公开的直接填名字），关注的 X 交易者的贴文标在发文那根 K 线上：颜色是看多 / 看空，点了看摘要、原文、图片与他给的价位，价位画在图上。附范本 repo 与给 bot 的指示。",
+      en: "Connect your own posts repo (a private one through GitHub, read-only; a public one by name) and the posts of the X traders you follow show on the candle they were written in: coloured by the view, with the summary, text, images and price levels a click away, and the levels drawn on the chart. Comes with a template repo and instructions for the bot.",
     },
     why: {
       zh: "想在看图时直接看到谁在什么时候说了什么，之后再拿来分析他们说得准不准。",
@@ -300,9 +300,18 @@ export const ROADMAP: RoadmapItem[] = [
     },
     steps: [
       step(
-        "读私有 repo 的贴文、标的对到本站图表、K 线底部的标记与侧栏面板、选取后画价位",
-        "Read the posts from the private repo, map their symbols to the charts, marks under the candles, a side panel, levels for the selected post",
+        "标的对到本站图表、K 线底部的标记与侧栏面板、选取后画价位",
+        "Map the posts' symbols to the charts, marks under the candles, a side panel, levels for the selected post",
         true,
+      ),
+      step(
+        "每个用户自己的资料来源：GitHub App 连接私有 repo、公开 repo、范本 repo",
+        "Each account's own sources: private repos through a GitHub App, public repos, a template repo",
+        true,
+      ),
+      step(
+        "建 GitHub App（dev、正式站）并发布范本 repo",
+        "Create the GitHub Apps (dev, live) and publish the template",
       ),
       step("用 API 分析各帐号的准确度", "Analyse each account's accuracy through the API"),
     ],
