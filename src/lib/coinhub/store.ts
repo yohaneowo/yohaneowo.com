@@ -52,7 +52,7 @@ export const LAYOUT_COUNT: Record<LayoutKey, number> = { "1": 1, "2h": 2, "2v": 
 export type MagnetMode = "normal" | "weak_magnet" | "strong_magnet";
 export type CursorMode = "cross" | "dot" | "arrow" | "eraser";
 export type SidePanel =
-  "watchlist" | "hotlists" | "alerts" | "objects" | "data" | "trading" | "account" | "info" | null;
+  "watchlist" | "hotlists" | "alerts" | "objects" | "data" | "trading" | "account" | "posts" | "info" | null;
 
 // How one holding line is drawn (the chart settings).
 export interface HoldingLineStyle {
@@ -182,6 +182,9 @@ export interface TerminalState {
   // connection the marks and the account panel use (null: the first), and the currency the
   // holdings are valued in.
   trade: { show: boolean; connection: number | null; currency: string };
+  // X posts (lib/coinhub/x-posts.ts): whether the charts mark them, the accounts (repo folders)
+  // left out, and whether the panel lists the chart symbol's posts or all of them.
+  posts: { show: boolean; hidden: string[]; scope: "symbol" | "all" };
   // The floating market-indicators panel over the chart. x/y are its left/top in px inside the
   // chart area; null means the default spot (top right). `collapsed` lists folded group keys.
   marketPanel: { open: boolean; x: number | null; y: number | null; collapsed: string[] };
@@ -296,6 +299,7 @@ function initialState(): TerminalState {
     indicatorTemplates: [],
     paper: { balance: 10_000, initial: 10_000, positions: [], orders: [], fills: [] },
     trade: { show: true, connection: null, currency: "USD" },
+    posts: { show: true, hidden: [], scope: "symbol" },
     marketPanel: { open: false, x: null, y: null, collapsed: [] },
     favoritesBar: true,
     favoritesBarPos: null,
@@ -325,6 +329,7 @@ function load(): TerminalState {
       favorites: { ...base.favorites, ...saved.favorites },
       paper: { ...base.paper, ...saved.paper },
       trade: { ...base.trade, ...saved.trade },
+      posts: { ...base.posts, ...saved.posts },
       marketPanel: { ...base.marketPanel, ...saved.marketPanel },
       tool: null,
     };

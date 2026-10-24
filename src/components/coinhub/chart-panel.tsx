@@ -60,6 +60,16 @@ import {
   useTrade,
 } from "@/lib/coinhub/trade";
 import type { CoinSymbol } from "@/lib/coinhub/types";
+import {
+  accountTag,
+  biasColor,
+  chartSymbolKey,
+  LEVEL_COLORS,
+  postLevels,
+  postOnChart,
+  useXPosts,
+  xPosts,
+} from "@/lib/coinhub/x-posts";
 import { COMPARE_COLORS, Legend } from "./legend";
 import { SelectionToolbar } from "./selection-toolbar";
 import { openDialog, registry, ui, useUi } from "./ui-store";
@@ -194,6 +204,11 @@ export function ChartPanel({
       ctrl.on("fillMark", (ids) => {
         trade.set({ tab: "fills", highlight: ids });
         setState({ panel: "account", active: index });
+      }),
+      // A post mark opens the posts panel on those posts (the newest one's levels drawn).
+      ctrl.on("postMark", (ids) => {
+        xPosts.set({ highlight: ids, selected: ids[0] ?? null });
+        setState((s) => ({ panel: "posts", active: index, posts: { ...s.posts, scope: "symbol" } }));
       }),
     ];
     return () => {
@@ -355,6 +370,47 @@ export function ChartPanel({
     if (!controller) return;
     controller.setFillMarks(tradeShow ? fills : []);
   }, [controller, fills, tradeShow]);
+
+  // X posts about this symbol: a mark on the candle each was written in, coloured by its view here;
+  // the selected post's price levels as rays from that candle.
+  const postsShow = useTerminal((s) => s.posts.show);
+  const postsHidden = useTerminal((s) => s.posts.hidden);
+  const allPosts = useXPosts((s) => s.posts);
+  const selectedPost = useXPosts((s) => s.selected);
+  const postKey = symbol ? chartSymbolKey(symbol) : null;
+  const chartPosts = useMemo(() => {
+    if (!postKey || !postsShow) return [];
+    return allPosts
+      .filter((p) => !postsHidden.includes(p.folder))
+      .map((p) => ({ post: p, ...postOnChart(p, postKey) }))
+      .filter((p) => p.on);
+  }, [postKey, postsShow, postsHidden, allPosts]);
+  useEffect(() => {
+    if (!controller) return;
+    controller.setPostMarks(
+      chartPosts.map(({ post, bias }) => ({
+        id: post.id,
+        time: post.time,
+        tag: accountTag(post.account),
+        color: biasColor(bias),
+      })),
+      selectedPost,
+    );
+  }, [controller, chartPosts, selectedPost]);
+  useEffect(() => {
+    if (!controller) return;
+    const post = postKey && postsShow ? allPosts.find((p) => p.id === selectedPost) : undefined;
+    controller.setPostLevels(
+      post && postKey
+        ? postLevels(post, postKey).map((l) => ({
+            time: post.time,
+            price: l.price,
+            text: `${accountTag(post.account)} ${c.posts.levelTypes[l.type]} ${l.price.toLocaleString("en-US", { maximumFractionDigits: 8 })}`,
+            color: LEVEL_COLORS[l.type],
+          }))
+        : [],
+    );
+  }, [controller, postKey, postsShow, allPosts, selectedPost, c]);
 
   // Lines at what the account holds here: the cost of a spot / stock holding (from the fills), a
   // futures position's break-even and liquidation prices (from the exchange).

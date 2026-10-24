@@ -16,6 +16,7 @@ import { fetchBars, subscribeBars } from "./datafeed";
 import { registerIndicators } from "./indicators";
 import { bucketStart, type IntervalDef } from "./intervals";
 import { registerDrawingTools } from "./overlays";
+import { POST_KEY } from "./overlays/trading";
 import { DEFAULT_COLOR, indexAt } from "./overlays/utils";
 import type {
   ChartSettings,
@@ -64,7 +65,26 @@ export type ControllerEvents = {
   click: { price: number | null; timestamp: number | null };
   // A fill mark was clicked: the ids of the fills it stands for.
   fillMark: string[];
+  // An X post mark was clicked: the ids of the posts it stands for.
+  postMark: string[];
 };
+
+// An X post on this chart (lib/coinhub/x-posts.ts): when, the account's two letters and the colour
+// of its view here.
+export interface PostMarkInput {
+  id: string;
+  time: number;
+  tag: string;
+  color: string;
+}
+
+// A price level of the selected post, drawn from the post's candle onwards.
+export interface PostLevelInput {
+  time: number;
+  price: number;
+  text: string;
+  color: string;
+}
 
 export interface ReplayState {
   mode: "off" | "selecting" | "playing" | "paused";
@@ -117,6 +137,9 @@ export class ChartController {
   private gen = 0;
   private raw: KLineData[] = [];
   private fillMarks: TradeFill[] = [];
+  private postMarks: PostMarkInput[] = [];
+  private postLevels: PostLevelInput[] = [];
+  private selectedPost: string | null = null;
   private gridLines: GridLines[] = [];
   // Which grid levels were drawn as sells (above the price) last time: redrawn when that changes.
   private gridSplit = "";
@@ -270,6 +293,7 @@ export class ChartController {
           callback(this.transform(bars), { forward: more, backward: !this.atRealtime });
           this.emit("status", { loading: false, error: false, empty: bars.length === 0 });
           this.applyFillMarks();
+          this.applyPostMarks();
           this.applyGridLines();
           if (this.anchorEnd !== null) {
             const target = this.anchorEnd - interval.ms * 50;
@@ -281,8 +305,11 @@ export class ChartController {
           const older = bars.filter((b) => b.timestamp < (this.raw[0]?.timestamp ?? Infinity));
           this.raw = older.concat(this.raw);
           callback(this.transform(older), { forward: more && older.length > 0 });
-          // Older candles can now carry the fills that fell before the chart's start.
-          if (older.length) this.applyFillMarks();
+          // Older candles can now carry the fills and posts that fell before the chart's start.
+          if (older.length) {
+            this.applyFillMarks();
+            this.applyPostMarks();
+          }
         }
       } catch {
         if (gen !== this.gen) return;
@@ -1057,6 +1084,75 @@ export class ChartController {
         onRightClick: (e) => e.preventDefault?.(),
       });
     }
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // X posts: one mark per candle at the bottom of the pane (a stack of the posts written in it),
+  // and the selected post's price levels as rays from its candle.
+
+  setPostMarks(marks: PostMarkInput[], selected: string | null) {
+    this.postMarks = marks;
+    this.selectedPost = selected;
+    this.applyPostMarks();
+  }
+
+  setPostLevels(levels: PostLevelInput[]) {
+    this.postLevels = levels;
+    this.applyPostLevels();
+  }
+
+  private applyPostMarks() {
+    this.chart.removeOverlay({ groupId: "posts" });
+    if (this.raw.length && this.postMarks.length) {
+      // One point per candle with posts; the overlay stacks neighbouring candles as it draws.
+      const groups = new Map<number, PostMarkInput[]>();
+      for (const m of this.postMarks) {
+        const i = indexAt(this.raw, m.time);
+        if (i < 0) continue;
+        const ts = this.raw[i].timestamp;
+        groups.set(ts, [...(groups.get(ts) ?? []), m]);
+      }
+      const bars = [...groups.keys()].sort((a, b) => a - b);
+      if (bars.length)
+        this.chart.createOverlay({
+          id: "postMarks",
+          name: "postMarks",
+          groupId: "posts",
+          lock: true,
+          points: bars.map((ts) => ({ timestamp: ts, value: 0 })),
+          extendData: {
+            groups: bars.map((ts) =>
+              [...groups.get(ts)!]
+                .sort((a, b) => b.time - a.time)
+                .map((m) => ({ id: m.id, tag: m.tag, color: m.color, selected: m.id === this.selectedPost })),
+            ),
+          },
+          onClick: (e) => {
+            const key = e.figure?.key;
+            if (key?.startsWith(POST_KEY)) this.emit("postMark", key.slice(POST_KEY.length).split(","));
+          },
+          onRightClick: (e) => e.preventDefault?.(),
+        });
+    }
+    this.applyPostLevels();
+  }
+
+  private applyPostLevels() {
+    this.chart.removeOverlay({ groupId: "postLevels" });
+    if (!this.raw.length) return;
+    this.postLevels.forEach((l, n) => {
+      const i = indexAt(this.raw, l.time);
+      const bar = this.raw[Math.max(0, i)];
+      this.chart.createOverlay({
+        id: `postLevel_${n}`,
+        name: "postLevel",
+        groupId: "postLevels",
+        lock: true,
+        points: [{ timestamp: bar.timestamp, value: l.price }],
+        extendData: { text: l.text, color: l.color },
+        onRightClick: (e) => e.preventDefault?.(),
+      });
+    });
   }
 
   // -------------------------------------------------------------------------------------------

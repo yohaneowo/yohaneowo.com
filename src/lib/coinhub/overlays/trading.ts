@@ -272,10 +272,142 @@ const fillMark: OverlayTemplate = tool(
   { needDefaultPointFigure: false, needDefaultXAxisFigure: false, needDefaultYAxisFigure: false },
 );
 
+// The X posts on the chart (lib/coinhub/x-posts.ts), like TradingView's events: stacks of small
+// round badges at the bottom of the pane, one badge per post (up to MAX_POST_BADGES a stack, then
+// "+n"), each with the account's two letters on the colour of its view (green bullish, red
+// bearish, grey neutral or none); the selected post's badge has a ring. One overlay holds every
+// candle that has posts (a point each, `groups` beside them); candles closer than a badge are
+// stacked together on every redraw, so zooming out merges them instead of piling badges up. A
+// badge's figure key carries the ids of its stack, which a click opens.
+export type PostBadge = { id: string; tag: string; color: string; selected: boolean };
+export type PostMarksOptions = { groups: PostBadge[][] };
+
+const MAX_POST_BADGES = 3;
+const BADGE_R = 8;
+const BADGE_GAP = 2;
+
+export const POST_KEY = "posts:";
+
+const postMarks: OverlayTemplate = tool(
+  "postMarks",
+  1,
+  ({ coordinates, bounding, overlay }) => {
+    const o = ext(overlay, { groups: [] } as PostMarksOptions);
+    const r = BADGE_R;
+    const step = 2 * r + BADGE_GAP;
+    const bottom = bounding.height - 4;
+    // Each candle's posts (newest first) at its x, left to right; a stack takes the candles that
+    // start within one badge of its first.
+    const placed = coordinates
+      .map((c, i) => ({ x: c.x, items: o.groups[i] ?? [] }))
+      .filter((g) => g.items.length && g.x > -r && g.x < bounding.width + r)
+      .sort((a, b) => a.x - b.x);
+    const stacks: Array<{ first: number; xs: number[]; items: PostBadge[] }> = [];
+    for (const g of placed) {
+      const last = stacks[stacks.length - 1];
+      if (last && g.x - last.first < step) {
+        last.xs.push(g.x);
+        // Later candles' posts are newer: they go to the bottom of the stack.
+        last.items = [...g.items, ...last.items];
+      } else stacks.push({ first: g.x, xs: [g.x], items: [...g.items] });
+    }
+    const figures: OverlayFigure[] = [];
+    for (const stack of stacks) {
+      const x = stack.xs.reduce((a, b) => a + b, 0) / stack.xs.length;
+      const key = POST_KEY + stack.items.map((i) => i.id).join(",");
+      stack.items.slice(0, MAX_POST_BADGES).forEach((item, i) => {
+        const y = bottom - r - i * step;
+        if (item.selected)
+          figures.push({
+            key,
+            type: "circle",
+            attrs: { x, y, r: r + 2.5 },
+            styles: { style: "stroke", borderColor: item.color, borderSize: 1.5 },
+          });
+        figures.push({
+          key,
+          type: "circle",
+          attrs: { x, y, r },
+          styles: {
+            style: "stroke_fill",
+            color: item.color,
+            borderColor: alpha("#ffffff", 0.85),
+            borderSize: 1,
+          },
+        });
+        figures.push(
+          label(x, y, item.tag, { color: "#fff", size: 8, bold: true, align: "center", baseline: "middle" }),
+        );
+      });
+      const shown = Math.min(stack.items.length, MAX_POST_BADGES);
+      const extra = stack.items.length - shown;
+      if (extra > 0)
+        figures.push(
+          label(x, bottom - shown * step - 1, `+${extra}`, {
+            color: "#787b86",
+            size: 9,
+            bold: true,
+            align: "center",
+            baseline: "bottom",
+          }),
+        );
+    }
+    return figures;
+  },
+  { needDefaultPointFigure: false, needDefaultXAxisFigure: false, needDefaultYAxisFigure: false },
+);
+
+// A price level from the selected X post: a dashed line across the pane, faint before the post's
+// candle and full after it, tagged at the left with the account, the kind of level and the price
+// (at the left so it shows however far back the post is).
+export type PostLevelOptions = { text: string; color: string };
+
+const postLevel: OverlayTemplate = tool(
+  "postLevel",
+  1,
+  ({ coordinates, bounding, overlay }) => {
+    const o = ext(overlay, { text: "", color: "#787b86" } as PostLevelOptions);
+    const { x, y } = coordinates[0];
+    const from = Math.min(Math.max(0, x), bounding.width);
+    const figures: OverlayFigure[] = [];
+    if (from > 0)
+      figures.push(
+        line(
+          [
+            { x: 0, y },
+            { x: from, y },
+          ],
+          { color: alpha(o.color, 0.35), size: 1, style: "dashed", dashedValue: [2, 4] },
+        ),
+      );
+    figures.push(
+      line(
+        [
+          { x: from, y },
+          { x: bounding.width, y },
+        ],
+        { color: o.color, size: 1, style: "dashed", dashedValue: [5, 3] },
+      ),
+      label(8, y - 2, o.text, {
+        color: o.color,
+        background: alpha(o.color, 0.12),
+        borderColor: alpha(o.color, 0.6),
+        baseline: "bottom",
+        padding: 2,
+        size: 10,
+      }),
+    );
+    return figures;
+  },
+  { needDefaultPointFigure: false, needDefaultXAxisFigure: false, needDefaultYAxisFigure: false },
+);
+
 export const TRADING_OVERLAYS: OverlayTemplate[] = [
   priceTagLine("alertLine"),
   priceTagLine("orderLine"),
   holdingLine,
   gridLine,
   fillMark,
+  postMarks,
+  postLevel,
 ];

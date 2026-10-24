@@ -286,6 +286,31 @@ export const ROADMAP: RoadmapItem[] = [
     shipped: "2026-10-23",
   },
   {
+    id: "tradehub-x-posts",
+    status: "building",
+    area: "coinhub",
+    title: { zh: "TradeHub：X 贴文上 K 线", en: "TradeHub: X posts on the chart" },
+    summary: {
+      zh: "关注的 X 交易者的贴文（Grok 每天抓两次）标在发文那根 K 线上：头像颜色是看多 / 看空，点了看摘要、原文、图片与他给的价位，价位画在图上。",
+      en: "Posts from the X traders being followed (collected by Grok twice a day) marked on the candle they were written in: coloured by the view, with the summary, text, images and price levels a click away, and the levels drawn on the chart.",
+    },
+    why: {
+      zh: "想在看图时直接看到谁在什么时候说了什么，之后再拿来分析他们说得准不准。",
+      en: "To see who said what and when right on the chart, and later to check how often they were right.",
+    },
+    steps: [
+      step(
+        "读私有 repo 的贴文、标的对到本站图表、K 线底部的标记与侧栏面板、选取后画价位",
+        "Read the posts from the private repo, map their symbols to the charts, marks under the candles, a side panel, levels for the selected post",
+        true,
+      ),
+      step("用 API 分析各帐号的准确度", "Analyse each account's accuracy through the API"),
+    ],
+    links: [{ label: { zh: "TradeHub", en: "TradeHub" }, href: "/tradehub" }],
+    added: "2026-10-24",
+    started: "2026-10-24",
+  },
+  {
     id: "tradehub-exchanges",
     status: "shipped",
     area: "coinhub",

@@ -36,6 +36,7 @@ import { TopToolbar } from "./top-toolbar";
 import { usePaperEngine } from "./trading-panel";
 import { useWorkspaceSync } from "@/lib/coinhub/sync";
 import { loadConnections } from "@/lib/coinhub/trade";
+import { xPosts } from "@/lib/coinhub/x-posts";
 import { openDialog, registry, ui } from "./ui-store";
 
 const GRID: Record<LayoutKey, string> = {
@@ -197,7 +198,7 @@ export function Terminal() {
   useEffect(() => {
     // Dev-only handle for automated UI checks.
     if (process.env.NODE_ENV !== "production")
-      Object.assign(window, { __coinhub: { registry, getState, setState, ui } });
+      Object.assign(window, { __coinhub: { registry, getState, setState, ui, xPosts } });
     const symbol = new URLSearchParams(window.location.search).get("symbol");
     if (symbol) setChartSymbol(getState().active, symbol);
     const onFullscreen = () => ui.set({ fullscreen: !!document.fullscreenElement });

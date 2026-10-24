@@ -9,6 +9,7 @@ import {
   LandmarkIcon,
   ListIcon,
   ListTreeIcon,
+  MessageSquareTextIcon,
   PanelRightCloseIcon,
   PlusIcon,
   WalletIcon,
@@ -23,11 +24,13 @@ import { fmtCompact, fmtNumber, fmtPercent, fmtPrice } from "@/lib/coinhub/forma
 import { setChartSymbol, setState, useTerminal, type SidePanel as Panel } from "@/lib/coinhub/store";
 import { useTicker } from "@/lib/coinhub/tickers";
 import type { CoinSymbol } from "@/lib/coinhub/types";
+import { loadXPosts, useXPosts } from "@/lib/coinhub/x-posts";
 import { AlertsPanel } from "./alerts-panel";
 import { HotlistsPanel } from "./hotlists-panel";
 import { DataWindow, ObjectTree } from "./objects-panel";
 import { useActiveSymbol, useResolved } from "./hooks";
 import { AccountPanel } from "./account-panel";
+import { PostsPanel } from "./posts-panel";
 import { TradingPanel } from "./trading-panel";
 import { openDialog } from "./ui-store";
 
@@ -234,6 +237,7 @@ const PANELS: Array<{ key: Exclude<Panel, null>; icon: typeof ListIcon }> = [
   { key: "data", icon: DatabaseIcon },
   { key: "trading", icon: WalletIcon },
   { key: "account", icon: LandmarkIcon },
+  { key: "posts", icon: MessageSquareTextIcon },
   { key: "info", icon: InfoIcon },
 ];
 
@@ -255,6 +259,7 @@ export function SidePanelContent() {
       {panel === "data" && <DataWindow />}
       {panel === "trading" && <TradingPanel />}
       {panel === "account" && <AccountPanel />}
+      {panel === "posts" && <PostsPanel />}
       {panel === "info" && (
         <>
           <div className="flex h-10 shrink-0 items-center border-b px-3 text-sm font-medium">
@@ -273,9 +278,15 @@ export function SideIconBar() {
   const { t } = useLocale();
   const panel = useTerminal((s) => s.panel);
   const alerts = useTerminal((s) => s.alerts.filter((a) => a.active).length);
+  // The X posts panel is only there for the viewers the site allows (lib/coinhub/x-posts.ts).
+  const postsStatus = useXPosts((s) => s.status);
+  const posts = postsStatus === "ready" || postsStatus === "error";
+  useEffect(() => {
+    loadXPosts();
+  }, []);
   return (
     <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 border-l bg-background py-1">
-      {PANELS.map(({ key, icon: Icon }) => (
+      {PANELS.filter(({ key }) => key !== "posts" || posts).map(({ key, icon: Icon }) => (
         <Tooltip key={key}>
           <TooltipTrigger
             render={
