@@ -305,15 +305,9 @@ const dotahubEn: typeof dotahubZh = {
       `The bracket win rate is STRATZ's: in the ${bracket} bracket, how often this hero beats each other hero. Your record is your own result on this hero against it. Big gaps are flagged.`,
     intro: (hero: string, bracket: string) => `In ${bracket} ranked matches, playing ${hero}:`,
     introHint: (range: string) =>
-      `Ranked matches of the ${range}. Each card has a win-rate scale: the hollow ring is the rate the two heroes' usual win rates predict, the grey dot is the bracket's actual rate against it, and the gap between them is STRATZ's advantage (red: fewer wins than predicted, green: more); the coloured dot is your own rate on this hero against it.`,
-    scaleHint:
-      "Hollow ring: the rate the heroes' usual win rates predict; grey dot: the bracket's actual rate; coloured dot: yours.",
-    expectedLabel: (v: string) => `predicted ${v}`,
-    expectedColumn: "Predicted",
-    legendExpected: "predicted from both heroes' usual win rates",
-    legendBracket: "bracket's actual win rate",
-    legendYou: "your win rate (red when below the bracket's)",
-    scaleRange: (lo: number, hi: number) => `scale ${lo}%–${hi}%, line at 50%`,
+      `Advantage is STRATZ's figure: how many points more (or fewer) this hero wins against that one than usual, over ranked matches of the ${range}; the red or green bar is the size of the advantage, not the sample. Under each card: the bracket's win rate with its sample, your own record on this hero against it, and two thin bars for the two win rates (grey: bracket, coloured: you).`,
+    barHint: "The bar is the size of the advantage (relative to the largest on this page), not the sample.",
+    rateBarsHint: "Top bar: the bracket's win rate; bottom bar: yours.",
     bracketLine: (rate: string, n: number) => `Bracket ${rate} · ${n.toLocaleString()} matches`,
     sampleColumn: "Sample",
     tableHint:
